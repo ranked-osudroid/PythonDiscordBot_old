@@ -1,8 +1,5 @@
-# TOKEN : NjYwODQxNzg2MTEyOTk5NDI1.XgjODg.qJmbmZVUlhCFcyCMSv76HD-KE_M
-
 import asyncio, discord, time
 
-token = "NjYwODQxNzg2MTEyOTk5NDI1.XgjODg.qJmbmZVUlhCFcyCMSv76HD-KE_M"
 app = discord.Client()
 
 datas = dict()
@@ -213,4 +210,4 @@ async def on_message(message):
         await ch.send(f"ERROR OCCURED: {ex}")
         print("ERROR OCCURED:", ex)
         
-app.run(token)
+app.run("token")
