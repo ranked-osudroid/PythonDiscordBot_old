@@ -2,6 +2,9 @@ import asyncio, discord, time
 
 app = discord.Client()
 
+with open("key.txt", 'r') as f:
+    token = f.read()
+
 datas = dict()
 teams = dict()
 
@@ -210,4 +213,4 @@ async def on_message(message):
         await ch.send(f"ERROR OCCURED: {ex}")
         print("ERROR OCCURED:", ex)
         
-app.run("token")
+app.run(token)
