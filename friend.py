@@ -5,68 +5,42 @@ app = discord.Client()
 with open("key.txt", 'r') as f:
     token = f.read()
 
+err = "WRONG COMMAND : "
+
 datas = dict()
 teams = dict()
 
-helptxt = """
-v. 20191231.23.0
-
-__**BASIC** COMMAND__
-
-f:hello
-==> Huy I'm here XD
-
-f:say blah
-==> Say blah
-
-
-__COMMAND FOR **MATCH**__
-
-f:match __team add__ *TEAM_NAME* 
-f:match __team remove__ *TEAM_NAME*
-==> Add/remove team to/from team list.
-
-f:match __player add__ *TEAM_NAME*
-f:match __player remove__ *TEAM_NAME*
-==> Add/remove player to/from team; *There's not that player in that team.*
-
-f:match __score add__ *YOUR_SCORE*
-f:match __score remove__ *YOUR_SCORE*
-==> Add/remove player's score in player's team; *Removing means making player's score 0*
-
-f:match __submit__
-==> Sum scores of each team and give setscore(+1) to the team that got highest scores; If there's same top score, all teams that got top score will have score.
-
-f:match __now__
-==> Show *now* setscores of each team.
-
-f:match __end__
-==> Make the current match end and show the winner team; ~~*still you can continue the match. I'll fix it later.*~~
-
-f:match reset
-==> Delete the whole info of the current match. (team names, players configs, etc.) You have to set those *again from the beginnig*.
-
-"""
+helptxt = discord.Embed(title="COMMANDS DESCRIPTHION", description='**ver. 1.1_20200103**', color=discord.Colour(0xfefefe))
+helptxt.add_field(name='f:hello', value='"Huy I\'m here XD"')
+helptxt.add_field(name='f:say *<message>*', value='Say <message>.')
+helptxt.add_field(name='f:match __team [add/remove]__ *<team name>*', value='Add/remove team.')
+helptxt.add_field(name='f:match __player [add/remove]__ *<team name>*', value='Add/remove **you (not another user)** to/from team.')
+helptxt.add_field(name='f:match __score [add/remove]__ *(score)*', value='Add/remove score to/from **your** team; if you already added score, it\'ll chandge to new one; the parameter *(score)* can be left out when \'remov\'ing the score.')
+helptxt.add_field(name='f:match __submit__', value='Sum scores of each team and give setscore(+1) to the winner team(s); **If there\'s tie, all teams of tie will get a point**.')
+helptxt.add_field(name='f:match __now__', value='Show how many scores each team got.')
+helptxt.add_field(name='f:match __end__', value='Compare setscores of each team and show who\'s the winner team(s).')
+helptxt.add_field(name='f:match __reset__', value='DELETE the current match')
 
 @app.event
 async def on_ready():
     print("BOT NAME :", app.user.name)
     print("BOT ID   :", app.user.id)
-    game = discord.Game("BETA TESTING")
+    game = discord.Game("f:help")
     await app.change_presence(status=discord.Status.online, activity=game)
     print("==========BOT START==========")
 
 @app.event
 async def on_message(message):
     try:
+        global datas, teams
         p = message.author
-        g = message.guild
+        g = message.guild.id
         ch = message.channel
-        err = "WRONG COMMAND"
+        chid = ch.id
         if p == app.user:
             return None
         if message.content.startswith("f:"):
-            print(f"[{time.strftime('%Y-%m-%d %b %X', time.localtime(time.time()))}] <{message.author.name}> {message.content}")
+            print(f"[{time.strftime('%Y-%m-%d %b %X', time.localtime(time.time()))}] [{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}")
             command = message.content[2:].split(' ')
 
 
@@ -75,21 +49,20 @@ async def on_message(message):
             
 
             elif command[0]=="help":
-                await ch.send(helptxt)
+                await ch.send(embed=helptxt)
             
 
             elif command[0]=="match":
-                global datas, teams
                 if not g in datas:
                     datas[g] = dict()
-                if not ch in datas[g]:
-                    datas[g][ch] = dict()
+                if not chid in datas[g]:
+                    datas[g][chid] = dict()
                 if not g in teams:
                     teams[g] = dict()
-                if not ch in teams[g]:
-                    teams[g][ch] = dict()
-                nowmatch = datas[g][ch]
-                nowteams = teams[g][ch]
+                if not chid in teams[g]:
+                    teams[g][chid] = dict()
+                nowmatch = datas[g][chid]
+                nowteams = teams[g][chid]
 
                 if not "setscores" in nowmatch:
                     nowmatch["setscores"] = dict()
@@ -97,101 +70,97 @@ async def on_message(message):
                     nowmatch["scores"] = dict()
 
                 if command[1]=="team":
+                    teamname = ' '.join(command[3:])
                     if command[2]=="add":
-                        if not command[3] in nowmatch["setscores"] or not command[3] in nowmatch["scores"]:
-                            nowmatch["setscores"][command[3]] = 0
-                            nowmatch["scores"][command[3]] = dict()
-                            await ch.send(f"Added Team \"{command[3]}\".")
+                        if not teamname in nowmatch["setscores"] or not teamname in nowmatch["scores"]:
+                            nowmatch["setscores"][teamname] = 0
+                            nowmatch["scores"][teamname] = dict()
+                            await ch.send(embed=discord.Embed(title=f"Added Team \"{teamname}\".", description=f"Now team list:\n{chr(10).join(nowmatch['scores'].keys())}", color=discord.Colour.blue()))
                         else:
-                            await ch.send(f"Team \"{command[3]}\" already exists.")
+                            await ch.send(embed=discord.Embed(title=f"Team \"{teamname}\" already exists.", description=f"Now team list:\n{chr(10).join(nowmatch['scores'].keys())}", color=discord.Colour.blue()))
                     elif command[2]=="remove":
-                        del nowmatch["setscores"][command[3]]
-                        del nowmatch["scores"][command[3]]
-                        await ch.send(f"Removed Team \"{command[3]}\"")
+                        del nowmatch["setscores"][teamname]
+                        del nowmatch["scores"][teamname]
+                        await ch.send(embed=discord.Embed(title=f"Removed Team \"{teamname}\"", description=f"Now team list:\n{chr(10).join(nowmatch['scores'].keys())}", color=discord.Colour.blue()))
                     else:
-                        await ch.send(err)
+                        await ch.send(err+command[2])
                 
                 elif command[1]=="player":
+                    teamname = ' '.join(command[3:])
                     if command[2]=="add":
-                        nowteams[p] = command[3]
+                        nowteams[p] = teamname
                         nowmatch["scores"][nowteams[p]][p] = 0
-                        await ch.send(f"Added Player \"{p.name}\" to Team \"{command[3]}\"")
+                        await ch.send(embed=discord.Embed(title=f"Added Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][nowteams[p]].keys())}", color=discord.Colour.blue()))
                     elif command[2]=="remove":
+                        temp = nowteams[p]
                         del nowteams[p]
-                        del nowmatch["scores"][nowteams[p]][p]
-                        await ch.send(f"Removed Player \"{p.name}\" to Team \"{command[3]}\"")
+                        del nowmatch["scores"][temp][p]
+                        await ch.send(embed=discord.Embed(title=f"Removed Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][temp].keys())}", color=discord.Colour.blue()))
                     else:
-                        await ch.send(err)
+                        await ch.send(err+command[2])
 
                 elif command[1]=="score":
                     if command[2]=="add":
                         nowmatch["scores"][nowteams[p]][p] = int(command[3])
-                        await ch.send(f"Added (or changed) {p.name}'(s) score; {command[3]} (Team \"{nowteams[p]}\")")
+                        await ch.send(embed=discord.Embed(title=f"Added/changed {p.display_name}'(s) score", description=f"{command[3]} to Team {nowteams[p]}", color=discord.Colour.blue()))
                     elif command[2]=="remove":
+                        temp = nowmatch["scores"][nowteams[p]][p]
                         nowmatch["scores"][nowteams[p]][p] = 0
-                        await ch.send(f"Removed (changed score to 0) {p.name}'(s) score; {command[3]} (Team \"{nowteams[p]}\")")
+                        await ch.send(embed=discord.Embed(title=f"Removed {p.display_name}'(s) score", description=f"{temp} from Team {nowteams[p]}", color=discord.Colour.blue()))
                     else:
-                        await ch.send(err)
+                        await ch.send(err+command[2])
                 
                 elif command[1]=="submit":
                     sums = dict([(t, sum(nowmatch["scores"][t].values())) for t in nowmatch["scores"]])
-                    sendtxt = '\n'.join(f"__TEAM {i}__: **{sums[i]}**" for i in sums)
-                    if sendtxt!="":
-                        winners = list(filter(lambda x: sums[x]==max(sums.values()), sums.keys()))
-                        for w in winners:
-                            nowmatch["setscores"][w] += 1
-                        sendtxt += f"\n\n__**Team {', '.join(winners)} take(s) a point!**__"
-                        sendtxt += f"\nNow match points:\n"
-                        sendtxt += '\n'.join(f"__TEAM {i}__: **{nowmatch['setscores'][i]}**" for i in sums)
-                        await ch.send(sendtxt)
-                        for t in sums:
-                            for p in nowmatch["scores"][t]:
-                                nowmatch["scores"][t][p] = 0
-                        await ch.send("Successfully reset scores")
-                    else:
-                        await ch.send("No teams added!")
+                    winners = list(filter(lambda x: sums[x]==max(sums.values()), sums.keys()))
+                    for w in winners:
+                        nowmatch["setscores"][w] += 1
+                    sendtxt = discord.Embed(title=f"__**Team {', '.join(winners)} take(s) a point!**__", description='\n'.join(f"__TEAM {i}__: **{sums[i]}**" for i in sums), color=discord.Colour.red())
+                    sendtxt.add_field(name=f"\nNow match points:", value='\n'.join(f"__TEAM {i}__: **{nowmatch['setscores'][i]}**" for i in sums))
+                    await ch.send(embed=sendtxt)
+                    for t in sums:
+                        for p in nowmatch["scores"][t]:
+                            nowmatch["scores"][t][p] = 0
+                    await ch.send(embed=discord.Embed(title="Successfully reset scores", color=discord.Colour.red()))
                 
                 elif command[1]=="now":
-                    sendtxt = '\n'.join(f"__TEAM {i}__: **{nowmatch['setscores'][i]}**" for i in nowmatch["setscores"])
-                    await ch.send(sendtxt)
+                    await ch.send(embed=discord.Embed(title="Current match progress", description='\n'.join(f"__TEAM {i}__: **{nowmatch['setscores'][i]}**" for i in nowmatch["setscores"]), color=discord.Colour.orange()))
 
                 elif command[1]=="end":
                     sums = sorted(list(nowmatch["setscores"].items()), key=lambda x: x[1], reverse=True)
-                    if sums!=[]:
-                        sendtxt = "__**MATCH END**__\n"
-                        for i, t in enumerate(sums):
-                            sendtxt += "\n"
-                            if (i+1)%10==1:
-                                sendtxt += f"{i+1}st"
-                            elif (i+1)%10==2:
-                                sendtxt += f"{i+1}nd"
-                            elif (i+1)%10==3:
-                                sendtxt += f"{i+1}rd"
-                            else:
-                                sendtxt += f"{i+1}th"
-                            sendtxt +=  f" TEAM : {t[0]} <== {t[1]} score(s)"
-                        sendtxt += f"\n\n__**TEAM {sums[0][0]}, YOU ARE WINNER!\nCONGRATURATIONS!!!**__\n\nIf you want to play new match, chat \"f:match reset\""
-                        await ch.send(sendtxt)
-                    else:
-                        await ch.send("No teams added!")
+                    tl = []
+                    tt = "__**MATCH END**__"
+                    for i, t in enumerate(sums):
+                        temp = ''
+                        if (i+1)%10==1:
+                            temp += f"{i+1}st"
+                        elif (i+1)%10==2:
+                            temp += f"{i+1}nd"
+                        elif (i+1)%10==3:
+                            temp += f"{i+1}rd"
+                        else:
+                            temp += f"{i+1}th"
+                        tl.append(temp+f" TEAM : {t[0]} <== {t[1]} score(s)")
+                    sendtxt = discord.Embed(title=tt, description='\n'.join(tl)+f"\n\n__**TEAM {sums[0][0]}, YOU ARE WINNER!\nCONGRATURATIONS!!!**__", color=discord.Colour.gold())
+                    await ch.send(embed=sendtxt)
                 
                 elif command[1]=="reset":
                     nowmatch = dict()
                     nowteams = dict()
-                    await ch.send("Successfully reset\nYou need to set teams and players *again*.")
+                    await ch.send(embed=discord.Embed(title="Successfully reset.", color=discord.Colour(0x808080)))
                 
                 else:
-                    await ch.send(err)
+                    await ch.send(err+command[1])
                 
-                datas[g][ch] = nowmatch
-                teams[g][ch] = nowteams
+                datas[g][chid] = nowmatch
+                teams[g][chid] = nowteams
             
 
             elif command[0]=="say":
                 sendtxt = " ".join(command[1:])
                 if not message.mention_everyone:
                     for u in message.mentions:
-                        sendtxt = sendtxt.replace("<@!"+str(u.id)+">", u.name)
+                        sendtxt = sendtxt.replace("<@!"+str(u.id)+">", u.display_name)
                     if sendtxt!="":
                         print("QUERY:", sendtxt)
                         await ch.send(sendtxt)
@@ -202,11 +171,14 @@ async def on_message(message):
             
             
             elif command[0]=="run":
-                exec(' '.join(command[1:]))
-                await ch.send("RAN COMMAND(S)")
+                if p.name=="Friendship1226":
+                    exec(' '.join(command[1:]), globals(), locals())
+                    await ch.send("RAN COMMAND(S)")
+                else:
+                    await ch.send("ACCESS DENIED")
             
             else:
-                await ch.send(err)
+                await ch.send(err+command[0])
 
     
     except Exception as ex:
