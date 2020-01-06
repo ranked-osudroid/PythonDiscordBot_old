@@ -10,7 +10,7 @@ err = "WRONG COMMAND : "
 datas = dict()
 teams = dict()
 
-helptxt = discord.Embed(title="COMMANDS DESCRIPTHION", description='**ver. 1.1_20200103**', color=discord.Colour(0xfefefe))
+helptxt = discord.Embed(title="COMMANDS DESCRIPTHION", description='**ver. 1.2_20200106**', color=discord.Colour(0xfefefe))
 helptxt.add_field(name='f:hello', value='"Huy I\'m here XD"')
 helptxt.add_field(name='f:say *<message>*', value='Say <message>.')
 helptxt.add_field(name='f:match __team [add/remove]__ *<team name>*', value='Add/remove team.')
@@ -31,11 +31,11 @@ async def on_ready():
 
 @app.event
 async def on_message(message):
+    ch = message.channel
     try:
         global datas, teams
         p = message.author
         g = message.guild.id
-        ch = message.channel
         chid = ch.id
         if p == app.user:
             return None
@@ -88,9 +88,12 @@ async def on_message(message):
                 elif command[1]=="player":
                     teamname = ' '.join(command[3:])
                     if command[2]=="add":
-                        nowteams[p] = teamname
-                        nowmatch["scores"][nowteams[p]][p] = 0
-                        await ch.send(embed=discord.Embed(title=f"Added Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][nowteams[p]].keys())}", color=discord.Colour.blue()))
+                        if not p in nowteams:
+                            nowteams[p] = teamname
+                            nowmatch["scores"][nowteams[p]][p] = 0
+                            await ch.send(embed=discord.Embed(title=f"Added Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][nowteams[p]].keys())}", color=discord.Colour.blue()))
+                        else:
+                            await ch.send(embed=discord.Embed(title=f"Player \"{p.display_name}\" is already in a team!", description=f"You already participated in Team {nowteams[p]}. If you want to change the team please command 'f:match remove {nowteams[p]}'."))
                     elif command[2]=="remove":
                         temp = nowteams[p]
                         del nowteams[p]
