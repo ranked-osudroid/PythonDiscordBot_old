@@ -10,6 +10,8 @@ err = "WRONG COMMAND : "
 datas = dict()
 teams = dict()
 
+neroscoreV2 = lambda maxscore, score, acc, miss: round((score/maxscore * 600000 + (acc**4)/250) * (1-0.003*miss))
+
 helptxt = discord.Embed(title="COMMANDS DESCRIPTHION", description='**ver. 1.2_20200106**', color=discord.Colour(0xfefefe))
 helptxt.add_field(name='f:hello', value='"Huy I\'m here XD"')
 helptxt.add_field(name='f:say *<message>*', value='Say <message>.')
@@ -40,7 +42,7 @@ async def on_message(message):
         if p == app.user:
             return None
         if message.content.startswith("f:"):
-            print(f"[{time.strftime('%Y-%m-%d %b %X', time.localtime(time.time()))}] [{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}")
+            print(f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}] [{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}")
             command = message.content[2:].split(' ')
 
 
@@ -173,6 +175,15 @@ async def on_message(message):
                     await ch.send("DO NOT MENTION EVERYONE OR HERE")
             
             
+            elif command[0]=="sayresult":
+                if p.name=="Friendship1226":
+                    await ch.send(eval(' '.join(command[1:])))
+                else:
+                    await ch.send("ACCESS DENIED")
+            
+            elif command[0]=="ns2":
+                await ch.send(f"__{p.display_name}__'(s) NeroScoreV2 result = __**{neroscoreV2(*map(float, command[1:]))}**__")
+            
             elif command[0]=="run":
                 if p.name=="Friendship1226":
                     exec(' '.join(command[1:]), globals(), locals())
@@ -188,4 +199,12 @@ async def on_message(message):
         await ch.send(f"ERROR OCCURED: {ex}")
         print("ERROR OCCURED:", ex)
         
-app.run(token)
+
+loop = asyncio.get_event_loop()
+try:
+    loop.run_until_complete(app.start(token))
+except KeyboardInterrupt:
+    print()
+    loop.run_until_complete(app.logout())
+finally:
+    loop.close()
