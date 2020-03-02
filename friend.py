@@ -59,21 +59,28 @@ class Timer:
         return self.seconds - (datetime.datetime.utcnow()-self.starttime).total_seconds()
 
 
-helptxt = discord.Embed(title="COMMANDS DESCRIPTHION", description='**ver. 1.3_20200302**', color=discord.Colour(0xfefefe))
+helptxt = discord.Embed(title="COMMANDS DESCRIPTHION",
+                        description='**ver. 1.3_20200302**\n'
+                                    '<neccesary parameter> (optional parameter) [multi-case parameter]',
+                        color=discord.Colour(0xfefefe))
 helptxt.add_field(name='f:hello', value='"Huy I\'m here XD"')
 helptxt.add_field(name='f:say *<message>*', value='Say <message>.')
-helptxt.add_field(name='f:dice *<dice1>* *<dice2>* *<dice3>* ...', value='Roll the dice(s).\n'
+helptxt.add_field(name='f:dice *<dice1>* *(dice2)* *(dice3)* ...', value='Roll the dice(s).\n'
                                                                          'Dice input form is *<count>*d*<range>*\n'
                                                                          'ex) 1d100, 3d10\n'
                                                                          'Dice(s) with wrong form will be ignored.')
-helptxt.add_field(name='f:match __team [add/remove]__ *<team name>*', value='Add/remove team.')
-helptxt.add_field(name='f:match __player [add/remove]__ *<team name>*', value='Add/remove **you (not another user)** to/from team.')
-helptxt.add_field(name='f:match __score [add/remove]__ *<score>* *<acc>* *<miss>*', value='Add/remove score to/from **your** team; if you already added score, it\'ll chandge to new one; the parameter *(score)* can be left out when \'remov\'ing the score.')
+helptxt.add_field(name='f:timer *(name)* *<second>*', value='Set timer. '
+                                                            'You can omit *name*, then the bot will name it as number. '
+                                                            '(start from 0)')
+helptxt.add_field(name='f:timernow *<name>*', value='See how much time is left.')
+helptxt.add_field(name='f:match __team <[add/remove]>__ *<team name>*', value='Add/remove team.')
+helptxt.add_field(name='f:match __player <[add/remove]>__ *<team name>*', value='Add/remove **you (not another user)** to/from team.')
+helptxt.add_field(name='f:match __score <[add/remove]>__ *<score>* *<acc>* *<miss>*', value='Add/remove score to/from **your** team; if you already added score, it\'ll chandge to new one; the parameter *(score)* can be left out when \'remov\'ing the score.')
 helptxt.add_field(name='f:match __submit__', value='Sum scores of each team and give setscore(+1) to the winner team(s); **If there\'s tie, all teams of tie will get a point**.')
 helptxt.add_field(name='f:match __now__', value='Show how many scores each team got.')
 helptxt.add_field(name='f:match __end__', value='Compare setscores of each team and show who\'s the winner team(s).')
 helptxt.add_field(name='f:match __reset__', value='DELETE the current match')
-helptxt.add_field(name='f:__setmap__ *(kind)*', value='Set a map of current play\n'
+helptxt.add_field(name='f:match __setmap__ *<[kind]>*', value='Set a map of current play\n'
                                                       'f:setmap **infos** _<artist>_**::**_<title>_**::**_<author>_**::**_<difficult>_\n'
                                                       'f:setmap **full** *<artist>* - *<title>* (*<author>**) [*<difficult>*]\n'
                                                       'f:setmap **score** *<autoScore>*\n'
