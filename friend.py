@@ -1,4 +1,17 @@
-import asyncio, discord, time
+import asyncio, discord, time, gspread, re, datetime
+from oauth2client.service_account import ServiceAccountCredentials as SAC
+
+scope = [
+'https://spreadsheets.google.com/feeds',
+'https://www.googleapis.com/auth/drive',
+]
+jsonfile = 'friend-266503-91ab7f0dce62.json'
+credentials = SAC.from_json_keyfile_name(jsonfile, scope)
+gs = gspread.authorize(credentials)
+spreadsheet = "https://docs.google.com/spreadsheets/d/1SA2u-KgTsHcXcsGEbrcfqWugY7sgHIYJpPa5fxNEJYc/edit#gid=0"
+doc = gs.open_by_url(spreadsheet)
+
+worksheet = doc.worksheet('data')
 
 app = discord.Client()
 
@@ -10,7 +23,31 @@ err = "WRONG COMMAND : "
 datas = dict()
 teams = dict()
 
+timers = dict()
+
+noticechannels = [651054921537421323, 652487382381363200]
+
 neroscoreV2 = lambda maxscore, score, acc, miss: round((score/maxscore * 600000 + (acc**4)/250) * (1-0.003*miss))
+
+analyze = re.compile(r"(.*) [-] (.*) [\(](.*)[\)] [\[](.*)[\]]")
+makefull = lambda artist, title, author, diff, sss: f"{artist} - {title} ({author}) [(diff)]"
+
+class Timer:
+    def __init__(self, ch, name, seconds):
+        self.channel = ch
+        self.name = name
+        self.seconds = seconds
+        self.nowloop = asyncio.get_event_loop()
+        self.task = self.nowloop.create_task(self.run())
+    
+    async def run(self):
+        await asyncio.sleep(self.seconds)
+        await self.callback()
+    
+    async def callback(self):
+        global timers
+        await self.channel.send(f"Timer **{self.name}**: TIME OVER.")
+        del timers[self.name]
 
 helptxt = discord.Embed(title="COMMANDS DESCRIPTHION", description='**ver. 1.2_20200106**', color=discord.Colour(0xfefefe))
 helptxt.add_field(name='f:hello', value='"Huy I\'m here XD"')
@@ -25,6 +62,7 @@ helptxt.add_field(name='f:match __reset__', value='DELETE the current match')
 
 @app.event
 async def on_ready():
+    print(f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}]")
     print("BOT NAME :", app.user.name)
     print("BOT ID   :", app.user.id)
     game = discord.Game("f:help")
@@ -34,20 +72,26 @@ async def on_ready():
 @app.event
 async def on_message(message):
     ch = message.channel
+    msgtime = message.created_at
+    nowtime = datetime.datetime.utcnow()
+    ping = f"{(nowtime-msgtime).total_seconds() * 1000 :.4f}"
     try:
-        global datas, teams
+        global datas, teams, timers
         p = message.author
         g = message.guild.id
         chid = ch.id
         if p == app.user:
             return None
         if message.content.startswith("f:"):
-            print(f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}] [{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}")
+            print(f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))} ({ping}ms)] [{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}")
             command = message.content[2:].split(' ')
 
 
             if command[0]=="hello":
                 await ch.send("Huy I'm here XD")
+            
+            if command[0]=="ping":
+                await ch.send(f"**Pong!**\n`{ping}ms`")
             
 
             elif command[0]=="help":
@@ -92,7 +136,7 @@ async def on_message(message):
                     if command[2]=="add":
                         if not p in nowteams:
                             nowteams[p] = teamname
-                            nowmatch["scores"][nowteams[p]][p] = 0
+                            nowmatch["scores"][nowteams[p]][p] = (0,0,0)
                             await ch.send(embed=discord.Embed(title=f"Added Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][nowteams[p]].keys())}", color=discord.Colour.blue()))
                         else:
                             await ch.send(embed=discord.Embed(title=f"Player \"{p.display_name}\" is already in a team!", description=f"You already participated in Team {nowteams[p]}. If you want to change the team please command 'f:match remove {nowteams[p]}'."))
@@ -106,27 +150,82 @@ async def on_message(message):
 
                 elif command[1]=="score":
                     if command[2]=="add":
-                        nowmatch["scores"][nowteams[p]][p] = int(command[3])
+                        nowmatch["scores"][nowteams[p]][p] = tuple(map(float, command[3:6]))
                         await ch.send(embed=discord.Embed(title=f"Added/changed {p.display_name}'(s) score", description=f"{command[3]} to Team {nowteams[p]}", color=discord.Colour.blue()))
                     elif command[2]=="remove":
                         temp = nowmatch["scores"][nowteams[p]][p]
-                        nowmatch["scores"][nowteams[p]][p] = 0
+                        nowmatch["scores"][nowteams[p]][p] = (0,0,0)
                         await ch.send(embed=discord.Embed(title=f"Removed {p.display_name}'(s) score", description=f"{temp} from Team {nowteams[p]}", color=discord.Colour.blue()))
                     else:
                         await ch.send(err+command[2])
                 
+                elif command[1]=="setmap":
+                    done = True
+                    if not "map" in nowmatch:
+                        nowmatch["map"] = dict()
+                    if command[2]=="infos":
+                        nowmatch["map"]["artist"], nowmatch["map"]["title"], nowmatch["map"]["author"], nowmatch["map"]["diff"] = ' '.join(command[3:]).split('::')
+                    elif command[2]=="full":
+                        nowmatch["map"]["artist"], nowmatch["map"]["title"], nowmatch["map"]["author"], nowmatch["map"]["diff"] = analyze.match(' '.join(command[3:])).groups()
+                    elif command[2]=="score":
+                        nowmatch["map"]["sss"] = int(command[3])
+                    else:
+                        c = worksheet.findall(command[2])
+                        if c!=[]:
+                            c = c[0]
+                            nowmatch["map"]["author"], nowmatch["map"]["artist"], nowmatch["map"]["title"], nowmatch["map"]["diff"], nowmatch["map"]["sss"] = tuple(worksheet.cell(c.row, i+1).value for i in range(5))
+                        else:
+                            await ch.send(f"NOT FOUND: {command[2]}")
+                            done = False
+                    if done:
+                        await ch.send('DONE')
+                            
+
                 elif command[1]=="submit":
-                    sums = dict([(t, sum(nowmatch["scores"][t].values())) for t in nowmatch["scores"]])
+                    scores = dict()
+                    sums = dict()
+                    if len(command)>2:
+                        if command[2]=="nero2":
+                            if "sss" in nowmatch["map"]:
+                                for t in nowmatch["scores"]:
+                                    scores[t] = dict()
+                                    sums[t] = 0
+                                    for p in nowmatch["scores"][t]:
+                                        v = neroscoreV2(int(nowmatch["map"]["sss"]), *nowmatch["scores"][t][p])
+                                        scores[t][p] = v
+                                        sums[t] += v
+                            else:
+                                await ch.send("You have to set map with auto score.")
+                                return
+                    else:
+                        for t in nowmatch["scores"]:
+                            scores[t] = dict()
+                            sums[t] = 0
+                            for p in nowmatch["scores"][t]:
+                                v = nowmatch["scores"][t][p][0]
+                                scores[t][p] = v
+                                sums[t] += v
+                            
                     winners = list(filter(lambda x: sums[x]==max(sums.values()), sums.keys()))
+                    mapinfo = "Map: "
+                    if not "map" in nowmatch:
+                        mapinfo += "None"
+                    else:
+                        if nowmatch["map"]!=dict():
+                            mapinfo += makefull(**nowmatch["map"])
+                        else:
+                            mapinfo += "None"
                     for w in winners:
                         nowmatch["setscores"][w] += 1
-                    sendtxt = discord.Embed(title=f"__**Team {', '.join(winners)} take(s) a point!**__", description='\n'.join(f"__TEAM {i}__: **{sums[i]}**" for i in sums), color=discord.Colour.red())
+                    desc = mapinfo+"\n\n"+'\n\n'.join(f"__TEAM {i}__: **{sums[i]}**\n"+('\n'.join(f"{j}: {scores[i][j]}" for j in scores[i])) for i in sums)
+                    sendtxt = discord.Embed(title=f"__**Team {', '.join(winners)} take(s) a point!**__", description=desc, color=discord.Colour.red())
                     sendtxt.add_field(name=f"\nNow match points:", value='\n'.join(f"__TEAM {i}__: **{nowmatch['setscores'][i]}**" for i in sums))
                     await ch.send(embed=sendtxt)
                     for t in sums:
                         for p in nowmatch["scores"][t]:
-                            nowmatch["scores"][t][p] = 0
-                    await ch.send(embed=discord.Embed(title="Successfully reset scores", color=discord.Colour.red()))
+                            nowmatch["scores"][t][p] = (0,0,0)
+                    nowmatch["map"] = dict()
+                    await ch.send(embed=discord.Embed(title="Successfully reset round", color=discord.Colour.red()))
                 
                 elif command[1]=="now":
                     await ch.send(embed=discord.Embed(title="Current match progress", description='\n'.join(f"__TEAM {i}__: **{nowmatch['setscores'][i]}**" for i in nowmatch["setscores"]), color=discord.Colour.orange()))
@@ -160,12 +259,31 @@ async def on_message(message):
                 datas[g][chid] = nowmatch
                 teams[g][chid] = nowteams
             
+            
+            elif command[0]=="timer":
+                if len(command)==2:
+                    i = 0
+                    while 1:
+                        if not (str(i) in timers):
+                            break
+                        i += 1
+                    name = str(i)
+                    sec = int(command[1])
+                    timers[name] = Timer(ch, name, sec)
+                    await ch.send(f"Timer **{name}** set. ({sec}s)")
+                else:
+                    name, sec = ' '.join(command[1:-1]), int(command[-1])
+                    if name in timers:
+                        await ch.send("Already running")
+                    else:
+                        timers[name] = Timer(ch, name, sec)
+                        await ch.send(f"Timer **{name}** set. ({sec}s)")
 
             elif command[0]=="say":
                 sendtxt = " ".join(command[1:])
                 if not message.mention_everyone:
                     for u in message.mentions:
-                        sendtxt = sendtxt.replace("<@!"+str(u.id)+">", u.display_name)
+                        sendtxt = sendtxt.replace("<@!"+str(u.id)+">", "*"+u.display_name+"*")
                     if sendtxt!="":
                         print("QUERY:", sendtxt)
                         await ch.send(sendtxt)
@@ -198,13 +316,42 @@ async def on_message(message):
     except Exception as ex:
         await ch.send(f"ERROR OCCURED: {ex}")
         print("ERROR OCCURED:", ex)
-        
+
+
+class Restart(BaseException):
+    def __str__(self):
+        return "Stop the bot for restart."
+
+async def botoff():
+    while 1:
+        d = datetime.datetime.utcnow()
+        if d.minute==50 and d.hour==19: # 50, 19
+            break
+        await asyncio.sleep(10) # 10
+    await asyncio.gather(
+        *[app.get_channel(ch).send("**The bot will be turned off at KST 4:55(UTC 19:55) for about 2 minutes.\n"
+                                   "__*Now playing matches will be reset.*__**")
+          for ch in noticechannels])
+    while 1:
+        d = datetime.datetime.utcnow()
+        if d.second>=45 and d.minute==54 and d.hour==19: # 45, 54, 19
+            break
+        await asyncio.sleep(2)
+    await asyncio.gather(
+        *[app.get_channel(ch).send("**Now turn off.**")
+          for ch in noticechannels])
+    raise Restart
 
 loop = asyncio.get_event_loop()
 try:
+    t = loop.create_task(botoff())
     loop.run_until_complete(app.start(token))
 except KeyboardInterrupt:
-    print()
-    loop.run_until_complete(app.logout())
+    print("\nForce stop")
+except BaseException as ex:
+    print(ex)
 finally:
+    t.cancel()
+    loop.run_until_complete(app.logout())
+    loop.run_until_complete(loop.shutdown_asyncgens())
     loop.close()
