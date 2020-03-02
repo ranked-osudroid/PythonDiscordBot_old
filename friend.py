@@ -1,4 +1,4 @@
-import asyncio, discord, time, gspread, re, datetime
+import asyncio, discord, time, gspread, re, datetime, random
 from oauth2client.service_account import ServiceAccountCredentials as SAC
 
 scope = [
@@ -29,8 +29,13 @@ noticechannels = [651054921537421323, 652487382381363200]
 
 neroscoreV2 = lambda maxscore, score, acc, miss: round((score/maxscore * 600000 + (acc**4)/250) * (1-0.003*miss))
 
-analyze = re.compile(r"(.*) [-] (.*) [\(](.*)[\)] [\[](.*)[\]]")
+analyze = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[\]]")
 makefull = lambda artist, title, author, diff, sss: f"{artist} - {title} ({author}) [(diff)]"
+
+def dice(s):
+    s = s.partition('d')
+    if s[1]=='': return None
+    return tuple(str(random.randint(1, int(s[2]))) for i in range(int(s[0])))
 
 class Timer:
     def __init__(self, ch, name, seconds):
@@ -38,6 +43,7 @@ class Timer:
         self.name = name
         self.seconds = seconds
         self.nowloop = asyncio.get_event_loop()
+        self.starttime = datetime.datetime.utcnow()
         self.task = self.nowloop.create_task(self.run())
     
     async def run(self):
@@ -49,16 +55,31 @@ class Timer:
         await self.channel.send(f"Timer **{self.name}**: TIME OVER.")
         del timers[self.name]
 
-helptxt = discord.Embed(title="COMMANDS DESCRIPTHION", description='**ver. 1.2_20200106**', color=discord.Colour(0xfefefe))
+    def left(self):
+        return self.seconds - (datetime.datetime.utcnow()-self.starttime).total_seconds()
+
+
+helptxt = discord.Embed(title="COMMANDS DESCRIPTHION", description='**ver. 1.3_20200302**', color=discord.Colour(0xfefefe))
 helptxt.add_field(name='f:hello', value='"Huy I\'m here XD"')
 helptxt.add_field(name='f:say *<message>*', value='Say <message>.')
+helptxt.add_field(name='f:dice *<dice1>* *<dice2>* *<dice3>* ...', value='Roll the dice(s).\n'
+                                                                         'Dice input form is *<count>*d*<range>*\n'
+                                                                         'ex) 1d100, 3d10\n'
+                                                                         'Dice(s) with wrong form will be ignored.')
 helptxt.add_field(name='f:match __team [add/remove]__ *<team name>*', value='Add/remove team.')
 helptxt.add_field(name='f:match __player [add/remove]__ *<team name>*', value='Add/remove **you (not another user)** to/from team.')
-helptxt.add_field(name='f:match __score [add/remove]__ *(score)*', value='Add/remove score to/from **your** team; if you already added score, it\'ll chandge to new one; the parameter *(score)* can be left out when \'remov\'ing the score.')
+helptxt.add_field(name='f:match __score [add/remove]__ *<score>* *<acc>* *<miss>*', value='Add/remove score to/from **your** team; if you already added score, it\'ll chandge to new one; the parameter *(score)* can be left out when \'remov\'ing the score.')
 helptxt.add_field(name='f:match __submit__', value='Sum scores of each team and give setscore(+1) to the winner team(s); **If there\'s tie, all teams of tie will get a point**.')
 helptxt.add_field(name='f:match __now__', value='Show how many scores each team got.')
 helptxt.add_field(name='f:match __end__', value='Compare setscores of each team and show who\'s the winner team(s).')
 helptxt.add_field(name='f:match __reset__', value='DELETE the current match')
+helptxt.add_field(name='f:__setmap__ *(kind)*', value='Set a map of current play\n'
+                                                      'f:setmap **infos** _<artist>_**::**_<title>_**::**_<author>_**::**_<difficult>_\n'
+                                                      'f:setmap **full** *<artist>* - *<title>* (*<author>**) [*<difficult>*]\n'
+                                                      'f:setmap **score** *<autoScore>*\n'
+                                                      'f:setmap _**<mapNickname>**_\n\n'
+                                                      'If you want to submit with scoreV2, you need to set autoscore '
+                                                      'by using "f:setmap score" or "f:setmap _mapNickname_".')
 
 @app.event
 async def on_ready():
@@ -90,12 +111,22 @@ async def on_message(message):
             if command[0]=="hello":
                 await ch.send("Huy I'm here XD")
             
-            if command[0]=="ping":
+            elif command[0]=="ping":
                 await ch.send(f"**Pong!**\n`{ping}ms`")
-            
 
             elif command[0]=="help":
                 await ch.send(embed=helptxt)
+
+
+            elif command[0]=="dice":
+                dices = command[1:]
+                sendtxt = []
+                for d in dices:
+                    x = dice(d)
+                    if x==None:
+                        continue
+                    sendtxt.append(f"__{d}__: **{' / '.join(x)}**")
+                await ch.send(embed=discord.Embed(title="Dice Roll Result", description='\n'.join(sendtxt)))
             
 
             elif command[0]=="match":
@@ -278,6 +309,13 @@ async def on_message(message):
                     else:
                         timers[name] = Timer(ch, name, sec)
                         await ch.send(f"Timer **{name}** set. ({sec}s)")
+
+            elif command[0]=="timernow":
+                name = command[1]
+                if name in timers:
+                    await ch.send(f"Timer {name}: {timers[name].left() :.3f}s left.")
+                else:
+                    await ch.send(f"No timer named {name}!")
 
             elif command[0]=="say":
                 sendtxt = " ".join(command[1:])
