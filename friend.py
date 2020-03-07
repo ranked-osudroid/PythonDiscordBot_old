@@ -8,6 +8,7 @@ scope = [
 jsonfile = 'friend-266503-91ab7f0dce62.json'
 credentials = SAC.from_json_keyfile_name(jsonfile, scope)
 gs = gspread.authorize(credentials)
+gs.login()
 spreadsheet = "https://docs.google.com/spreadsheets/d/1SA2u-KgTsHcXcsGEbrcfqWugY7sgHIYJpPa5fxNEJYc/edit#gid=0"
 doc = gs.open_by_url(spreadsheet)
 
@@ -30,7 +31,7 @@ noticechannels = [651054921537421323, 652487382381363200]
 neroscoreV2 = lambda maxscore, score, acc, miss: round((score/maxscore * 600000 + (acc**4)/250) * (1-0.003*miss))
 
 analyze = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[\]]")
-makefull = lambda artist, title, author, diff, sss: f"{artist} - {title} ({author}) [(diff)]"
+makefull = lambda author, artist, title, diff, sss: f"{artist} - {title} ({author}) [{diff}]"
 
 def dice(s):
     s = s.partition('d')
