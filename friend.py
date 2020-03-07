@@ -183,6 +183,28 @@ async def on_message(message):
                         del nowteams[p]
                         del nowmatch["scores"][temp][p]
                         await ch.send(embed=discord.Embed(title=f"Removed Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][temp].keys())}", color=discord.Colour.blue()))
+                    elif command[2]=="forceadd":
+                        if p.name == 'Friendship1226':
+                            await ch.send("ACCESS DENIED")
+                            return
+                        teamname = ' '.join(teamname.split(' ')[:-1])
+                        p = app.get_user(int(command[-1]))
+                        if not p in nowteams:
+                            nowteams[p] = teamname
+                            nowmatch["scores"][nowteams[p]][p] = (0,0,0)
+                            await ch.send(embed=discord.Embed(title=f"Added Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][nowteams[p]].keys())}", color=discord.Colour.blue()))
+                        else:
+                            await ch.send(embed=discord.Embed(title=f"Player \"{p.display_name}\" is already in a team!", description=f"You already participated in Team {nowteams[p]}. If you want to change the team please command 'f:match remove {nowteams[p]}'."))
+                    elif command[2]=="forceremove":
+                        if p.name == 'Friendship1226':
+                            await ch.send("ACCESS DENIED")
+                            return
+                        teamname = ' '.join(teamname.split(' ')[:-1])
+                        p = app.get_user(int(command[-1]))
+                        temp = nowteams[p]
+                        del nowteams[p]
+                        del nowmatch["scores"][temp][p]
+                        await ch.send(embed=discord.Embed(title=f"Removed Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][temp].keys())}", color=discord.Colour.blue()))
                     else:
                         await ch.send(err+command[2])
 
@@ -191,6 +213,21 @@ async def on_message(message):
                         nowmatch["scores"][nowteams[p]][p] = tuple(map(float, command[3:6]))
                         await ch.send(embed=discord.Embed(title=f"Added/changed {p.display_name}'(s) score", description=f"{command[3]} to Team {nowteams[p]}", color=discord.Colour.blue()))
                     elif command[2]=="remove":
+                        temp = nowmatch["scores"][nowteams[p]][p]
+                        nowmatch["scores"][nowteams[p]][p] = (0,0,0)
+                        await ch.send(embed=discord.Embed(title=f"Removed {p.display_name}'(s) score", description=f"{temp} from Team {nowteams[p]}", color=discord.Colour.blue()))
+                    elif command[2]=="forceadd":
+                        if p.name == 'Friendship1226':
+                            await ch.send("ACCESS DENIED")
+                            return
+                        p = app.get_user(int(command[-1]))
+                        nowmatch["scores"][nowteams[p]][p] = tuple(map(float, command[3:6]))
+                        await ch.send(embed=discord.Embed(title=f"Added/changed {p.display_name}'(s) score", description=f"{command[3]} to Team {nowteams[p]}", color=discord.Colour.blue()))
+                    elif command[2]=="forceremove":
+                        if p.name == 'Friendship1226':
+                            await ch.send("ACCESS DENIED")
+                            return
+                        p = app.get_user(int(command[-1]))
                         temp = nowmatch["scores"][nowteams[p]][p]
                         nowmatch["scores"][nowteams[p]][p] = (0,0,0)
                         await ch.send(embed=discord.Embed(title=f"Removed {p.display_name}'(s) score", description=f"{temp} from Team {nowteams[p]}", color=discord.Colour.blue()))
