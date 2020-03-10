@@ -104,6 +104,8 @@ async def on_message(message):
     msgtime = message.created_at
     nowtime = datetime.datetime.utcnow()
     ping = f"{(nowtime-msgtime).total_seconds() * 1000 :.4f}"
+    if credentials.access_token_expired:
+        gs.login()
     try:
         global datas, teams, timers
         p = message.author
