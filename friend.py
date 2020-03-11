@@ -393,6 +393,13 @@ async def on_message(message):
                     await ch.send("RAN COMMAND(S)")
                 else:
                     await ch.send("ACCESS DENIED")
+
+            elif command[0]=="asyncrun":
+                if p.name=="Friendship1226":
+                    exec('async def __do():\n ' + '\n '.join(' '.join(command[1:]).split('\n')))
+                    await locals()['__do']()
+                else:
+                    await ch.send("ACCESS DENIED")
             
             else:
                 await ch.send(err+command[0])
