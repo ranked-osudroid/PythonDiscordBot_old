@@ -396,7 +396,7 @@ async def on_message(message):
 
             elif command[0]=="asyncrun":
                 if p.name=="Friendship1226":
-                    exec('async def __do():\n ' + '\n '.join(' '.join(command[1:]).split('\n')), locals(), locals())
+                    exec('async def __do():\n ' + '\n '.join(' '.join(command[1:]).split('\n')), dict(locals(), **globals()), locals())
                     await locals()['__do']()
                     await ch.send('RAN COMMAND(S)')
                 else:
