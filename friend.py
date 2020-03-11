@@ -396,8 +396,7 @@ async def on_message(message):
 
             elif command[0]=="asyncrun":
                 if p.name=="Friendship1226":
-                    exec('async def __do():\n ' + '\n '.join(' '.join(command[1:]).split('\n')),
-                         globals(), locals())
+                    exec('async def __do():\n ' + '\n '.join(' '.join(command[1:]).split('\n')))
                     await locals()['__do']()
                 else:
                     await ch.send("ACCESS DENIED")
