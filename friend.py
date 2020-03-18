@@ -26,6 +26,8 @@ teams = dict()
 
 timers = dict()
 
+restartalert = False
+
 noticechannels = [651054921537421323, 652487382381363200]
 
 neroscoreV2 = lambda maxscore, score, acc, miss: round((score/maxscore * 600000 + (acc**4)/250) * (1-0.003*miss))
@@ -421,18 +423,20 @@ async def botoff():
         if d.minute==50 and d.hour==19: # 50, 19
             break
         await asyncio.sleep(10) # 10
-    await asyncio.gather(
-        *[app.get_channel(ch).send("**The bot will be turned off at KST 4:55(UTC 19:55) for about 2 minutes.\n"
-                                   "__*Now playing matches will be reset.*__**")
-          for ch in noticechannels])
+    if restartalert:
+        await asyncio.gather(
+            *[app.get_channel(ch).send("**The bot will be turned off at KST 4:55(UTC 19:55) for about 2 minutes.\n"
+                                       "__*Now playing matches will be reset.*__**")
+              for ch in noticechannels])
     while 1:
         d = datetime.datetime.utcnow()
         if d.second>=45 and d.minute==54 and d.hour==19: # 45, 54, 19
             break
         await asyncio.sleep(2)
-    await asyncio.gather(
-        *[app.get_channel(ch).send("**Now turn off.**")
-          for ch in noticechannels])
+    if restartalert:
+        await asyncio.gather(
+            *[app.get_channel(ch).send("**Now turn off.**")
+              for ch in noticechannels])
     raise Restart
 
 loop = asyncio.get_event_loop()
