@@ -394,7 +394,7 @@ async def on_message(message):
             
             
             elif command[0]=="sayresult":
-                if p.name=="Friendship1226":
+                if p.id == 327835849142173696:
                     await ch.send(eval(' '.join(command[1:])))
                 else:
                     await ch.send("ACCESS DENIED")
@@ -406,14 +406,14 @@ async def on_message(message):
                 await ch.send(f"__{p.display_name}__'(s) NeroScoreV2 result = __**{jetonetV2(*map(float, command[1:]))}**__")
             
             elif command[0]=="run":
-                if p.name=="Friendship1226":
+                if p.id == 327835849142173696:
                     exec(' '.join(command[1:]), globals(), locals())
                     await ch.send("RAN COMMAND(S)")
                 else:
                     await ch.send("ACCESS DENIED")
 
             elif command[0]=="asyncrun":
-                if p.name=="Friendship1226":
+                if p.id == 327835849142173696:
                     exec('async def __do():\n ' + '\n '.join(' '.join(command[1:]).split('\n')), dict(locals(), **globals()), locals())
                     await locals()['__do']()
                     await ch.send('RAN COMMAND(S)')
