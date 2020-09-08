@@ -29,6 +29,7 @@ timers = dict()
 noticechannels = [651054921537421323, 652487382381363200]
 
 neroscoreV2 = lambda maxscore, score, acc, miss: round((score/maxscore * 600000 + (acc**4)/250) * (1-0.003*miss))
+jetonetV2 = lambda maxscore, score, acc, miss: round(score/maxscore * 500000 + ((max(acc - 80, 0))/20)**2 * 500000) # (스코어/맥스) * 500000 + (((확도 - 80)/20)^2) * 500000
 
 analyze = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[\]]")
 makefull = lambda author, artist, title, diff, sss: f"{artist} - {title} ({author}) [{diff}]"
@@ -187,7 +188,7 @@ async def on_message(message):
                         del nowmatch["scores"][temp][p]
                         await ch.send(embed=discord.Embed(title=f"Removed Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][temp].keys())}", color=discord.Colour.blue()))
                     elif command[2]=="forceadd":
-                        if p.name != 'Friendship1226':
+                        if p.id != 327835849142173696:
                             await ch.send("ACCESS DENIED")
                             return
                         teamname = ' '.join(teamname.split(' ')[:-1])
@@ -199,7 +200,7 @@ async def on_message(message):
                         else:
                             await ch.send(embed=discord.Embed(title=f"Player \"{p.display_name}\" is already in a team!", description=f"You already participated in Team {nowteams[p]}. If you want to change the team please command 'f:match remove {nowteams[p]}'."))
                     elif command[2]=="forceremove":
-                        if p.name != 'Friendship1226':
+                        if p.id != 327835849142173696:
                             await ch.send("ACCESS DENIED")
                             return
                         teamname = ' '.join(teamname.split(' ')[:-1])
@@ -220,14 +221,14 @@ async def on_message(message):
                         nowmatch["scores"][nowteams[p]][p] = (0,0,0)
                         await ch.send(embed=discord.Embed(title=f"Removed {p.display_name}'(s) score", description=f"{temp} from Team {nowteams[p]}", color=discord.Colour.blue()))
                     elif command[2]=="forceadd":
-                        if p.name != 'Friendship1226':
+                        if p.id != 327835849142173696:
                             await ch.send("ACCESS DENIED")
                             return
                         p = app.get_user(int(command[-1]))
                         nowmatch["scores"][nowteams[p]][p] = tuple(map(float, command[3:6]))
                         await ch.send(embed=discord.Embed(title=f"Added/changed {p.display_name}'(s) score", description=f"{command[3]} to Team {nowteams[p]}", color=discord.Colour.blue()))
                     elif command[2]=="forceremove":
-                        if p.name != 'Friendship1226':
+                        if p.id != 327835849142173696:
                             await ch.send("ACCESS DENIED")
                             return
                         p = app.get_user(int(command[-1]))
@@ -270,6 +271,18 @@ async def on_message(message):
                                     sums[t] = 0
                                     for p in nowmatch["scores"][t]:
                                         v = neroscoreV2(int(nowmatch["map"]["sss"]), *nowmatch["scores"][t][p])
+                                        scores[t][p] = v
+                                        sums[t] += v
+                            else:
+                                await ch.send("You have to set map with auto score.")
+                                return
+                        elif command[2]=="jet2":
+                            if "sss" in nowmatch["map"]:
+                                for t in nowmatch["scores"]:
+                                    scores[t] = dict()
+                                    sums[t] = 0
+                                    for p in nowmatch["scores"][t]:
+                                        v = jetonetV2(int(nowmatch["map"]["sss"]), *nowmatch["scores"][t][p])
                                         scores[t][p] = v
                                         sums[t] += v
                             else:
@@ -386,6 +399,9 @@ async def on_message(message):
             
             elif command[0]=="ns2":
                 await ch.send(f"__{p.display_name}__'(s) NeroScoreV2 result = __**{neroscoreV2(*map(float, command[1:]))}**__")
+
+            elif command[0]=="jt2":
+                await ch.send(f"__{p.display_name}__'(s) NeroScoreV2 result = __**{jetonetV2(*map(float, command[1:]))}**__")
             
             elif command[0]=="run":
                 if p.name=="Friendship1226":
