@@ -31,15 +31,15 @@ restartalert = False
 noticechannels = [651054921537421323, 652487382381363200]
 
 neroscoreV2 = lambda maxscore, score, acc, miss: round((score/maxscore * 600000 + (acc**4)/250) * (1-0.003*miss))
-jetonetV2 = lambda maxscore, score, acc, miss: round(score/maxscore * 500000 + ((max(acc - 80, 0))/20)**2 * 500000) # (스코어/맥스) * 500000 + (((확도 - 80)/20)^2) * 500000
+jetonetV2 = lambda maxscore, score, acc, miss: round(score/maxscore * 500000 + ((max(acc - 80, 0))/20)**2 * 500000)
 
-analyze = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[\]]")
+analyze = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[]]")
 makefull = lambda author, artist, title, diff, sss: f"{artist} - {title} ({author}) [{diff}]"
 
 def dice(s):
     s = s.partition('d')
     if s[1]=='': return None
-    return tuple(str(random.randint(1, int(s[2]))) for i in range(int(s[0])))
+    return tuple(str(random.randint(1, int(s[2]))) for _ in range(int(s[0])))
 
 class Timer:
     def __init__(self, ch, name, seconds):
@@ -112,12 +112,13 @@ async def on_message(message):
     try:
         global datas, teams, timers
         p = message.author
+        pid = p.id
         g = message.guild.id
         chid = ch.id
         if p == app.user:
             return None
         if message.content.startswith("f:"):
-            print(f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))} ({ping}ms)] [{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}")
+            print(f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))} ({ping}ms)] [{message.guild.name};{ch.name}] <{p.name};{pid}> {message.content}")
             command = message.content[2:].split(' ')
 
 
@@ -169,66 +170,89 @@ async def on_message(message):
                         else:
                             await ch.send(embed=discord.Embed(title=f"Team \"{teamname}\" already exists.", description=f"Now team list:\n{chr(10).join(nowmatch['scores'].keys())}", color=discord.Colour.blue()))
                     elif command[2]=="remove":
-                        del nowmatch["setscores"][teamname]
-                        del nowmatch["scores"][teamname]
-                        await ch.send(embed=discord.Embed(title=f"Removed Team \"{teamname}\"", description=f"Now team list:\n{chr(10).join(nowmatch['scores'].keys())}", color=discord.Colour.blue()))
+                        if len(nowmatch["scores"][teamname])==0:
+                            del nowmatch["setscores"][teamname]
+                            del nowmatch["scores"][teamname]
+                            await ch.send(embed=discord.Embed(title=f"Removed Team \"{teamname}\"", description=f"Now team list:\n{chr(10).join(nowmatch['scores'].keys())}", color=discord.Colour.blue()))
+                        else:
+                            await ch.send(embed=discord.Embed(title=f"Can't be removed Team \"{teamname}\" because there's some members in the team.", description=f"Now team list:\n{chr(10).join(nowmatch['scores'].keys())}", color=discord.Colour.blue()))
                     else:
                         await ch.send(err+command[2])
                 
                 elif command[1]=="player":
                     teamname = ' '.join(command[3:])
                     if command[2]=="add":
-                        if not p in nowteams:
-                            nowteams[p] = teamname
-                            nowmatch["scores"][nowteams[p]][p] = (0,0,0)
-                            await ch.send(embed=discord.Embed(title=f"Added Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][nowteams[p]].keys())}", color=discord.Colour.blue()))
+                        if not pid in nowteams:
+                            nowteams[pid] = teamname
+                            nowmatch["scores"][nowteams[pid]][pid] = (0,0,0)
+                            await ch.send(embed=discord.Embed(
+                                title=f"Added Player \"{p.name}\" to Team \"{teamname}\"",
+                                description=f"Now Team {teamname} list:\n{chr(10).join(pl.name for pl in nowmatch['scores'][nowteams[pid]].keys())}",
+                                color=discord.Colour.blue()))
                         else:
-                            await ch.send(embed=discord.Embed(title=f"Player \"{p.display_name}\" is already in a team!", description=f"You already participated in Team {nowteams[p]}. If you want to change the team please command 'f:match remove {nowteams[p]}'."))
+                            await ch.send(embed=discord.Embed(
+                                title=f"Player \"{p.name}\" is already in a team!",
+                                description=f"You already participated in Team {nowteams[pid]}. "
+                                            f"If you want to change the team please command 'f:match player remove {nowteams[pid]}'."))
                     elif command[2]=="remove":
-                        temp = nowteams[p]
-                        del nowteams[p]
-                        del nowmatch["scores"][temp][p]
-                        await ch.send(embed=discord.Embed(title=f"Removed Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][temp].keys())}", color=discord.Colour.blue()))
+                        temp = nowteams[pid]
+                        del nowteams[pid]
+                        del nowmatch["scores"][temp][pid]
+                        await ch.send(embed=discord.Embed(
+                            title=f"Removed Player \"{p.name}\" to Team \"{teamname}\"",
+                            description=f"Now Team {teamname} list:\n{chr(10).join(pl.name for pl in nowmatch['scores'][temp].keys())}",
+                            color=discord.Colour.blue()))
                     elif command[2]=="forceadd":
                         if p.id != 327835849142173696:
                             await ch.send("ACCESS DENIED")
                             return
                         teamname = ' '.join(teamname.split(' ')[:-1])
                         p = app.get_user(int(command[-1]))
-                        if not p in nowteams:
-                            nowteams[p] = teamname
-                            nowmatch["scores"][nowteams[p]][p] = (0,0,0)
-                            await ch.send(embed=discord.Embed(title=f"Added Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][nowteams[p]].keys())}", color=discord.Colour.blue()))
+                        pid = p.id
+                        if not pid in nowteams:
+                            nowteams[pid] = teamname
+                            nowmatch["scores"][nowteams[pid]][pid] = (0,0,0)
+                            await ch.send(embed=discord.Embed(
+                                title=f"Added Player \"{p.name}\" to Team \"{teamname}\"",
+                                description=f"Now Team {teamname} list:\n{chr(10).join(pl.name for pl in nowmatch['scores'][nowteams[pid]].keys())}",
+                                color=discord.Colour.blue()))
                         else:
-                            await ch.send(embed=discord.Embed(title=f"Player \"{p.display_name}\" is already in a team!", description=f"You already participated in Team {nowteams[p]}. If you want to change the team please command 'f:match remove {nowteams[p]}'."))
+                            await ch.send(embed=discord.Embed(
+                                title=f"Player \"{p.name}\" is already in a team!",
+                                description=f"You already participated in Team {nowteams[pid]}. "
+                                            f"If you want to change the team please command 'f:match player remove {nowteams[pid]}'."))
                     elif command[2]=="forceremove":
                         if p.id != 327835849142173696:
                             await ch.send("ACCESS DENIED")
                             return
                         teamname = ' '.join(teamname.split(' ')[:-1])
                         p = app.get_user(int(command[-1]))
-                        temp = nowteams[p]
-                        del nowteams[p]
-                        del nowmatch["scores"][temp][p]
-                        await ch.send(embed=discord.Embed(title=f"Removed Player \"{p.display_name}\" to Team \"{teamname}\"", description=f"Now Team {teamname} list:\n{chr(10).join(pl.display_name for pl in nowmatch['scores'][temp].keys())}", color=discord.Colour.blue()))
+                        pid = p.id
+                        temp = nowteams[pid]
+                        del nowteams[pid]
+                        del nowmatch["scores"][temp][pid]
+                        await ch.send(embed=discord.Embed(
+                            title=f"Removed Player \"{p.name}\" to Team \"{teamname}\"",
+                            description=f"Now Team {teamname} list:\n{chr(10).join(pl.name for pl in nowmatch['scores'][temp].keys())}",
+                            color=discord.Colour.blue()))
                     else:
                         await ch.send(err+command[2])
 
                 elif command[1]=="score":
                     if command[2]=="add":
                         nowmatch["scores"][nowteams[p]][p] = tuple(map(float, command[3:6]))
-                        await ch.send(embed=discord.Embed(title=f"Added/changed {p.display_name}'(s) score", description=f"{command[3]} to Team {nowteams[p]}", color=discord.Colour.blue()))
+                        await ch.send(embed=discord.Embed(title=f"Added/changed {p.name}'(s) score", description=f"{command[3]} to Team {nowteams[p]}", color=discord.Colour.blue()))
                     elif command[2]=="remove":
                         temp = nowmatch["scores"][nowteams[p]][p]
                         nowmatch["scores"][nowteams[p]][p] = (0,0,0)
-                        await ch.send(embed=discord.Embed(title=f"Removed {p.display_name}'(s) score", description=f"{temp} from Team {nowteams[p]}", color=discord.Colour.blue()))
+                        await ch.send(embed=discord.Embed(title=f"Removed {p.name}'(s) score", description=f"{temp} from Team {nowteams[p]}", color=discord.Colour.blue()))
                     elif command[2]=="forceadd":
                         if p.id != 327835849142173696:
                             await ch.send("ACCESS DENIED")
                             return
                         p = app.get_user(int(command[-1]))
                         nowmatch["scores"][nowteams[p]][p] = tuple(map(float, command[3:6]))
-                        await ch.send(embed=discord.Embed(title=f"Added/changed {p.display_name}'(s) score", description=f"{command[3]} to Team {nowteams[p]}", color=discord.Colour.blue()))
+                        await ch.send(embed=discord.Embed(title=f"Added/changed {p.name}'(s) score", description=f"{command[3]} to Team {nowteams[p]}", color=discord.Colour.blue()))
                     elif command[2]=="forceremove":
                         if p.id != 327835849142173696:
                             await ch.send("ACCESS DENIED")
@@ -236,7 +260,7 @@ async def on_message(message):
                         p = app.get_user(int(command[-1]))
                         temp = nowmatch["scores"][nowteams[p]][p]
                         nowmatch["scores"][nowteams[p]][p] = (0,0,0)
-                        await ch.send(embed=discord.Embed(title=f"Removed {p.display_name}'(s) score", description=f"{temp} from Team {nowteams[p]}", color=discord.Colour.blue()))
+                        await ch.send(embed=discord.Embed(title=f"Removed {p.name}'(s) score", description=f"{temp} from Team {nowteams[p]}", color=discord.Colour.blue()))
                     else:
                         await ch.send(err+command[2])
                 
@@ -259,7 +283,7 @@ async def on_message(message):
                             await ch.send(f"NOT FOUND: {command[2]}")
                             done = False
                     if done:
-                        await ch.send('DONE')
+                        await ch.send(f'DONE: {makefull(**nowmatch["map"])}')
                             
 
                 elif command[1]=="submit":
@@ -310,9 +334,15 @@ async def on_message(message):
                             mapinfo += "None"
                     for w in winners:
                         nowmatch["setscores"][w] += 1
-                    desc = mapinfo+"\n\n"+'\n\n'.join(f"__TEAM {i}__: **{sums[i]}**\n"+('\n'.join(f"{j}: {scores[i][j]}" for j in scores[i])) for i in sums)
-                    sendtxt = discord.Embed(title=f"__**Team {', '.join(winners)} take(s) a point!**__", description=desc, color=discord.Colour.red())
-                    sendtxt.add_field(name=f"\nNow match points:", value='\n'.join(f"__TEAM {i}__: **{nowmatch['setscores'][i]}**" for i in sums))
+                    desc = mapinfo+"\n\n"+\
+                           '\n\n'.join(f"__TEAM {i}__: **{sums[i]}**\n"+
+                                       ('\n'.join(f"{app.get_user(i).name}: {scores[i][j]}" for j in scores[i]))
+                                       for i in sums)
+                    sendtxt = discord.Embed(title=f"__**Team {', '.join(winners)} take(s) a point!**__",
+                                            description=desc,
+                                            color=discord.Colour.red())
+                    sendtxt.add_field(name=f"\nNow match points:",
+                                      value='\n'.join(f"__TEAM {i}__: **{nowmatch['setscores'][i]}**" for i in sums))
                     await ch.send(embed=sendtxt)
                     for t in sums:
                         for p in nowmatch["scores"][t]:
@@ -321,7 +351,14 @@ async def on_message(message):
                     await ch.send(embed=discord.Embed(title="Successfully reset round", color=discord.Colour.red()))
                 
                 elif command[1]=="now":
-                    await ch.send(embed=discord.Embed(title="Current match progress", description='\n'.join(f"__TEAM {i}__: **{nowmatch['setscores'][i]}**" for i in nowmatch["setscores"]), color=discord.Colour.orange()))
+                    desc = ''
+                    for i in nowmatch["setscores"]:
+                        desc += f"__TEAM {i}__: **{nowmatch['setscores'][i]}**\n"
+                        for p in nowmatch["scores"][i]:
+                            desc += p.name + '\n'
+                        desc += '\n'
+                    await ch.send(embed=discord.Embed(
+                        title="Current match progress", description=desc.rstrip(), color=discord.Colour.orange()))
 
                 elif command[1]=="end":
                     sums = sorted(list(nowmatch["setscores"].items()), key=lambda x: x[1], reverse=True)
@@ -338,7 +375,10 @@ async def on_message(message):
                         else:
                             temp += f"{i+1}th"
                         tl.append(temp+f" TEAM : {t[0]} <== {t[1]} score(s)")
-                    sendtxt = discord.Embed(title=tt, description='\n'.join(tl)+f"\n\n__**TEAM {sums[0][0]}, YOU ARE WINNER!\nCONGRATURATIONS!!!**__", color=discord.Colour.gold())
+                    sendtxt = discord.Embed(title=tt,
+                                            description='\n'.join(tl)+f"\n\n__**TEAM {sums[0][0]}, YOU ARE WINNER!\n"
+                                                                      f"CONGRATURATIONS!!!**__",
+                                            color=discord.Colour.gold())
                     await ch.send(embed=sendtxt)
                 
                 elif command[1]=="reset":
@@ -383,7 +423,7 @@ async def on_message(message):
                 sendtxt = " ".join(command[1:])
                 if not message.mention_everyone:
                     for u in message.mentions:
-                        sendtxt = sendtxt.replace("<@!"+str(u.id)+">", "*"+u.display_name+"*")
+                        sendtxt = sendtxt.replace("<@!"+str(u.id)+">", "*"+u.name+"*")
                     if sendtxt!="":
                         print("QUERY:", sendtxt)
                         await ch.send(sendtxt)
@@ -400,10 +440,10 @@ async def on_message(message):
                     await ch.send("ACCESS DENIED")
             
             elif command[0]=="ns2":
-                await ch.send(f"__{p.display_name}__'(s) NeroScoreV2 result = __**{neroscoreV2(*map(float, command[1:]))}**__")
+                await ch.send(f"__{p.name}__'(s) NeroScoreV2 result = __**{neroscoreV2(*map(float, command[1:]))}**__")
 
             elif command[0]=="jt2":
-                await ch.send(f"__{p.display_name}__'(s) NeroScoreV2 result = __**{jetonetV2(*map(float, command[1:]))}**__")
+                await ch.send(f"__{p.name}__'(s) NeroScoreV2 result = __**{jetonetV2(*map(float, command[1:]))}**__")
             
             elif command[0]=="run":
                 if p.id == 327835849142173696:
