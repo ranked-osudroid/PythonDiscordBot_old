@@ -1,5 +1,7 @@
-import asyncio, discord, time, gspread, re, datetime, random
+import asyncio, discord, time, gspread, re, datetime, random, requests, os, traceback
 from oauth2client.service_account import ServiceAccountCredentials as SAC
+from collections import defaultdict
+from bs4 import BeautifulSoup
 
 scope = [
 'https://spreadsheets.google.com/feeds',
@@ -21,10 +23,15 @@ with open("key.txt", 'r') as f:
 
 err = "WRONG COMMAND : "
 
-datas = dict()
-teams = dict()
+url_base = "http://ops.dgsrz.com/profile.php?uid="
+mapr = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[]]")
+playr = re.compile(r"(.*) / (.*) / (.*) / (.*)x / (.*)%")
+missr = re.compile(r"[{]\"miss\":(\d+), \"hash\":.*[}]")
 
+datas = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
+teams = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
 timers = dict()
+ids = defaultdict(int)
 
 restartalert = False
 
@@ -34,12 +41,23 @@ neroscoreV2 = lambda maxscore, score, acc, miss: round((score/maxscore * 600000 
 jetonetV2 = lambda maxscore, score, acc, miss: round(score/maxscore * 500000 + ((max(acc - 80, 0))/20)**2 * 500000)
 
 analyze = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[]]")
-makefull = lambda author, artist, title, diff, sss: f"{artist} - {title} ({author}) [{diff}]"
+def makefull(author=None, artist=None, title=None, diff=None, sss=0):
+    return f"{artist} - {title} ({author}) [{diff}]"
 
 def dice(s):
     s = s.partition('d')
     if s[1]=='': return None
     return tuple(str(random.randint(1, int(s[2]))) for _ in range(int(s[0])))
+
+def getrecent(id):
+    url = url_base + str(id)
+    html = requests.get(url)
+    bs = BeautifulSoup(html.text, "html.parser")
+    recent = bs.select_one("#activity > ul > li:nth-child(1)")
+    recentMapinfo = recent.select("a.clear > strong.block")[0].text
+    recentPlayinfo = recent.select("a.clear > small")[0].text
+    recentMiss = recent.select("#statics")[0].text
+    return (mapr.match(recentMapinfo).groups(), playr.match(recentPlayinfo).groups(), missr.match(recentMiss).groups())
 
 class Timer:
     def __init__(self, ch, name, seconds):
@@ -115,7 +133,7 @@ async def on_message(message):
         pid = p.id
         g = message.guild.id
         chid = ch.id
-        if p == app.user:
+        if pid == app.user.id:
             return None
         if message.content.startswith("f:"):
             print(f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))} ({ping}ms)] [{message.guild.name};{ch.name}] <{p.name};{pid}> {message.content}")
@@ -144,26 +162,13 @@ async def on_message(message):
             
 
             elif command[0]=="match":
-                if not g in datas:
-                    datas[g] = dict()
-                if not chid in datas[g]:
-                    datas[g][chid] = dict()
-                if not g in teams:
-                    teams[g] = dict()
-                if not chid in teams[g]:
-                    teams[g][chid] = dict()
                 nowmatch = datas[g][chid]
                 nowteams = teams[g][chid]
-
-                if not "setscores" in nowmatch:
-                    nowmatch["setscores"] = dict()
-                if not "scores" in nowmatch:
-                    nowmatch["scores"] = dict()
 
                 if command[1]=="team":
                     teamname = ' '.join(command[3:])
                     if command[2]=="add":
-                        if not teamname in nowmatch["setscores"] or not teamname in nowmatch["scores"]:
+                        if not nowmatch["setscores"][teamname] or nowmatch["scores"][teamname]:
                             nowmatch["setscores"][teamname] = 0
                             nowmatch["scores"][teamname] = dict()
                             await ch.send(embed=discord.Embed(title=f"Added Team \"{teamname}\".", description=f"Now team list:\n{chr(10).join(nowmatch['scores'].keys())}", color=discord.Colour.blue()))
@@ -182,12 +187,12 @@ async def on_message(message):
                 elif command[1]=="player":
                     teamname = ' '.join(command[3:])
                     if command[2]=="add":
-                        if not pid in nowteams:
+                        if not nowteams[pid]:
                             nowteams[pid] = teamname
                             nowmatch["scores"][nowteams[pid]][pid] = (0,0,0)
                             await ch.send(embed=discord.Embed(
                                 title=f"Added Player \"{p.name}\" to Team \"{teamname}\"",
-                                description=f"Now Team {teamname} list:\n{chr(10).join(pl.name for pl in nowmatch['scores'][nowteams[pid]].keys())}",
+                                description=f"Now Team {teamname} list:\n{chr(10).join(app.get_user(pl).name for pl in nowmatch['scores'][nowteams[pid]].keys())}",
                                 color=discord.Colour.blue()))
                         else:
                             await ch.send(embed=discord.Embed(
@@ -200,7 +205,7 @@ async def on_message(message):
                         del nowmatch["scores"][temp][pid]
                         await ch.send(embed=discord.Embed(
                             title=f"Removed Player \"{p.name}\" to Team \"{teamname}\"",
-                            description=f"Now Team {teamname} list:\n{chr(10).join(pl.name for pl in nowmatch['scores'][temp].keys())}",
+                            description=f"Now Team {teamname} list:\n{chr(10).join(app.get_user(pl).name for pl in nowmatch['scores'][temp].keys())}",
                             color=discord.Colour.blue()))
                     elif command[2]=="forceadd":
                         if p.id != 327835849142173696:
@@ -209,12 +214,12 @@ async def on_message(message):
                         teamname = ' '.join(teamname.split(' ')[:-1])
                         p = app.get_user(int(command[-1]))
                         pid = p.id
-                        if not pid in nowteams:
+                        if not nowteams[pid]:
                             nowteams[pid] = teamname
                             nowmatch["scores"][nowteams[pid]][pid] = (0,0,0)
                             await ch.send(embed=discord.Embed(
                                 title=f"Added Player \"{p.name}\" to Team \"{teamname}\"",
-                                description=f"Now Team {teamname} list:\n{chr(10).join(pl.name for pl in nowmatch['scores'][nowteams[pid]].keys())}",
+                                description=f"Now Team {teamname} list:\n{chr(10).join(app.get_user(pl).name for pl in nowmatch['scores'][nowteams[pid]].keys())}",
                                 color=discord.Colour.blue()))
                         else:
                             await ch.send(embed=discord.Embed(
@@ -233,41 +238,41 @@ async def on_message(message):
                         del nowmatch["scores"][temp][pid]
                         await ch.send(embed=discord.Embed(
                             title=f"Removed Player \"{p.name}\" to Team \"{teamname}\"",
-                            description=f"Now Team {teamname} list:\n{chr(10).join(pl.name for pl in nowmatch['scores'][temp].keys())}",
+                            description=f"Now Team {teamname} list:\n{chr(10).join(app.get_user(pl).name for pl in nowmatch['scores'][temp].keys())}",
                             color=discord.Colour.blue()))
                     else:
                         await ch.send(err+command[2])
 
                 elif command[1]=="score":
                     if command[2]=="add":
-                        nowmatch["scores"][nowteams[p]][p] = tuple(map(float, command[3:6]))
-                        await ch.send(embed=discord.Embed(title=f"Added/changed {p.name}'(s) score", description=f"{command[3]} to Team {nowteams[p]}", color=discord.Colour.blue()))
+                        nowmatch["scores"][nowteams[pid]][pid] = tuple(map(float, command[3:6]))
+                        await ch.send(embed=discord.Embed(title=f"Added/changed {p.name}'(s) score", description=f"{command[3]} to Team {nowteams[pid]}", color=discord.Colour.blue()))
                     elif command[2]=="remove":
-                        temp = nowmatch["scores"][nowteams[p]][p]
-                        nowmatch["scores"][nowteams[p]][p] = (0,0,0)
-                        await ch.send(embed=discord.Embed(title=f"Removed {p.name}'(s) score", description=f"{temp} from Team {nowteams[p]}", color=discord.Colour.blue()))
+                        temp = nowmatch["scores"][nowteams[pid]][pid]
+                        nowmatch["scores"][nowteams[pid]][pid] = (0,0,0)
+                        await ch.send(embed=discord.Embed(title=f"Removed {p.name}'(s) score", description=f"{temp} from Team {nowteams[pid]}", color=discord.Colour.blue()))
                     elif command[2]=="forceadd":
                         if p.id != 327835849142173696:
                             await ch.send("ACCESS DENIED")
                             return
                         p = app.get_user(int(command[-1]))
-                        nowmatch["scores"][nowteams[p]][p] = tuple(map(float, command[3:6]))
-                        await ch.send(embed=discord.Embed(title=f"Added/changed {p.name}'(s) score", description=f"{command[3]} to Team {nowteams[p]}", color=discord.Colour.blue()))
+                        pid = p.id
+                        nowmatch["scores"][nowteams[pid]][pid] = tuple(map(float, command[3:6]))
+                        await ch.send(embed=discord.Embed(title=f"Added/changed {p.name}'(s) score", description=f"{command[3]} to Team {nowteams[pid]}", color=discord.Colour.blue()))
                     elif command[2]=="forceremove":
                         if p.id != 327835849142173696:
                             await ch.send("ACCESS DENIED")
                             return
                         p = app.get_user(int(command[-1]))
-                        temp = nowmatch["scores"][nowteams[p]][p]
-                        nowmatch["scores"][nowteams[p]][p] = (0,0,0)
-                        await ch.send(embed=discord.Embed(title=f"Removed {p.name}'(s) score", description=f"{temp} from Team {nowteams[p]}", color=discord.Colour.blue()))
+                        pid = p.id
+                        temp = nowmatch["scores"][nowteams[pid]][pid]
+                        nowmatch["scores"][nowteams[pid]][pid] = (0,0,0)
+                        await ch.send(embed=discord.Embed(title=f"Removed {p.name}'(s) score", description=f"{temp} from Team {nowteams[pid]}", color=discord.Colour.blue()))
                     else:
                         await ch.send(err+command[2])
                 
                 elif command[1]=="setmap":
                     done = True
-                    if not "map" in nowmatch:
-                        nowmatch["map"] = dict()
                     if command[2]=="infos":
                         nowmatch["map"]["artist"], nowmatch["map"]["title"], nowmatch["map"]["author"], nowmatch["map"]["diff"] = ' '.join(command[3:]).split('::')
                     elif command[2]=="full":
@@ -284,14 +289,81 @@ async def on_message(message):
                             done = False
                     if done:
                         await ch.send(f'DONE: {makefull(**nowmatch["map"])}')
-                            
+
+                elif command[1]=="bind":
+                    ids[pid] = int(command[2])
+
+                elif command[1]=="autosubmit":
+                    check = list(map(int, command[2:-1]))
+                    mode = command[-1]
+                    done = []
+                    for t in nowmatch["scores"]:
+                        for p in nowmatch["scores"][t]:
+                            if ids[p]:
+                                recent = getrecent(p)
+                                mapartist, maptitle, mapauthor, mapdiff = recent[0]
+                                score = int(recent[1][1].replace(',', ''))
+                                acc = float(recent[1][4])
+                                miss = float(recent[2][0])
+                                modes = set(recent[1][2].split(', '))
+                                if check[0]:
+                                    if mapartist != nowmatch["map"]["artist"]:
+                                        continue
+                                if check[1]:
+                                    if maptitle != nowmatch["map"]["title"]:
+                                        continue
+                                if check[2]:
+                                    if mapauthor != nowmatch["map"]["author"]:
+                                        continue
+                                if check[3]:
+                                    if mapdiff != nowmatch["map"]["diff"]:
+                                        continue
+                                if modes - {'HalfTime', 'NightCore'} != modes:
+                                    continue
+                                elif mode=='All':
+                                    pass
+                                elif mode=='HD':
+                                    if modes == {'Hidden'}:
+                                        pass
+                                    else:
+                                        continue
+                                elif mode=='HR':
+                                    if modes == {'HardRock'}:
+                                        pass
+                                    else:
+                                        continue
+                                elif mode=='DT':
+                                    if modes == {'DoubleTime'}:
+                                        pass
+                                    elif modes == {'Hidden', 'DoubleTime'}:
+                                        score /= 1.06
+                                elif mode=='None':
+                                    if modes:
+                                        continue
+                                elif mode=='FM':
+                                    if modes - {'DoubleTime'} != modes:
+                                        continue
+                                done.append(p)
+                                nowmatch["score"][nowteams[p]][p] = (score, acc, miss)
+                    sendtxt = "**The player's scores here had been add automatically:**\n"
+                    for p in done:
+                        sendtxt += "__"
+                        sendtxt += app.get_user(p).name
+                        sendtxt += "__ : "
+                        info = nowmatch["score"][nowteams[p]][p]
+                        sendtxt += f"{info[0]} score, {info[1]}% accuracy, {info[2]} miss(es)\n"
+                    sendtxt += "\nIf your score haven't be added automatically, " \
+                               "you might played different map or with different modes.\n" \
+                               "If not, use `f:match score add` manually.\n" \
+                               "(If you played with HDDT in DT map, presented score is divided by 1.06."
+                    await ch.send(embed=discord.Embed(title="Finished", description=sendtxt))
 
                 elif command[1]=="submit":
                     scores = dict()
                     sums = dict()
                     if len(command)>2:
                         if command[2]=="nero2":
-                            if "sss" in nowmatch["map"]:
+                            if nowmatch["map"]["sss"]:
                                 for t in nowmatch["scores"]:
                                     scores[t] = dict()
                                     sums[t] = 0
@@ -303,7 +375,7 @@ async def on_message(message):
                                 await ch.send("You have to set map with auto score.")
                                 return
                         elif command[2]=="jet2":
-                            if "sss" in nowmatch["map"]:
+                            if nowmatch["map"]["sss"]:
                                 for t in nowmatch["scores"]:
                                     scores[t] = dict()
                                     sums[t] = 0
@@ -324,19 +396,12 @@ async def on_message(message):
                                 sums[t] += v
                             
                     winners = list(filter(lambda x: sums[x]==max(sums.values()), sums.keys()))
-                    mapinfo = "Map: "
-                    if not "map" in nowmatch:
-                        mapinfo += "None"
-                    else:
-                        if nowmatch["map"]!=dict():
-                            mapinfo += makefull(**nowmatch["map"])
-                        else:
-                            mapinfo += "None"
+                    mapinfo = "Map: " + makefull(**nowmatch["map"])
                     for w in winners:
                         nowmatch["setscores"][w] += 1
                     desc = mapinfo+"\n\n"+\
                            '\n\n'.join(f"__TEAM {i}__: **{sums[i]}**\n"+
-                                       ('\n'.join(f"{app.get_user(i).name}: {scores[i][j]}" for j in scores[i]))
+                                       ('\n'.join(f"{app.get_user(j).name}: {scores[i][j]}" for j in scores[i]))
                                        for i in sums)
                     sendtxt = discord.Embed(title=f"__**Team {', '.join(winners)} take(s) a point!**__",
                                             description=desc,
@@ -466,7 +531,7 @@ async def on_message(message):
     
     except Exception as ex:
         await ch.send(f"ERROR OCCURED: {ex}")
-        print("ERROR OCCURED:", ex)
+        print(traceback.format_exc())
 
 
 class Restart(BaseException):
