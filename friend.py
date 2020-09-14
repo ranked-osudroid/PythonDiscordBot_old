@@ -27,6 +27,7 @@ url_base = "http://ops.dgsrz.com/profile.php?uid="
 mapr = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[]]")
 playr = re.compile(r"(.*) / (.*) / (.*) / (.*)x / (.*)%")
 missr = re.compile(r"[{]\"miss\":(\d+), \"hash\":.*[}]")
+diffr = re.compile(r"[\[(]?(.*?)[])]? (.*) \[(.*)]")
 
 datas = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
 teams = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: defaultdict(dict))))
@@ -41,8 +42,8 @@ neroscoreV2 = lambda maxscore, score, acc, miss: round((score/maxscore * 600000 
 jetonetV2 = lambda maxscore, score, acc, miss: round(score/maxscore * 500000 + ((max(acc - 80, 0))/20)**2 * 500000)
 
 analyze = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[]]")
-def makefull(author=None, artist=None, title=None, diff=None, sss=0):
-    return f"{artist} - {title} ({author}) [{diff}]"
+def makefull(**kwargs):
+    return f"{kwargs['artist']} - {kwargs['title']} ({kwargs['author']}) [{kwargs['diff']}]"
 
 def dice(s):
     s = s.partition('d')
@@ -284,6 +285,7 @@ async def on_message(message):
                         if c!=[]:
                             c = c[0]
                             nowmatch["map"]["author"], nowmatch["map"]["artist"], nowmatch["map"]["title"], nowmatch["map"]["diff"], nowmatch["map"]["sss"] = tuple(worksheet.cell(c.row, i+1).value for i in range(5))
+                            nowmatch["map"]["mode"] = command[2]
                         else:
                             await ch.send(f"NOT FOUND: {command[2]}")
                             done = False
@@ -292,34 +294,60 @@ async def on_message(message):
 
                 elif command[1]=="bind":
                     ids[pid] = int(command[2])
+                    await ch.send(f'DONE: {app.get_user(pid).name} binded to {command[2]}')
 
                 elif command[1]=="autosubmit":
-                    check = list(map(int, command[2:-1]))
-                    mode = command[-1]
+                    if len(command)==2:
+                        check = []
+                        mode = ''
+                    else:
+                        check = list(map(int, command[2:-1]))
+                        mode = command[-1]
                     done = []
                     for t in nowmatch["scores"]:
                         for p in nowmatch["scores"][t]:
                             if ids[p]:
-                                recent = getrecent(p)
+                                recent = getrecent(ids[p])
+                                """try:
+                                    mapartist, maptitle, mapauthor, mapdiff = recent[0]
+                                    score = int(recent[1][1].replace(',', ''))
+                                    acc = float(recent[1][4])
+                                    miss = float(recent[2][0])
+                                    modes = set(recent[1][2].split(', '))
+                                except TypeError:
+                                    continue
+                                except AttributeError:
+                                    continue"""
                                 mapartist, maptitle, mapauthor, mapdiff = recent[0]
                                 score = int(recent[1][1].replace(',', ''))
                                 acc = float(recent[1][4])
                                 miss = float(recent[2][0])
                                 modes = set(recent[1][2].split(', '))
-                                if check[0]:
-                                    if mapartist != nowmatch["map"]["artist"]:
+                                if len(check):
+                                    if check[0]:
+                                        if mapartist != nowmatch["map"]["artist"]:
+                                            continue
+                                    if check[1]:
+                                        if maptitle != nowmatch["map"]["title"]:
+                                            continue
+                                    if check[2]:
+                                        if mapauthor != nowmatch["map"]["author"]:
+                                            continue
+                                    if check[3]:
+                                        if mapdiff != nowmatch["map"]["diff"]:
+                                            continue
+                                if not mode:
+                                    m = diffr.match(mapdiff)
+                                    if not m:
                                         continue
-                                if check[1]:
-                                    if maptitle != nowmatch["map"]["title"]:
+                                    m = m.groups()
+                                    if m[0]!=nowmatch["map"]["mode"].split(';')[-1]:
                                         continue
-                                if check[2]:
-                                    if mapauthor != nowmatch["map"]["author"]:
+                                    if m[1]!=nowmatch["map"]["title"]:
                                         continue
-                                if check[3]:
-                                    if mapdiff != nowmatch["map"]["diff"]:
+                                    if m[2]!=nowmatch["map"]["diff"]:
                                         continue
-                                if modes - {'HalfTime', 'NightCore'} != modes:
-                                    continue
+                                    mode = m[0][:2]
                                 elif mode=='All':
                                     pass
                                 elif mode=='HD':
@@ -337,7 +365,7 @@ async def on_message(message):
                                         pass
                                     elif modes == {'Hidden', 'DoubleTime'}:
                                         score /= 1.06
-                                elif mode=='None':
+                                elif mode=='NM':
                                     if modes:
                                         continue
                                 elif mode=='FM':
@@ -353,9 +381,11 @@ async def on_message(message):
                         info = nowmatch["score"][nowteams[p]][p]
                         sendtxt += f"{info[0]} score, {info[1]}% accuracy, {info[2]} miss(es)\n"
                     sendtxt += "\nIf your score haven't be added automatically, " \
-                               "you might played different map or with different modes.\n" \
-                               "If not, use `f:match score add` manually.\n" \
-                               "(If you played with HDDT in DT map, presented score is divided by 1.06."
+                               "you might played different map or with different modes\n" \
+                               "OR you didn't binded your UID with yourself.\n" \
+                               "Use `f:match bind UID` to bind.\n" \
+                               "If you want to upload manually, use `f:match score add`.\n" \
+                               "(If you played with HDDT in DT map, presented score is divided by 1.06.)"
                     await ch.send(embed=discord.Embed(title="Finished", description=sendtxt))
 
                 elif command[1]=="submit":
