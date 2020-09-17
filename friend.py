@@ -294,7 +294,8 @@ async def on_message(message):
 
                 elif command[1]=="bind":
                     ids[pid] = int(command[2])
-                    await ch.send(f'DONE: {app.get_user(pid).name} binded to {command[2]}')
+                    await ch.send(embed=discord.Embed(title=f'DONE: {app.get_user(pid).name} binded to {command[2]}',
+                                                      color=discord.Colour(0xfefefe)))
 
                 elif command[1]=="autosubmit":
                     if len(command)==2:
