@@ -1,4 +1,4 @@
-import asyncio, discord, time, gspread, re, datetime, random, requests, os, traceback
+import asyncio, discord, time, gspread, re, datetime, random, requests, os, traceback, scoreCalc
 from oauth2client.service_account import ServiceAccountCredentials as SAC
 from collections import defaultdict
 from bs4 import BeautifulSoup
@@ -40,6 +40,9 @@ noticechannels = [651054921537421323, 652487382381363200]
 
 neroscoreV2 = lambda maxscore, score, acc, miss: round((score/maxscore * 600000 + (acc**4)/250) * (1-0.003*miss))
 jetonetV2 = lambda maxscore, score, acc, miss: round(score/maxscore * 500000 + ((max(acc - 80, 0))/20)**2 * 500000)
+
+kind = ['number', 'artist', 'author', 'title', 'diff']
+rmeta = r'\$(*+.?[^{|'
 
 analyze = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[]]")
 def makefull(**kwargs):
@@ -280,9 +283,13 @@ async def on_message(message):
                         nowmatch["map"]["artist"], nowmatch["map"]["title"], nowmatch["map"]["author"], nowmatch["map"]["diff"] = analyze.match(' '.join(command[3:])).groups()
                     elif command[2]=="score":
                         nowmatch["map"]["sss"] = int(command[3])
+                    elif command[2]=="scoreauto":
+                        s = scoreCalc.scoreCalc(' '.join(command[3:]))
+                        nowmatch["map"]["sss"] = s.getAutoScore()
+                        s.close()
                     else:
                         c = worksheet.findall(command[2])
-                        if c!=[]:
+                        if c != []:
                             c = c[0]
                             nowmatch["map"]["author"], nowmatch["map"]["artist"], nowmatch["map"]["title"], nowmatch["map"]["diff"], nowmatch["map"]["sss"] = tuple(worksheet.cell(c.row, i+1).value for i in range(5))
                             nowmatch["map"]["mode"] = command[2]
@@ -297,6 +304,23 @@ async def on_message(message):
                     await ch.send(embed=discord.Embed(title=f'DONE: {app.get_user(pid).name} binded to {command[2]}',
                                                       color=discord.Colour(0xfefefe)))
 
+                elif command[1]=="setform":
+                    form = ' '.join(command[2:])
+                    temp = []
+                    for k in kind:
+                        t = len(re.findall(k, form))
+                        if t == 1:
+                            temp.append(k)
+                        elif t:
+                            await ch.send("<!> There should not be the same arguments.")
+                            return
+                    for c in rmeta:
+                        form = form.replace(c, '\\'+c)
+                    for t in temp:
+                        form = form.replace(t, '(?P<'+t+'>.*?)')
+                    nowmatch["form"] = [re.compile(form), temp]
+                    await ch.send(f"Form set: {form}")
+
                 elif command[1]=="autosubmit":
                     if len(command)==2:
                         check = []
@@ -309,21 +333,29 @@ async def on_message(message):
                         for p in nowmatch["scores"][t]:
                             if ids[p]:
                                 recent = getrecent(ids[p])
-                                """try:
-                                    mapartist, maptitle, mapauthor, mapdiff = recent[0]
-                                    score = int(recent[1][1].replace(',', ''))
-                                    acc = float(recent[1][4])
-                                    miss = float(recent[2][0])
-                                    modes = set(recent[1][2].split(', '))
-                                except TypeError:
-                                    continue
-                                except AttributeError:
-                                    continue"""
                                 mapartist, maptitle, mapauthor, mapdiff = recent[0]
                                 score = int(recent[1][1].replace(',', ''))
                                 acc = float(recent[1][4])
                                 miss = float(recent[2][0])
                                 modes = set(recent[1][2].split(', '))
+                                if type(nowmatch["form"]) != defaultdict:
+                                    check = [0, 0, 0, 0]
+                                    d = nowmatch["form"][0].match(mapdiff)
+                                    for tt in nowmatch["form"][1]:
+                                        if tt == "artist":
+                                            check[0] = 1
+                                            mapartist = d.group(tt)
+                                        elif tt == "title":
+                                            check[1] = 1
+                                            maptitle = d.group(tt)
+                                        elif tt == "author":
+                                            check[2] = 1
+                                            mapauthor = d.group(tt)
+                                        elif tt == "diff":
+                                            check[3] = 1
+                                            mapdiff = d.group(tt)
+                                        elif tt == "number":
+                                            mode = d.group("number")[:2]
                                 if len(check):
                                     if check[0]:
                                         if mapartist != nowmatch["map"]["artist"]:
@@ -451,7 +483,7 @@ async def on_message(message):
                     for i in nowmatch["setscores"]:
                         desc += f"__TEAM {i}__: **{nowmatch['setscores'][i]}**\n"
                         for p in nowmatch["scores"][i]:
-                            desc += p.name + '\n'
+                            desc += app.get_user(p).name + '\n'
                         desc += '\n'
                     await ch.send(embed=discord.Embed(
                         title="Current match progress", description=desc.rstrip(), color=discord.Colour.orange()))
