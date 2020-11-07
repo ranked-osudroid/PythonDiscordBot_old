@@ -1,4 +1,4 @@
-import asyncio, discord, time, gspread, re, datetime, random, requests, os, traceback, scoreCalc
+import asyncio, discord, time, gspread, re, datetime, random, requests, os, traceback, scoreCalc, decimal
 from oauth2client.service_account import ServiceAccountCredentials as SAC
 from collections import defaultdict
 from bs4 import BeautifulSoup
@@ -38,8 +38,14 @@ restartalert = False
 
 noticechannels = [651054921537421323, 652487382381363200]
 
-neroscoreV2 = lambda maxscore, score, acc, miss: round((score/maxscore * 600000 + (acc**4)/250) * (1-0.003*miss))
-jetonetV2 = lambda maxscore, score, acc, miss: round(score/maxscore * 500000 + ((max(acc - 80, 0))/20)**2 * 500000)
+getd = lambda n: decimal.Decimal(str(n))
+neroscoreV2 = lambda maxscore, score, acc, miss: round((getd(score)/getd(maxscore) * 600000
+                                                        + (getd(acc)**4)/250)
+                                                       * (1-getd(0.003)*getd(miss)))
+jetonetV2 = lambda maxscore, score, acc, miss: round(getd(score)/getd(maxscore) * 500000
+                                                     + ((max(getd(acc) - 80, 0))/20)**2 * 500000)
+osuV2 = lambda maxscore, score, acc, miss: round(getd(score)/getd(maxscore) * 700000
+                                                 + (getd(acc)/100)**10 * 300000)
 
 kind = ['number', 'artist', 'author', 'title', 'diff']
 rmeta = r'\$(*+.?[^{|'
@@ -571,7 +577,10 @@ async def on_message(message):
                 await ch.send(f"__{p.name}__'(s) NeroScoreV2 result = __**{neroscoreV2(*map(float, command[1:]))}**__")
 
             elif command[0]=="jt2":
-                await ch.send(f"__{p.name}__'(s) NeroScoreV2 result = __**{jetonetV2(*map(float, command[1:]))}**__")
+                await ch.send(f"__{p.name}__'(s) jetonetV2 result = __**{jetonetV2(*map(float, command[1:]))}**__")
+
+            elif command[0]=="osu2":
+                await ch.send(f"__{p.name}__'(s) osuV2 result = __**{osuV2(*map(float, command[1:]))}**__")
             
             elif command[0]=="run":
                 if p.id == 327835849142173696:
