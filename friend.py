@@ -362,7 +362,7 @@ async def on_message(message):
                                             mapdiff = d.group(tt)
                                         elif tt == "number":
                                             mode = d.group("number")[:2]
-                                if len(check):
+                                elif len(check):
                                     if check[0]:
                                         if mapartist != nowmatch["map"]["artist"]:
                                             continue
@@ -387,7 +387,7 @@ async def on_message(message):
                                     if m[2]!=nowmatch["map"]["diff"]:
                                         continue
                                     mode = m[0][:2]
-                                elif mode=='All':
+                                if mode=='All':
                                     pass
                                 elif mode=='HD':
                                     if modes == {'Hidden'}:
@@ -405,7 +405,7 @@ async def on_message(message):
                                     elif modes == {'Hidden', 'DoubleTime'}:
                                         score /= 1.06
                                 elif mode=='NM':
-                                    if modes:
+                                    if modes != {'None'}:
                                         continue
                                 elif mode=='FM':
                                     if modes - {'DoubleTime'} != modes:
@@ -418,7 +418,7 @@ async def on_message(message):
                         sendtxt += app.get_user(p).name
                         sendtxt += "__ : "
                         info = nowmatch["score"][nowteams[p]][p]
-                        sendtxt += f"{info[0]} score, {info[1]}% accuracy, {info[2]} miss(es)\n"
+                        sendtxt += f"{info[0]} score, {info[1]}% accuracy, {int(info[2])} miss(es)\n"
                     sendtxt += "\nIf your score haven't be added automatically, " \
                                "you might played different map or with different modes\n" \
                                "OR you didn't binded your UID with yourself.\n" \
@@ -633,15 +633,17 @@ async def botoff():
     raise Restart
 
 loop = asyncio.get_event_loop()
+t = loop.create_task(botoff())
 try:
-    t = loop.create_task(botoff())
     loop.run_until_complete(app.start(token))
 except KeyboardInterrupt:
     print("\nForce stop")
 except BaseException as ex:
+    print(repr(ex))
     print(ex)
 finally:
     t.cancel()
     loop.run_until_complete(app.logout())
     loop.run_until_complete(loop.shutdown_asyncgens())
+    loop.run_until_complete(asyncio.sleep(1))
     loop.close()
