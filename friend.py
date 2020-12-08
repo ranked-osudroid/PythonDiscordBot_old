@@ -387,6 +387,7 @@ async def on_message(message):
                                     if m[2]!=nowmatch["map"]["diff"]:
                                         continue
                                     mode = m[0][:2]
+                                modes -= {'NoFail'}
                                 if mode=='All':
                                     pass
                                 elif mode=='HD':
