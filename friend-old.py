@@ -573,7 +573,7 @@ async def on_message(message):
                 await ch.send(f"__{p.name}__'(s) NeroScoreV2 result = __**{neroscoreV2(*map(float, command[1:]))}**__")
 
             elif command[0]=="jt2":
-                await ch.send(f"__{p.name}__'(s) jetonetV2 result = __**{jetonetV2(*map(float, command[1:]))}**__")
+                await ch.send(f"__{p.name}__'(s) JetonetV2 result = __**{jetonetV2(*map(float, command[1:]))}**__")
 
             elif command[0]=="osu2":
                 await ch.send(f"__{p.name}__'(s) osuV2 result = __**{osuV2(*map(float, command[1:]))}**__")

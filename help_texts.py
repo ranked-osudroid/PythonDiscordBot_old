@@ -13,8 +13,8 @@ __choose|one|of|these|parameters__'
 
 helptxt_forscrim_name = "*스크림 관련 | For scrim*"
 helptxt_forscrim_desc = """
-**m;__participate|p__**
-지금 열리고 잇는 스크림에 참가합니다.
+**m;make**
+매치를 만듭니다.
 
 
 **m;__teamadd|t__ <*팀이름*>**
