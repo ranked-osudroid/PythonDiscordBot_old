@@ -1,4 +1,4 @@
-import re, math
+import re, math, decimal
 
 class scoreCalc:
     def __init__(self, path):
@@ -8,6 +8,8 @@ class scoreCalc:
         self.file.close()
     
     def getAutoScore(self):
+        halfup = lambda d: d.quantize(decimal.Decimal('1.'), rounding=decimal.ROUND_HALF_UP)
+        dec = decimal.Decimal
         l = self.file.readline().rstrip()
         while l != "[Difficulty]":
             l = self.file.readline().rstrip()
@@ -23,15 +25,15 @@ class scoreCalc:
             if m:
                 md, value = m.groups()
                 if md == 'HPDrainRate':
-                    hp = float(value)
+                    hp = dec(value)
                 elif md == 'CircleSize':
-                    cs = float(value)
+                    cs = dec(value)
                 elif md == 'OverallDifficulty':
-                    od = float(value)
+                    od = dec(value)
                 elif md == 'SliderMultiplier':
-                    sv = float(value)
+                    sv = dec(value)
                 elif md == 'SliderTickRate':
-                    st = int(value)
+                    st = dec(value)
             i = self.file.readline().rstrip()
         l = self.file.readline().rstrip()
         while l != "[TimingPoints]":
@@ -40,11 +42,11 @@ class scoreCalc:
         timings = []
         while t:
             t = t.split(',')
-            offset = float(t[0])
-            secPerbit = float(t[1])
+            offset = dec(t[0])
+            secPerbit = dec(t[1])
             speed = 1
             if secPerbit < 0:
-                secPerbit, speed = timings[-1][1], -100 / secPerbit
+                secPerbit, speed = dec(timings[-1][1]), dec(-100) / secPerbit
             timings.append((offset, secPerbit, speed))
             t = self.file.readline().rstrip()
         l = self.file.readline().rstrip()
@@ -72,8 +74,8 @@ class scoreCalc:
                 pass
             elif _type == 2 or _type == 6:
                 repeat = int(d[6])
-                length = float(d[7])
-                beats = math.ceil(round(length / (sv * timings[tindex - 1][2] * 100), 6)) * st
+                length = dec(d[7])
+                beats = halfup(length / (sv * timings[tindex - 1][2] * 100) * st)
                 totaladdscore += 30 * repeat
                 totaladdscore += 10 * (beats - 1) * repeat
                 combo += beats * repeat
@@ -93,8 +95,8 @@ class scoreCalc:
                         totaladdscore += 100
                     if needspin <= 0:
                         flag = True
-            totaladdscore += math.floor(round(300 + 12 * combo * mapdiff, 6))
-            score += int(totaladdscore)
+            totaladdscore += halfup(300 + 12 * combo * mapdiff)
+            score += totaladdscore
             combo += 1
             d = self.file.readline().rstrip()
         return (combo-1, score)
