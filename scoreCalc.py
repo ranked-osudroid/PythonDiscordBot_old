@@ -40,7 +40,7 @@ class scoreCalc:
         timings = []
         while t:
             t = t.split(',')
-            offset = int(t[0])
+            offset = float(t[0])
             secPerbit = float(t[1])
             speed = 1
             if secPerbit < 0:
