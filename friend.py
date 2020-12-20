@@ -9,7 +9,7 @@ import requests
 import time
 import traceback
 from typing import *
-from collections import defaultdict
+from collections import defaultdict as dd
 
 from bs4 import BeautifulSoup
 from discord.ext import commands
@@ -67,6 +67,16 @@ def osuv2(maxscore: int, score: int, acc: float, miss: int):
     a = 300000 * (getd(acc) / 100) ** 10
     return halfup(s + a)
 
+def v1(maxscore: int, score: int, acc: float, miss: int):
+    return getd(score)
+
+v2dict = {
+    None    : v1,
+    'nero2' : neroscorev2,
+    'jet2'  : jetonetv2,
+    'osu2'  : osuv2,
+}
+
 kind = ['number', 'artist', 'author', 'title', 'diff']
 rmeta = r'\$(*+.?[^{|'
 
@@ -109,17 +119,17 @@ def is_owner():
 ####################################################################################################################
 
 
-def getuser(x):
-    if not member_ids[x]:
-        member_ids[x] = app.get_user(x)
+def getusername(x: int) -> str:
+    if member_ids.get(x) is None:
+        member_ids[x] = app.get_user(x).name
     return member_ids[x]
 
 
 class Scrim:
     def __init__(self, ctx: discord.ext.commands.Context):
         self.loop = asyncio.get_event_loop()
-        self.guild = ctx.guild
-        self.channel = ctx.channel
+        self.guild: discord.Guild = ctx.guild
+        self.channel: discord.TextChannel = ctx.channel
 
         self.team: Dict[str, Set[int]] = dict()
         # teamname : {member1_id, member2_id, ...}
@@ -132,28 +142,21 @@ class Scrim:
         self.score: Dict[int, Tuple[d, d, d]] = dict()
         # member_id : (score, acc, miss)
 
-        self.mapartist: str = ''
-        self.mapauthor: str = ''
-        self.maptitle: str = ''
-        self.mapdiff: str = ''
-        self.mapnumber: str = ''
+        self.map_artist: str = ''
+        self.map_author: str = ''
+        self.map_title: str = ''
+        self.map_diff: str = ''
+        self.map_number: str = ''
+        self.form: Optional[List[re.Pattern, List[str]]] = None
 
-        self.form: List[re.Pattern, List[str]] = None
-
-        self.loop.run_until_complete(
-            self.channel.send(embed=discord.Embed(
-                title="스크림이 만들어졌습니다! | A scrim is made",
-                description=f"서버/Guild : {self.guild}\n채널/Channel : {self.channel}",
-                color=discord.Colour.blue()
-            ))
-        )
+        self.map_auto_score: Optional[int] = None
 
     async def maketeam(self, name: str):
-        if self.team.get(name):
+        if self.team.get(name) != None:
             await self.channel.send(embed=discord.Embed(
                 title=f"\"{name}\" 팀은 이미 존재합니다!",
                 description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
-                color=discord.Colour.blue()
+                color=discord.Colour.dark_blue()
             ))
         else:
             self.team[name] = set()
@@ -165,11 +168,11 @@ class Scrim:
             ))
 
     async def removeteam(self, name: str):
-        if not self.team.get(name):
+        if self.team.get(name) is None:
             await self.channel.send(embed=discord.Embed(
                 title=f"\"{name}\"이란 팀은 존재하지 않습니다!",
                 description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
-                color=discord.Colour.blue()
+                color=discord.Colour.dark_blue()
             ))
         else:
             for p in self.team[name]:
@@ -188,8 +191,14 @@ class Scrim:
         temp = self.findteam.get(mid)
         if temp:
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.display_name}\"은 이미 \"{temp}\" 팀에 들어가 있습니다!",
+                title=f"플레이어 \"{member.name}\"님은 이미 \"{temp}\" 팀에 들어가 있습니다!",
                 description=f"`m;out`으로 현재 팀에서 나온 다음에 명령어를 다시 입력해주세요."
+            ))
+        elif self.team.get(name) is None:
+            await self.channel.send(embed=discord.Embed(
+                title=f"\"{name}\"이란 팀은 존재하지 않습니다!",
+                description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
+                color=discord.Colour.dark_blue()
             ))
         else:
             self.findteam[mid] = name
@@ -197,9 +206,9 @@ class Scrim:
             self.players.add(mid)
             self.score[mid] = (getd(0), getd(0), getd(0))
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.display_name}\"가 \"{name}\"팀에 참가합니다!",
+                title=f"플레이어 \"{member.name}\"님이 \"{name}\"팀에 참가합니다!",
                 description=f"현재 \"{name}\"팀 플레이어 리스트:\n"
-                            f"{chr(10).join(getuser(pl).display_name for pl in self.team[name])}",
+                            f"{chr(10).join(getusername(pl) for pl in self.team[name])}",
                 color=discord.Colour.blue()
             ))
 
@@ -210,7 +219,7 @@ class Scrim:
         temp = self.findteam.get(mid)
         if mid not in self.players:
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.display_name}\"은 어느 팀에도 속해있지 않습니다!",
+                title=f"플레이어 \"{member.name}\"님은 어느 팀에도 속해있지 않습니다!",
                 description=f"일단 참가하고나서 해주시죠."
             ))
         else:
@@ -218,9 +227,9 @@ class Scrim:
             self.team[temp].remove(mid)
             self.players.remove(mid)
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.display_name}\"가 \"{temp}\"팀을 떠납니다!",
+                title=f"플레이어 \"{member.name}\"님이 \"{temp}\"팀을 떠납니다!",
                 description=f"현재 \"{temp}\"팀 플레이어 리스트:\n"
-                            f"{chr(10).join(getuser(pl).display_name for pl in self.team[temp])}",
+                            f"{chr(10).join(getusername(pl) for pl in self.team[temp])}",
                 color=discord.Colour.blue()
             ))
 
@@ -230,14 +239,14 @@ class Scrim:
         mid = member.id
         if mid not in self.players:
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.display_name}\"은 어느 팀에도 속해있지 않습니다!",
+                title=f"플레이어 \"{member.name}\"님은 어느 팀에도 속해있지 않습니다!",
                 description=f"일단 참가하고나서 해주시죠."
             ))
         else:
             self.score[mid] = (getd(score), getd(acc), getd(miss))
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 {member.display_name}의 점수를 추가(또는 수정)했습니다!",
-                description=f"\"{self.findteam[mid]}\"팀에 {score}, {acc}%, {miss}xMISS",
+                title=f"플레이어 \"{member.name}\"님의 점수를 추가(또는 수정)했습니다!",
+                description=f"\"{self.findteam[mid]}\"팀 <== {score}, {acc}%, {miss}xMISS",
                 color=discord.Colour.blue()
             ))
 
@@ -247,21 +256,90 @@ class Scrim:
         mid = member.id
         if mid not in self.players:
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.display_name}\"은 어느 팀에도 속해있지 않습니다!",
+                title=f"플레이어 \"{member.name}\"님은 어느 팀에도 속해있지 않습니다!",
                 description=f"일단 참가하고나서 해주시죠."
             ))
         else:
             self.score[mid] = (getd(0), getd(0), getd(0))
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 {member.display_name}의 점수를 삭제했습니다!",
+                title=f"플레이어 \"{member.name}\"님의 점수를 삭제했습니다!",
                 color=discord.Colour.blue()
             ))
 
+    async def submit(self, calcmode: Optional[str]):
+        if calcmode and (self.map_auto_score is None):
+            await self.channel.send(embed=discord.Embed(
+                title="v2를 계산하기 위해서는 오토점수가 필요합니다!",
+                description="`m;mapscore`로 오토점수를 등록해주세요!"
+            ))
+        calc = v2dict[calcmode]
+        resultmessage = await self.channel.send(embed=discord.Embed(
+            title="계산 중...",
+            color=discord.Colour.orange()
+        ))
+        calculatedscores = dict()
+        for p in self.score:
+            calculatedscores[p] = calc(self.map_auto_score, *self.score[p])
+        teamscore = dict()
+        for t in self.team:
+            teamscore[t] = 0
+            for p in self.team[t]:
+                teamscore[t] += calculatedscores[p]
+        winnerteam = list(filter(
+            lambda x: teamscore[x] == max(teamscore.values()),
+            teamscore.keys()
+        ))
+        for w in winnerteam:
+            self.setscore[w] += 1
+        desc = ', '.join('"'+t+'"' for t in winnerteam)
+        sendtxt = discord.Embed(
+            title="매치 종료!",
+            description=f"__**팀 {desc} 승리!**__",
+            color=discord.Colour.red()
+        )
+        sendtxt.add_field(
+            name='\u200b',
+            value='='*40+'\n',
+            inline=False
+        )
+        for t in teamscore:
+            sendtxt.add_field(
+                name=f"*\"{t}\"팀 결과:*",
+                value='\n'.join(f"{getusername(p)} : {calculatedscores[p]}" for p in self.team[t])+'\n'
+            )
+        sendtxt.add_field(
+            name="__현재 점수:__",
+            value='\n'.join(f"**{t} : {self.setscore[t]}**" for t in teamscore),
+            inline=False
+        )
+        await resultmessage.edit(embed=sendtxt)
 
-member_ids: defaultdict[int, discord.Member] = defaultdict(None)
-datas: defaultdict[int, defaultdict[int, Dict[str, Union[int, Scrim]]]] = \
-    defaultdict(lambda: defaultdict(lambda: {'valid': False, 'scrim': None}))
-uids: defaultdict[int, int] = defaultdict(int)
+    async def end(self):
+        winnerteam = list(filter(
+            lambda x: self.setscore[x] == max(self.setscore.values()),
+            self.score.keys()
+        ))
+        sendtxt = discord.Embed(
+            title="===== !스크림 종료! =====",
+            description="팀 " + ', '.join(f"\"{w}\"" for w in winnerteam) + " 최종 우승!",
+            color=discord.Colour.magenta()
+        )
+        sendtxt.add_field(
+            name="최종 결과:",
+            value='\n'.join(f"{t} : {self.setscore[t]}" for t in self.setscore)
+        )
+        sendtxt.add_field(
+            name="수고하셨습니다!",
+            value='스크림 정보가 자동으로 초기화됩니다.',
+            inline=False
+        )
+        await self.channel.send(embed=sendtxt)
+
+
+member_ids: Dict[int, str] = dict()
+datas: dd[Dict[int, dd[Dict[int, Dict[str, Union[int, Scrim]]], Callable[[], Dict]]]] = \
+    dd(lambda: dd(lambda: {'valid': False, 'scrim': None}))
+uids: dd[int, int] = dd(int)
 
 
 ####################################################################################################################
@@ -289,7 +367,7 @@ async def on_message(message):
     if p == app.user:
         return
     print(
-        f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))} ({ping}ms)] "
+        f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}] "
         f"[{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}")
     if credentials.access_token_expired:
         gs.login()
@@ -298,11 +376,11 @@ async def on_message(message):
 
 @app.event
 async def on_command_error(ctx, error):
-    errortxt = ''.join(traceback.format_exception(type(error), error, error.__traceback__))
+    errortxt = ''.join(traceback.format_exception(type(error), error, error.__traceback__)).strip()
     print('================ ERROR ================')
-    print('```' + errortxt.strip() + '```')
+    print(errortxt)
     print('=======================================')
-    await ctx.send(errortxt)
+    await ctx.send('```'+errortxt+'```')
 
 
 @app.command(name="help")
@@ -320,11 +398,11 @@ async def ping(ctx):
 @app.command()
 async def roll(ctx, *dices: str):
     sendtxt = []
-    for d in dices:
-        x = dice(d)
+    for _d in dices:
+        x = dice(_d)
         if not x:
             continue
-        sendtxt.append(f"{d}: **{' / '.join(x)}**")
+        sendtxt.append(f"{_d}: **{' / '.join(x)}**")
     await ctx.send(embed=discord.Embed(title="Dice Roll Result", description='\n'.join(sendtxt)))
 
 
@@ -368,16 +446,21 @@ async def make(ctx):
         return
     s['valid'] = 1
     s['scrim'] = Scrim(ctx)
+    await ctx.send(embed=discord.Embed(
+        title="스크림이 만들어졌습니다! | A scrim is made",
+        description=f"서버/Guild : {ctx.guild}\n채널/Channel : {ctx.channel}",
+        color=discord.Colour.green()
+    ))
 
 
-@app.command(aliases=["teamadd", 't'])
+@app.command(aliases=['t'])
 async def teamadd(ctx, *, name):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
         await s['scrim'].maketeam(name)
 
 
-@app.command(aliases=["teamremove", 'tr'])
+@app.command(aliases=['tr'])
 async def teamremove(ctx, *, name):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
@@ -398,26 +481,38 @@ async def out(ctx):
         await s['scrim'].removeplayer(ctx.author)
 
 
-@app.command(aliases=["score", 'sc'])
-async def score(ctx, sc: int, a: float = 0.0, m: int = 0):
+@app.command(aliases=['score', 'sc'])
+async def _score(ctx, sc: int, a: float = 0.0, m: int = 0):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
         await s['scrim'].addscore(ctx.author, sc, a, m)
 
 
-@app.command(aliases=["scoreremove", 'scr'])
+@app.command(aliases=['scr'])
 async def scoreremove(ctx):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
         await s['scrim'].removescore(ctx.author)
 
+@app.command()
+async def submit(ctx, calcmode: Optional[str] = None):
+    s = datas[ctx.guild.id][ctx.channel.id]
+    if s['valid']:
+        await s['scrim'].submit(calcmode)
+
+@app.command()
+async def end(ctx):
+    s = datas[ctx.guild.id][ctx.channel.id]
+    if s['valid']:
+        await s['scrim'].end()
+        del datas[ctx.guild.id][ctx.channel.id]
 
 @app.command()
 async def bind(ctx, number: int):
     mid = ctx.author.id
     uids[mid] = number
     await ctx.send(embed=discord.Embed(
-        title=f'DONE: {ctx.author.name} binded to {number}',
+        title=f'플레이어 \"{ctx.author.name}\"님을 UID {number}로 연결했습니다!',
         color=discord.Colour(0xfefefe)
     ))
 
@@ -432,6 +527,8 @@ except BaseException as ex:
     print(repr(ex))
     print(ex)
 finally:
+    loop.run_until_complete(app.logout())
     loop.run_until_complete(app.close())
     loop.run_until_complete(loop.shutdown_asyncgens())
     loop.close()
+    print('Program Close')

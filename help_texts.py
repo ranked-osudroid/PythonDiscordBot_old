@@ -108,6 +108,10 @@ V2SCORE = roundHalfUp((score/maxscore) x 700,000 + (acc/100)^10 * 300,000)
 
 **m;__scoreremove|scr__**
 수동으로 점수를 삭제해야 할 경우 사용합니다.
+
+
+**m;end**
+스크림을 끝내고 초기화합니다.
 """.strip()
 
 helptxt_other_name = "그 외 | Others"
