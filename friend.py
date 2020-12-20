@@ -77,6 +77,8 @@ v2dict = {
     'osu2'  : osuv2,
 }
 
+blank = '\u200b'
+
 kind = ['number', 'artist', 'author', 'title', 'diff']
 rmeta = r'\$(*+.?[^{|'
 
@@ -267,11 +269,18 @@ class Scrim:
             ))
 
     async def submit(self, calcmode: Optional[str]):
-        if calcmode and (self.map_auto_score is None):
+        if v2dict.get(calcmode) is None:
+            await self.channel.send(embed=discord.Embed(
+                title="존재하지 않는 계산 방식입니다!",
+                description="(입력없음), nero2, jet2, osu2 중 하나여야 합니다."
+            ))
+            return
+        elif calcmode and (self.map_auto_score is None):
             await self.channel.send(embed=discord.Embed(
                 title="v2를 계산하기 위해서는 오토점수가 필요합니다!",
                 description="`m;mapscore`로 오토점수를 등록해주세요!"
             ))
+            return
         calc = v2dict[calcmode]
         resultmessage = await self.channel.send(embed=discord.Embed(
             title="계산 중...",
@@ -298,8 +307,8 @@ class Scrim:
             color=discord.Colour.red()
         )
         sendtxt.add_field(
-            name='\u200b',
-            value='='*40+'\n',
+            name=blank,
+            value='='*40+'\n'+blank,
             inline=False
         )
         for t in teamscore:
@@ -317,7 +326,7 @@ class Scrim:
     async def end(self):
         winnerteam = list(filter(
             lambda x: self.setscore[x] == max(self.setscore.values()),
-            self.score.keys()
+            self.setscore.keys()
         ))
         sendtxt = discord.Embed(
             title="===== !스크림 종료! =====",
