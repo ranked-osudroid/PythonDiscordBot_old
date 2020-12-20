@@ -669,6 +669,35 @@ async def _map(ctx, *, name: str):
             color=discord.Colour.blue()
         ))
 
+
+@app.command()
+async def mapmode(ctx, mode: str):
+    s = datas[ctx.guild.id][ctx.channel.id]
+    if s['valid']:
+        resultmessage = await ctx.send(embed=discord.Embed(
+            title="계산 중...",
+            color=discord.Colour.orange()
+        ))
+        scrim = s['scrim']
+        scrim.setmode(mode)
+        await resultmessage.edit(embed=discord.Embed(
+            title=f"설정 완료!",
+            description=f"맵 정보 : {scrim.getmapfull()}\n"
+                        f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}",
+            color=discord.Colour.blue()
+        ))
+
+
+@app.command()
+async def mapscore(ctx, sc_or_auto: Union[int, str]):
+    s = datas[ctx.guild.id][ctx.channel.id]
+    if s['valid']:
+        scrim = s['scrim']
+        if sc_or_auto == 'auto':
+            pass
+        else:
+            pass
+
 ####################################################################################################################
 
 loop = asyncio.get_event_loop()
