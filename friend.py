@@ -79,10 +79,10 @@ v2dict = {
 
 blank = '\u200b'
 
-kind = ['number', 'artist', 'author', 'title', 'diff']
+rkind = ['number', 'artist', 'author', 'title', 'diff']
 rmeta = r'\$(*+.?[^{|'
 
-analyze = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[]]")
+analyze = re.compile(r"(?P<artist>.*) [-] (?P<title>.*) [(](?P<author>.*)[)] \[(?P<diff>.*)]")
 
 
 ####################################################################################################################
@@ -127,6 +127,9 @@ def getusername(x: int) -> str:
     return member_ids[x]
 
 
+visibleinfo = ['artist', 'title', 'author', 'diff']
+modes = ['NM', 'HR', 'HD', 'DT', 'FM', 'TB']
+
 class Scrim:
     def __init__(self, ctx: discord.ext.commands.Context):
         self.loop = asyncio.get_event_loop()
@@ -144,17 +147,38 @@ class Scrim:
         self.score: Dict[int, Tuple[d, d, d]] = dict()
         # member_id : (score, acc, miss)
 
-        self.map_artist: str = ''
-        self.map_author: str = ''
-        self.map_title: str = ''
-        self.map_diff: str = ''
-        self.map_number: str = ''
+        self.map_artist: Optional[str] = None
+        self.map_author: Optional[str] = None
+        self.map_title: Optional[str] = None
+        self.map_diff: Optional[str] = None
+
+        self.map_number: Optional[str] = None
+        self.map_mode: Optional[str] = None
+        self.map_auto_score: Optional[int] = None
         self.form: Optional[List[re.Pattern, List[str]]] = None
 
-        self.map_auto_score: Optional[int] = None
+        self.setfuncs: Dict[str, Callable[[str], NoReturn]] = {
+            'artist': self.setartist,
+            'title' : self.settitle,
+            'author': self.setauthor,
+            'diff'  : self.setdiff,
+            'number': self.setnumber,
+            'mode'  : self.setmode,
+            'autosc': self.setautoscore,
+        }
+
+        self.getfuncs: Dict[str, Callable[[], str]] = {
+            'artist': self.getartist,
+            'title' : self.gettitle,
+            'author': self.getauthor,
+            'diff'  : self.getdiff,
+            'number': self.getnumber,
+            'mode'  : self.getmode,
+            'autosc': self.getautoscore,
+        }
 
     async def maketeam(self, name: str):
-        if self.team.get(name) != None:
+        if self.team.get(name) is not None:
             await self.channel.send(embed=discord.Embed(
                 title=f"\"{name}\" 팀은 이미 존재합니다!",
                 description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
@@ -322,6 +346,91 @@ class Scrim:
             inline=False
         )
         await resultmessage.edit(embed=sendtxt)
+
+    def setartist(self, artist: str):
+        self.map_artist = artist
+
+    def getartist(self) -> str:
+        return self.map_artist if self.map_artist else ''
+
+    def settitle(self, title: str):
+        self.map_title = title
+
+    def gettitle(self) -> str:
+        return self.map_title if self.map_title else ''
+
+    def setauthor(self, author: str):
+        self.map_author = author
+
+    def getauthor(self) -> str:
+        return self.map_author if self.map_author else ''
+
+    def setdiff(self, diff: str):
+        self.map_diff = diff
+
+    def getdiff(self) -> str:
+        return self.map_diff if self.map_diff else ''
+
+    def setnumber(self, number: str):
+        self.map_number = number
+
+    def getnumber(self) -> str:
+        return self.map_number if self.map_number else '-'
+
+    def setmode(self, mode: str):
+        self.map_mode = mode
+
+    def getmode(self) -> str:
+        return self.map_mode if self.map_mode else '-'
+
+    def setautoscore(self, score: int):
+        self.map_auto_score = score
+
+    def getautoscore(self) -> int:
+        return self.map_auto_score if self.map_auto_score else -1
+
+    def setmapinfo(self, infostr: str):
+        m = analyze.match(infostr)
+        if m is None:
+            return True
+        for k in visibleinfo:
+            if m.group(k) != '':
+                self.setfuncs[k](m.group(k))
+
+    def getmapinfo(self) -> Dict[str, str]:
+        r = dict()
+        for k in visibleinfo:
+            r[k] = self.getfuncs[k]()
+        return r
+
+    def getmapfull(self):
+        return makefull(**self.getmapinfo())
+
+    async def setform(self, form: str):
+        args = list()
+        for k in rkind:
+            findks = re.findall(k, form)
+            if len(findks):
+                args.append(k)
+            elif len(findks) > 1:
+                await self.channel.send(embed=discord.Embed(
+                    title="각 단어는 하나씩만 들어가야 합니다!",
+                    color=discord.Colour.dark_red()
+                ))
+                return
+        for c in rmeta:
+            form = form.replace(c, '\\'+c)
+        for a in args:
+            form = form.replace(a, f'(?P<{a}>.*?)')
+        self.form = [re.compile(form), args]
+        await self.channel.send(embed=discord.Embed(
+            title="형식 지정 완료!",
+            description=f"RegEx 패턴 : {self.form[0].pattern}",
+            color=discord.Colour.blue()
+        ))
+
+    async def onlineload(self):
+        pass
 
     async def end(self):
         winnerteam = list(filter(
@@ -503,11 +612,13 @@ async def scoreremove(ctx):
     if s['valid']:
         await s['scrim'].removescore(ctx.author)
 
+
 @app.command()
 async def submit(ctx, calcmode: Optional[str] = None):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
         await s['scrim'].submit(calcmode)
+
 
 @app.command()
 async def end(ctx):
@@ -515,6 +626,7 @@ async def end(ctx):
     if s['valid']:
         await s['scrim'].end()
         del datas[ctx.guild.id][ctx.channel.id]
+
 
 @app.command()
 async def bind(ctx, number: int):
@@ -524,6 +636,38 @@ async def bind(ctx, number: int):
         title=f'플레이어 \"{ctx.author.name}\"님을 UID {number}로 연결했습니다!',
         color=discord.Colour(0xfefefe)
     ))
+
+
+@app.command(name="map")
+async def _map(ctx, *, name: str):
+    s = datas[ctx.guild.id][ctx.channel.id]
+    if s['valid']:
+        resultmessage = await ctx.send(embed=discord.Embed(
+            title="계산 중...",
+            color=discord.Colour.orange()
+        ))
+        scrim = s['scrim']
+        t = scrim.setmapinfo(name)
+        if t:
+            try:
+                target = worksheet.find(name)
+            except gspread.exceptions.CellNotFound:
+                await resultmessage.edit(embed=discord.Embed(
+                    title=f"{name}을 찾지 못했습니다!",
+                    description="오타가 있거나, 아직 봇 시트에 등록이 안 되어 있을 수 있습니다.",
+                    color=discord.Colour.dark_red()
+                ))
+                return
+            for i, k in enumerate(['author', 'artist', 'title', 'diff', 'autosc']):
+                scrim.setfuncs[k](worksheet.cell(target.row, i+1).value)
+            scrim.setnumber(name)
+            scrim.setmode(re.findall('|'.join(modes), name.split(';')[-1])[0])
+        await resultmessage.edit(embed=discord.Embed(
+            title=f"설정 완료!",
+            description=f"맵 정보 : {scrim.getmapfull()}\n"
+                        f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}",
+            color=discord.Colour.blue()
+        ))
 
 ####################################################################################################################
 
