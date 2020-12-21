@@ -354,7 +354,7 @@ class Scrim:
             self.setscore[w] += 1
         desc = ', '.join('"'+t+'"' for t in winnerteam)
         sendtxt = discord.Embed(
-            title="매치 종료!",
+            title="========= !매치 종료! =========",
             description=f"__**팀 {desc} 승리!**__",
             color=discord.Colour.red()
         )
@@ -365,7 +365,7 @@ class Scrim:
         )
         for t in teamscore:
             sendtxt.add_field(
-                name=f"*\"{t}\"팀 결과:*",
+                name=f"*\"{t}\"팀 결과 : {teamscore[t]}*",
                 value='\n'.join(f"{getusername(p)} : {calculatedscores[p]}" for p in self.team[t])+'\n'
             )
         sendtxt.add_field(
@@ -581,7 +581,7 @@ class Scrim:
             self.setscore.keys()
         ))
         sendtxt = discord.Embed(
-            title="===== !스크림 종료! =====",
+            title="========= !스크림 종료! =========",
             description="팀 " + ', '.join(f"\"{w}\"" for w in winnerteam) + " 최종 우승!",
             color=discord.Colour.magenta()
         )
