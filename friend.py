@@ -532,6 +532,8 @@ class Scrim:
                                 break
                         p[k] = m.group(k)
                         checkbit |= infotoint[k]
+                if checkbit is None:
+                    checkbit = 31
                 for k in ['artist', 'title', 'author', 'diff']:
                     if flag:
                         break
