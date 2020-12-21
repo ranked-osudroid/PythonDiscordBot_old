@@ -628,7 +628,7 @@ async def on_ready():
     print(f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}]")
     print("BOT NAME :", app.user.name)
     print("BOT ID   :", app.user.id)
-    game = discord.Game("REMODELLING")
+    game = discord.Game("m;help")
     await app.change_presence(status=discord.Status.online, activity=game)
     print("==========BOT START==========")
 
