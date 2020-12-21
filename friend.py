@@ -617,8 +617,10 @@ uids: dd[int, int] = dd(int)
 
 
 helptxt = discord.Embed(title=helptxt_title, description=helptxt_desc, color=discord.Colour(0xfefefe))
-helptxt.add_field(name=helptxt_forscrim_name, value=helptxt_forscrim_desc)
-helptxt.add_field(name=helptxt_other_name, value=helptxt_other_desc)
+helptxt.add_field(name=helptxt_forscrim_name, value=helptxt_forscrim_desc1, inline=False)
+helptxt.add_field(name=blank, value=helptxt_forscrim_desc2, inline=False)
+helptxt.add_field(name=blank, value=helptxt_forscrim_desc3, inline=False)
+helptxt.add_field(name=helptxt_other_name, value=helptxt_other_desc, inline=False)
 
 
 @app.event
