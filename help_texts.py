@@ -1,6 +1,6 @@
 helptxt_title = "명령어 모음 | COMMAND DESCRIPTION"
 helptxt_desc = """
-**ver. 2.202012119**
+**ver. 2.20201221**
 변수는 *기울여서* 표기하고
 = 꼭 필요한 변수는 <>로 감싸서
 = 그렇지 않은 변수는 ()로 감싸서
