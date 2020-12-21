@@ -463,7 +463,7 @@ class Scrim:
         self.form = [re.compile(form), args]
         await self.channel.send(embed=discord.Embed(
             title="형식 지정 완료!",
-            description=f"RegEx 패턴 : {self.form[0].pattern}",
+            description=f"RegEx 패턴 : `{self.form[0].pattern}`",
             color=discord.Colour.blue()
         ))
 
@@ -490,7 +490,7 @@ class Scrim:
             self.availablemode['TB'] = tb
 
     async def onlineload(self, checkbit: Optional[int] = None):
-        desc = ''
+        desc = '====== < 계산 로그 > ======'
         resultmessage: discord.Message = await self.channel.send(embed=discord.Embed(
             title="계산 중...",
             description=desc,
@@ -505,7 +505,7 @@ class Scrim:
                     color=discord.Colour.orange()
                 ))
                 if uids.get(player) is None:
-                    desc += f"등록 실패... : " \
+                    desc += f"등록 실패 : " \
                             f"{getusername(player)}의 UID가 등록되어있지 않음"
                     continue
                 player_recent_info = getrecent(uids[player])
@@ -520,7 +520,7 @@ class Scrim:
                     checkbit = 0
                     m = self.form[0].match(p['diff'])
                     if m is None:
-                        desc += f"등록 실패... : " \
+                        desc += f"등록 실패 : " \
                                 f"{getusername(player)}의 최근 플레이 난이도명이 저장된 형식에 맞지 않음 " \
                                 f"(플레이어 난이도명 : {p['diff']}"
                         continue
@@ -530,10 +530,11 @@ class Scrim:
                             pnum = m.group(k)
                             if mnum != pnum:
                                 flag = True
-                                desc += f"등록 실패... : " \
+                                desc += f"등록 실패 : " \
                                         f"{getusername(player)}의 맵 번호가 다름 " \
                                         f"(현재 맵 번호 : {mnum} / 플레이어 맵 번호 : {pnum})"
                                 break
+                            continue
                         p[k] = m.group(k)
                         checkbit |= infotoint[k]
                 if checkbit is None:
@@ -555,7 +556,7 @@ class Scrim:
                     for md in p['modes']:
                         pmodeint |= modetoint[md]
                     if pmodeint not in self.availablemode[self.map_mode]:
-                        desc += f"등록 실패... : " \
+                        desc += f"등록 실패 : " \
                                 f"{getusername(player)}의 모드가 조건에 맞지 않음 " \
                                 f"(현재 가능한 모드 숫자 : {self.availablemode[self.map_mode]} / 플레이어 모드 숫자 : {pmodeint})"
                         continue
