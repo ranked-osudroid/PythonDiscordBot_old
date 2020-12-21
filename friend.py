@@ -521,14 +521,18 @@ class Scrim:
                     m = self.form[0].match(p['diff'])
                     if m is None:
                         desc += f"등록 실패... : " \
-                                f"{getusername(player)}의 최근 플레이 난이도 명이 저장된 형식에 맞지 않음"
+                                f"{getusername(player)}의 최근 플레이 난이도명이 저장된 형식에 맞지 않음 " \
+                                f"(플레이어 난이도명 : {p['diff']}"
                         continue
                     for k in self.form[1]:
                         if k == 'number':
-                            if self.map_number.split(';')[-1] != m.group(k):
+                            mnum = self.map_number.split(';')[-1]
+                            pnum = m.group(k)
+                            if mnum != pnum:
                                 flag = True
                                 desc += f"등록 실패... : " \
-                                        f"{getusername(player)}의 맵 번호가 다름"
+                                        f"{getusername(player)}의 맵 번호가 다름 " \
+                                        f"(현재 맵 번호 : {mnum} / 플레이어 맵 번호 : {pnum})"
                                 break
                         p[k] = m.group(k)
                         checkbit |= infotoint[k]
@@ -538,10 +542,12 @@ class Scrim:
                     if flag:
                         break
                     if checkbit & infotoint[k]:
-                        if self.getfuncs[k]() != p[k]:
+                        nowk = self.getfuncs[k]()
+                        if nowk != p[k]:
                             flag = True
-                            desc += f"등록 실패... : " \
-                                    f"{getusername(player)}의 {k}가 다름"
+                            desc += f"등록 실패 : " \
+                                    f"{getusername(player)}의 {k}가 다름 " \
+                                    f"(현재 {k} : {nowk} / 플레이어 {k} : {p[k]})"
                 if flag:
                     continue
                 if self.map_mode is not None:
@@ -550,7 +556,8 @@ class Scrim:
                         pmodeint |= modetoint[md]
                     if pmodeint not in self.availablemode[self.map_mode]:
                         desc += f"등록 실패... : " \
-                                f"{getusername(player)}의 모드가 조건에 맞지 않음 ({pmodeint})"
+                                f"{getusername(player)}의 모드가 조건에 맞지 않음 " \
+                                f"(현재 가능한 모드 숫자 : {self.availablemode[self.map_mode]} / 플레이어 모드 숫자 : {pmodeint})"
                         continue
                 self.score[player] = (getd(p['score']), getd(p['acc']), getd(p['miss']))
                 desc += f"등록 완료! : " \
@@ -852,6 +859,13 @@ async def onlineload(ctx, checkbit: Optional[int] = None):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
         await s['scrim'].onlineload(checkbit)
+
+
+@app.command()
+async def form(ctx, *, f: str):
+    s = datas[ctx.guild.id][ctx.channel.id]
+    if s['valid']:
+        await s['scrim'].setform(f)
 
 
 @app.command(aliases=['mr'])
