@@ -8,6 +8,7 @@ import re
 import requests
 import time
 import traceback
+import scoreCalc
 from typing import *
 from collections import defaultdict as dd
 
@@ -52,23 +53,23 @@ def getd(n: Union[int, float, str]):
 def halfup(n: d):
     return n.quantize(getd('1.'), rounding=decimal.ROUND_HALF_UP)
 
-def neroscorev2(maxscore: int, score: int, acc: float, miss: int):
-    s = 600000 * getd(score) / getd(maxscore)
-    a = 400000 * (getd(acc) / 100) ** 4
-    return halfup((s + a) * (1 - getd(0.003) * getd(miss)))
+def neroscorev2(maxscore: d, score: d, acc: d, miss: d):
+    s = 600000 * score / maxscore
+    a = 400000 * (acc / 100) ** 4
+    return halfup((s + a) * (1 - getd(0.003) * miss))
 
-def jetonetv2(maxscore: int, score: int, acc: float, miss: int):
-    s = 500000 * getd(score) / getd(maxscore)
-    a = 500000 * (max(getd(acc) - 80, getd('0')) / 20) ** 2
+def jetonetv2(maxscore: d, score: d, acc: d, miss: d):
+    s = 500000 * score / maxscore
+    a = 500000 * (max(acc - 80, getd('0')) / 20) ** 2
     return halfup(s + a)
 
-def osuv2(maxscore: int, score: int, acc: float, miss: int):
-    s = 700000 * getd(score) / getd(maxscore)
-    a = 300000 * (getd(acc) / 100) ** 10
+def osuv2(maxscore: d, score: d, acc: d, miss: d):
+    s = 700000 * score / maxscore
+    a = 300000 * (acc / 100) ** 10
     return halfup(s + a)
 
-def v1(maxscore: int, score: int, acc: float, miss: int):
-    return getd(score)
+def v1(maxscore: d, score: d, acc: d, miss: d):
+    return score
 
 v2dict = {
     None    : v1,
@@ -122,13 +123,31 @@ def is_owner():
 
 
 def getusername(x: int) -> str:
-    if member_ids.get(x) is None:
-        member_ids[x] = app.get_user(x).name
-    return member_ids[x]
+    if member_names.get(x) is None:
+        member_names[x] = app.get_user(x).name
+    return member_names[x]
 
 
 visibleinfo = ['artist', 'title', 'author', 'diff']
-modes = ['NM', 'HR', 'HD', 'DT', 'FM', 'TB']
+modes = ['NM', 'HD', 'HR', 'DT', 'FM', 'TB']
+modetoint = {
+    'None': 0,
+    'Hidden': 1,
+    'HardRock': 2,
+    'DoubleTime': 4,
+    'NoFail': 8,
+    'HalfTime': 16,
+    'NightCore': 32,
+    'Easy': 64
+}
+infotoint = {
+    'artist': 1,
+    'title': 2,
+    'author': 4,
+    'diff': 8,
+    'mode': 16
+}
+
 
 class Scrim:
     def __init__(self, ctx: discord.ext.commands.Context):
@@ -154,8 +173,17 @@ class Scrim:
 
         self.map_number: Optional[str] = None
         self.map_mode: Optional[str] = None
-        self.map_auto_score: Optional[int] = None
-        self.form: Optional[List[re.Pattern, List[str]]] = None
+        self.map_auto_score: Optional[int, dd] = None
+        self.form: Optional[List[Union[re.Pattern, List[str]]]] = None
+
+        self.availablemode = {
+            'NM': {0, 8},
+            'HR': {2, 10},
+            'HD': {1, 9},
+            'DT': {4, 5, 12, 13},
+            'FM': {0, 1, 2, 3, 8, 9, 10, 11},
+            'TB': {0, 1, 2, 3, 8, 9, 10, 11},
+        }
 
         self.setfuncs: Dict[str, Callable[[str], NoReturn]] = {
             'artist': self.setartist,
@@ -299,7 +327,7 @@ class Scrim:
                 description="(입력없음), nero2, jet2, osu2 중 하나여야 합니다."
             ))
             return
-        elif calcmode and (self.map_auto_score is None):
+        elif calcmode and (self.getautoscore() == -1):
             await self.channel.send(embed=discord.Embed(
                 title="v2를 계산하기 위해서는 오토점수가 필요합니다!",
                 description="`m;mapscore`로 오토점수를 등록해주세요!"
@@ -346,6 +374,16 @@ class Scrim:
             inline=False
         )
         await resultmessage.edit(embed=sendtxt)
+        self.resetmap()
+
+    def resetmap(self):
+        self.map_artist = None
+        self.map_author = None
+        self.map_title = None
+        self.map_diff = None
+        self.map_number = None
+        self.map_mode = None
+        self.map_auto_score = None
 
     def setartist(self, artist: str):
         self.map_artist = artist
@@ -383,10 +421,10 @@ class Scrim:
     def getmode(self) -> str:
         return self.map_mode if self.map_mode else '-'
 
-    def setautoscore(self, score: int):
+    def setautoscore(self, score: Union[int, dd]):
         self.map_auto_score = score
 
-    def getautoscore(self) -> int:
+    def getautoscore(self) -> Union[int, dd]:
         return self.map_auto_score if self.map_auto_score else -1
 
     def setmapinfo(self, infostr: str):
@@ -429,8 +467,69 @@ class Scrim:
             color=discord.Colour.blue()
         ))
 
-    async def onlineload(self):
+    async def setmoderule(self,
+                          nm: Iterable[int],
+                          hd: Iterable[int],
+                          hr: Iterable[int],
+                          dt: Iterable[int],
+                          fm: Iterable[int],
+                          tb: Iterable[int]):
         pass
+
+    async def onlineload(self, checkbit: Optional[int] = None):
+        desc = ''
+        resultmessage = await self.channel.send(embed=discord.Embed(
+            title="계산 중...",
+            description=desc,
+            color=discord.Colour.orange()
+        ))
+        for team in self.team:
+            for player in self.team[team]:
+                if uids.get(player) is None:
+                    continue
+                player_recent_info = getrecent(uids[player])
+                p = dict()
+                p['artist'], p['title'], p['author'], p['diff'] = player_recent_info[0]
+                p['score'] = int(player_recent_info[1][1].replace(',', ''))
+                p['acc'] = float(player_recent_info[1][4])
+                p['miss'] = float(player_recent_info[2][0])
+                p['modes'] = set(player_recent_info[1][2].split(','))
+                flag = False
+                if self.form is not None:
+                    checkbit = 0
+                    m = self.form[0].match(p['diff'])
+                    if m is None:
+                        continue
+                    for k in self.form[1]:
+                        if k == 'number':
+                            if self.map_number.split(';')[-1] != m.group(k):
+                                flag = True
+                                break
+                        p[k] = m.group(k)
+                        checkbit |= infotoint[k]
+                for k in ['artist', 'title', 'author', 'diff']:
+                    if flag:
+                        break
+                    if checkbit & infotoint[k]:
+                        if self.getfuncs[k]() != p[k]:
+                            flag = True
+                if flag:
+                    continue
+                if self.map_mode is not None:
+                    pmodeint = 0
+                    for md in p['modes']:
+                        pmodeint |= modetoint[md]
+                    if pmodeint not in self.availablemode[self.map_mode]:
+                        continue
+                self.score[player] = (getd(p['score']), getd(p['acc']), getd(p['miss']))
+                desc += f"등록 완료! : " \
+                        f"{getusername(player)}의 점수 " \
+                        f"{self.score[player][0]}, {self.score[player][1]}%, {self.score[player][2]}xMISS\n"
+                resultmessage = await self.channel.send(embed=discord.Embed(
+                    title="계산 중...",
+                    description=desc,
+                    color=discord.Colour.orange()
+                ))
 
     async def end(self):
         winnerteam = list(filter(
@@ -454,7 +553,7 @@ class Scrim:
         await self.channel.send(embed=sendtxt)
 
 
-member_ids: Dict[int, str] = dict()
+member_names: Dict[int, str] = dict()
 datas: dd[Dict[int, dd[Dict[int, Dict[str, Union[int, Scrim]]], Callable[[], Dict]]]] = \
     dd(lambda: dd(lambda: {'valid': False, 'scrim': None}))
 uids: dd[int, int] = dd(int)
@@ -543,7 +642,7 @@ async def say(ctx, *, txt: str):
 @is_owner()
 async def sayresult(ctx, *, com: str):
     r = eval(com)
-    await ctx.send('RESULT : ' + str(r))
+    await ctx.send('RESULT : `' + str(r) + '`')
 
 
 @app.command()
@@ -658,19 +757,23 @@ async def _map(ctx, *, name: str):
                     color=discord.Colour.dark_red()
                 ))
                 return
-            for i, k in enumerate(['author', 'artist', 'title', 'diff', 'autosc']):
+            for i, k in enumerate(['author', 'artist', 'title', 'diff']):
                 scrim.setfuncs[k](worksheet.cell(target.row, i+1).value)
+            autosc = worksheet.cell(target.row, 5).value
+            if autosc:
+                scrim.setautoscore(int(autosc))
             scrim.setnumber(name)
             scrim.setmode(re.findall('|'.join(modes), name.split(';')[-1])[0])
         await resultmessage.edit(embed=discord.Embed(
             title=f"설정 완료!",
             description=f"맵 정보 : {scrim.getmapfull()}\n"
-                        f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}",
+                        f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
+                        f"맵 SS 점수 : {scrim.getautoscore()}",
             color=discord.Colour.blue()
         ))
 
 
-@app.command()
+@app.command(aliases=['mm'])
 async def mapmode(ctx, mode: str):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
@@ -683,20 +786,41 @@ async def mapmode(ctx, mode: str):
         await resultmessage.edit(embed=discord.Embed(
             title=f"설정 완료!",
             description=f"맵 정보 : {scrim.getmapfull()}\n"
-                        f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}",
+                        f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
+                        f"맵 SS 점수 : {scrim.getautoscore()}",
             color=discord.Colour.blue()
         ))
 
 
-@app.command()
-async def mapscore(ctx, sc_or_auto: Union[int, str]):
+@app.command(aliases=['ms'])
+async def mapscore(ctx, sc_or_auto: Union[int, str], *, path: Optional[str] = None):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
+        resultmessage = await ctx.send(embed=discord.Embed(
+            title="계산 중...",
+            color=discord.Colour.orange()
+        ))
         scrim = s['scrim']
         if sc_or_auto == 'auto':
-            pass
+            s = scoreCalc.scoreCalc(path)
+            scrim.setautoscore(s.getAutoScore()[1])
+            s.close()
         else:
-            pass
+            scrim.setautoscore(sc_or_auto)
+        await resultmessage.edit(embed=discord.Embed(
+            title=f"설정 완료!",
+            description=f"맵 정보 : {scrim.getmapfull()}\n"
+                        f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
+                        f"맵 SS 점수 : {scrim.getautoscore()}",
+            color=discord.Colour.blue()
+        ))
+
+
+@app.command(aliases=['l'])
+async def onlineload(ctx, checkbit: Optional[int] = None):
+    s = datas[ctx.guild.id][ctx.channel.id]
+    if s['valid']:
+        await s['scrim'].onlineload(checkbit)
 
 ####################################################################################################################
 
@@ -712,5 +836,6 @@ finally:
     loop.run_until_complete(app.logout())
     loop.run_until_complete(app.close())
     loop.run_until_complete(loop.shutdown_asyncgens())
+    loop.run_until_complete(asyncio.sleep(0.5))
     loop.close()
     print('Program Close')
