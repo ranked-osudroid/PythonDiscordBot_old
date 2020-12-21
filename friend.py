@@ -467,25 +467,46 @@ class Scrim:
             color=discord.Colour.blue()
         ))
 
-    async def setmoderule(self,
-                          nm: Iterable[int],
-                          hd: Iterable[int],
-                          hr: Iterable[int],
-                          dt: Iterable[int],
-                          fm: Iterable[int],
-                          tb: Iterable[int]):
-        pass
+    def setmoderule(
+            self,
+            nm: Optional[Iterable[int]],
+            hd: Optional[Iterable[int]],
+            hr: Optional[Iterable[int]],
+            dt: Optional[Iterable[int]],
+            fm: Optional[Iterable[int]],
+            tb: Optional[Iterable[int]]
+    ):
+        if nm:
+            self.availablemode['NM'] = nm
+        if hd:
+            self.availablemode['HD'] = hd
+        if hr:
+            self.availablemode['HR'] = hr
+        if dt:
+            self.availablemode['DT'] = dt
+        if fm:
+            self.availablemode['FM'] = fm
+        if tb:
+            self.availablemode['TB'] = tb
 
     async def onlineload(self, checkbit: Optional[int] = None):
         desc = ''
-        resultmessage = await self.channel.send(embed=discord.Embed(
+        resultmessage: discord.Message = await self.channel.send(embed=discord.Embed(
             title="계산 중...",
             description=desc,
             color=discord.Colour.orange()
         ))
         for team in self.team:
             for player in self.team[team]:
+                desc += '\n'
+                await resultmessage.edit(embed=discord.Embed(
+                    title="계산 중...",
+                    description=desc,
+                    color=discord.Colour.orange()
+                ))
                 if uids.get(player) is None:
+                    desc += f"등록 실패... : " \
+                            f"{getusername(player)}의 UID가 등록되어있지 않음"
                     continue
                 player_recent_info = getrecent(uids[player])
                 p = dict()
@@ -499,11 +520,15 @@ class Scrim:
                     checkbit = 0
                     m = self.form[0].match(p['diff'])
                     if m is None:
+                        desc += f"등록 실패... : " \
+                                f"{getusername(player)}의 최근 플레이 난이도 명이 저장된 형식에 맞지 않음"
                         continue
                     for k in self.form[1]:
                         if k == 'number':
                             if self.map_number.split(';')[-1] != m.group(k):
                                 flag = True
+                                desc += f"등록 실패... : " \
+                                        f"{getusername(player)}의 맵 번호가 다름"
                                 break
                         p[k] = m.group(k)
                         checkbit |= infotoint[k]
@@ -513,6 +538,8 @@ class Scrim:
                     if checkbit & infotoint[k]:
                         if self.getfuncs[k]() != p[k]:
                             flag = True
+                            desc += f"등록 실패... : " \
+                                    f"{getusername(player)}의 {k}가 다름"
                 if flag:
                     continue
                 if self.map_mode is not None:
@@ -520,16 +547,18 @@ class Scrim:
                     for md in p['modes']:
                         pmodeint |= modetoint[md]
                     if pmodeint not in self.availablemode[self.map_mode]:
+                        desc += f"등록 실패... : " \
+                                f"{getusername(player)}의 모드가 조건에 맞지 않음 ({pmodeint})"
                         continue
                 self.score[player] = (getd(p['score']), getd(p['acc']), getd(p['miss']))
                 desc += f"등록 완료! : " \
                         f"{getusername(player)}의 점수 " \
-                        f"{self.score[player][0]}, {self.score[player][1]}%, {self.score[player][2]}xMISS\n"
-                resultmessage = await self.channel.send(embed=discord.Embed(
-                    title="계산 중...",
-                    description=desc,
-                    color=discord.Colour.orange()
-                ))
+                        f"{self.score[player][0]}, {self.score[player][1]}%, {self.score[player][2]}xMISS"
+        await resultmessage.edit(embed=discord.Embed(
+            title="계산 완료!",
+            description=desc,
+            color=discord.Colour.green()
+        ))
 
     async def end(self):
         winnerteam = list(filter(
@@ -821,6 +850,23 @@ async def onlineload(ctx, checkbit: Optional[int] = None):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
         await s['scrim'].onlineload(checkbit)
+
+
+@app.command(aliases=['mr'])
+async def mapmoderule(
+        ctx, 
+        nm: Optional[str], 
+        hd: Optional[str], 
+        hr: Optional[str], 
+        dt: Optional[str], 
+        fm: Optional[str], 
+        tb: Optional[str]
+):
+    s = datas[ctx.guild.id][ctx.channel.id]
+    if s['valid']:
+        def temp(x: Optional[str]):
+            return set(map(int, x.split(',')))
+        s['scrim'].setmoderule(temp(nm), temp(hd), temp(hr), temp(dt), temp(fm), temp(tb))
 
 ####################################################################################################################
 
