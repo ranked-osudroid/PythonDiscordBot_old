@@ -360,7 +360,7 @@ class Scrim:
         )
         sendtxt.add_field(
             name=blank,
-            value='='*40+'\n'+blank,
+            value='='*20+'\n'+blank,
             inline=False
         )
         for t in teamscore:
@@ -368,6 +368,11 @@ class Scrim:
                 name=f"*\"{t}\"팀 결과:*",
                 value='\n'.join(f"{getusername(p)} : {calculatedscores[p]}" for p in self.team[t])+'\n'
             )
+        sendtxt.add_field(
+            name=blank,
+            value='='*20+'\n'+blank,
+            inline=False
+        )
         sendtxt.add_field(
             name="__현재 점수:__",
             value='\n'.join(f"**{t} : {self.setscore[t]}**" for t in teamscore),
@@ -513,7 +518,7 @@ class Scrim:
                 p['artist'], p['title'], p['author'], p['diff'] = player_recent_info[0]
                 p['score'] = int(player_recent_info[1][1].replace(',', ''))
                 p['acc'] = float(player_recent_info[1][4])
-                p['miss'] = float(player_recent_info[2][0])
+                p['miss'] = int(float(player_recent_info[2][0]))
                 p['modes'] = set(player_recent_info[1][2].split(','))
                 flag = False
                 if self.form is not None:
@@ -581,8 +586,18 @@ class Scrim:
             color=discord.Colour.magenta()
         )
         sendtxt.add_field(
+            name=blank,
+            value='='*20+'\n'+blank,
+            inline=False
+        )
+        sendtxt.add_field(
             name="최종 결과:",
             value='\n'.join(f"{t} : {self.setscore[t]}" for t in self.setscore)
+        )
+        sendtxt.add_field(
+            name=blank,
+            value='='*20+'\n'+blank,
+            inline=False
         )
         sendtxt.add_field(
             name="수고하셨습니다!",
