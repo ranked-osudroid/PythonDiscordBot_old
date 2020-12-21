@@ -549,7 +549,7 @@ class Scrim:
                         break
                     if checkbit & infotoint[k]:
                         nowk = self.getfuncs[k]()
-                        if nowk != p[k]:
+                        if nowk.replace('\'', ' ') != p[k]:
                             flag = True
                             desc += f"등록 실패 : " \
                                     f"{getusername(player)}의 {k}가 다름 " \
