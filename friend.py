@@ -176,7 +176,7 @@ class Scrim:
         self.map_auto_score: Optional[int, dd] = None
         self.form: Optional[List[Union[re.Pattern, List[str]]]] = None
 
-        self.availablemode = {
+        self.availablemode: Dict[str, Iterable[int]] = {
             'NM': {0, 8},
             'HR': {2, 10},
             'HD': {1, 9},
