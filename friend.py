@@ -81,7 +81,7 @@ v2dict = {
 blank = '\u200b'
 
 rkind = ['number', 'artist', 'author', 'title', 'diff']
-rmeta = r'\$(*+.?[^{|'
+rmeta = r'\$()*+.?[^{|'
 
 analyze = re.compile(r"(?P<artist>.*) [-] (?P<title>.*) [(](?P<author>.*)[)] \[(?P<diff>.*)]")
 
@@ -549,7 +549,7 @@ class Scrim:
                         break
                     if checkbit & infotoint[k]:
                         nowk = self.getfuncs[k]()
-                        if nowk.replace('\'', ' ') != p[k]:
+                        if nowk.replace('\'', ' ').replace('/', '').replace('"', '') != p[k]:
                             flag = True
                             desc += f"등록 실패 : " \
                                     f"{getusername(player)}의 {k}가 다름 " \
