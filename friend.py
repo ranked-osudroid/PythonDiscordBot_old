@@ -82,6 +82,7 @@ blank = '\u200b'
 
 rkind = ['number', 'artist', 'author', 'title', 'diff']
 rmeta = r'\$()*+.?[^{|'
+rchange = re.compile(r'[\\/:*?\"<>|]')
 
 analyze = re.compile(r"(?P<artist>.*) [-] (?P<title>.*) [(](?P<author>.*)[)] \[(?P<diff>.*)]")
 
@@ -366,7 +367,8 @@ class Scrim:
         for t in teamscore:
             sendtxt.add_field(
                 name=f"*\"{t}\"팀 결과 : {teamscore[t]}*",
-                value='\n'.join(f"{getusername(p)} : {calculatedscores[p]}" for p in self.team[t])+'\n'
+                value='\n'.join(f"{getusername(p)} : {calculatedscores[p]}" for p in self.team[t])+'\n',
+                inline=False
             )
         sendtxt.add_field(
             name=blank,
@@ -389,6 +391,8 @@ class Scrim:
         self.map_number = None
         self.map_mode = None
         self.map_auto_score = None
+        for p in self.score:
+            self.score[p] = (getd(0), getd(0), getd(0))
 
     def setartist(self, artist: str):
         self.map_artist = artist
@@ -519,7 +523,7 @@ class Scrim:
                 p['score'] = int(player_recent_info[1][1].replace(',', ''))
                 p['acc'] = float(player_recent_info[1][4])
                 p['miss'] = int(float(player_recent_info[2][0]))
-                p['modes'] = set(player_recent_info[1][2].split(','))
+                p['modes'] = set(player_recent_info[1][2].split(', '))
                 flag = False
                 if self.form is not None:
                     checkbit = 0
@@ -549,11 +553,13 @@ class Scrim:
                         break
                     if checkbit & infotoint[k]:
                         nowk = self.getfuncs[k]()
-                        if nowk.replace('\'', ' ').replace('/', '').replace('"', '') != p[k]:
+                        nowk_edited = rchange.sub(nowk, '').replace('\'', ' ')
+                        if nowk != p[k]:
                             flag = True
                             desc += f"등록 실패 : " \
                                     f"{getusername(player)}의 {k}가 다름 " \
-                                    f"(현재 {k} : {nowk} / 플레이어 {k} : {p[k]})"
+                                    f"(현재 {k} : {nowk_edited} {'('+nowk+')' if nowk!=nowk_edited else ''} / " \
+                                    f"플레이어 {k} : {p[k]})"
                 if flag:
                     continue
                 if self.map_mode is not None:
@@ -615,6 +621,50 @@ uids: dd[int, int] = dd(int)
 
 ####################################################################################################################
 
+# TODO : make Timer class
+class Timer:
+    def __init__(self, ch: discord.TextChannel, name: str, seconds: float):
+        self.channel: discord.TextChannel = ch
+        self.name: str = name
+        self.seconds: float = seconds
+        self.start_time: datetime.datetime = datetime.datetime.utcnow()
+        self.loop = asyncio.get_event_loop()
+        self.task: asyncio.Task = loop.create_task(self.run())
+        self.message: discord.Message
+
+    async def run(self):
+        try:
+            self.message: discord.Message = await self.channel.send(embed=discord.Embed(
+                title="타이머 작동 시작!",
+                description=f"타이머 이름 : {self.name}\n"
+                            f"타이머 시간 : {self.seconds}",
+                color=discord.Colour.dark_orange()
+            ))
+            await asyncio.sleep(self.seconds)
+            await self.timeover()
+        except asyncio.CancelledError:
+            await self.cancel()
+
+    async def timeover(self):
+        await self.message.edit(
+            title="타임 오버!",
+            description=f"타이머 이름 : {self.name}\n"
+                        f"타이머 시간 : {self.seconds}",
+            color=discord.Colour.dark_grey()
+        )
+
+    async def cancel(self):
+        self.task.cancel()
+        await self.message.edit(
+            title="타이머 강제 중지!",
+            description=f"타이머 이름 : {self.name}\n"
+                        f"타이머 시간 : {self.seconds}",
+            color=discord.Colour.dark_red()
+        )
+
+
+####################################################################################################################
+
 
 helptxt = discord.Embed(title=helptxt_title, description=helptxt_desc, color=discord.Colour(0xfefefe))
 helptxt.add_field(name=helptxt_forscrim_name, value=helptxt_forscrim_desc1, inline=False)
@@ -665,7 +715,7 @@ async def _help(ctx):
 async def ping(ctx):
     msgtime = ctx.message.created_at
     nowtime = datetime.datetime.utcnow()
-    await ctx.send(f"Pong! ({(nowtime - msgtime).total_seconds() * 1000 :.4f}ms)")
+    await ctx.send(f"Pong! `{(nowtime - msgtime).total_seconds() * 1000 :.4f}ms`")
 
 
 @app.command()
@@ -901,6 +951,14 @@ async def mapmoderule(
         def temp(x: Optional[str]):
             return set(map(int, x.split(',')))
         s['scrim'].setmoderule(temp(nm), temp(hd), temp(hr), temp(dt), temp(fm), temp(tb))
+
+# TODO : make timer (m;timer, m;timer now, m;timer cancel)
+#@app.command()
+async def timer(ctx, action: Union[int, str], name: Optional[str] = None):
+    pass
+
+# TODO : make calc of each v2funcs (m;calc nero2|jet2|osu2)
+
 
 ####################################################################################################################
 
