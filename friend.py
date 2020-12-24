@@ -125,6 +125,55 @@ def is_owner():
 
 ####################################################################################################################
 
+# TODO : make Timer class
+class Timer:
+    def __init__(self, ch: discord.TextChannel, name: str, seconds: float):
+        self.channel: discord.TextChannel = ch
+        self.name: str = name
+        self.seconds: float = seconds
+        self.start_time: datetime.datetime = datetime.datetime.utcnow()
+        self.loop = asyncio.get_event_loop()
+        self.task: asyncio.Task = loop.create_task(self.run())
+        self.message: discord.Message
+
+    async def run(self):
+        try:
+            self.message: discord.Message = await self.channel.send(embed=discord.Embed(
+                title="타이머 작동 시작!",
+                description=f"타이머 이름 : {self.name}\n"
+                            f"타이머 시간 : {self.seconds}",
+                color=discord.Colour.dark_orange()
+            ))
+            await asyncio.sleep(self.seconds)
+            await self.timeover()
+        except asyncio.CancelledError:
+            await self.cancel()
+
+    async def timeover(self):
+        await self.message.edit(
+            title="타임 오버!",
+            description=f"타이머 이름 : {self.name}\n"
+                        f"타이머 시간 : {self.seconds}",
+            color=discord.Colour.dark_grey()
+        )
+
+    async def cancel(self):
+        if self.task.done() or self.task.cancelled():
+            return
+        self.task.cancel()
+        await self.message.edit(
+            title="타이머 강제 중지!",
+            description=f"타이머 이름 : {self.name}\n"
+                        f"타이머 시간 : {self.seconds}",
+            color=discord.Colour.dark_red()
+        )
+
+    def left_sec(self) -> float:
+        return self.seconds - ((datetime.datetime.utcnow() - self.start_time).seconds * 1000)
+
+
+####################################################################################################################
+
 
 def getusername(x: int) -> str:
     if member_names.get(x) is None:
@@ -208,6 +257,8 @@ class Scrim:
             'mode'  : self.getmode,
             'autosc': self.getautoscore,
         }
+
+        self.timer: Optional[Timer] = None
 
     async def maketeam(self, name: str):
         if self.team.get(name) is not None:
@@ -623,50 +674,8 @@ member_names: Dict[int, str] = dict()
 datas: dd[Dict[int, dd[Dict[int, Dict[str, Union[int, Scrim]]], Callable[[], Dict]]]] = \
     dd(lambda: dd(lambda: {'valid': False, 'scrim': None}))
 uids: dd[int, int] = dd(int)
-
-
-####################################################################################################################
-
-# TODO : make Timer class
-class Timer:
-    def __init__(self, ch: discord.TextChannel, name: str, seconds: float):
-        self.channel: discord.TextChannel = ch
-        self.name: str = name
-        self.seconds: float = seconds
-        self.start_time: datetime.datetime = datetime.datetime.utcnow()
-        self.loop = asyncio.get_event_loop()
-        self.task: asyncio.Task = loop.create_task(self.run())
-        self.message: discord.Message
-
-    async def run(self):
-        try:
-            self.message: discord.Message = await self.channel.send(embed=discord.Embed(
-                title="타이머 작동 시작!",
-                description=f"타이머 이름 : {self.name}\n"
-                            f"타이머 시간 : {self.seconds}",
-                color=discord.Colour.dark_orange()
-            ))
-            await asyncio.sleep(self.seconds)
-            await self.timeover()
-        except asyncio.CancelledError:
-            await self.cancel()
-
-    async def timeover(self):
-        await self.message.edit(
-            title="타임 오버!",
-            description=f"타이머 이름 : {self.name}\n"
-                        f"타이머 시간 : {self.seconds}",
-            color=discord.Colour.dark_grey()
-        )
-
-    async def cancel(self):
-        self.task.cancel()
-        await self.message.edit(
-            title="타이머 강제 중지!",
-            description=f"타이머 이름 : {self.name}\n"
-                        f"타이머 시간 : {self.seconds}",
-            color=discord.Colour.dark_red()
-        )
+timers: dd[str, Optional[Timer]] = dd(lambda: None)
+timer_count = 0
 
 
 ####################################################################################################################
@@ -960,8 +969,32 @@ async def mapmoderule(
 
 # TODO : make timer (m;timer, m;timer now, m;timer cancel)
 #@app.command()
-async def timer(ctx, action: Union[int, str], name: Optional[str] = None):
-    pass
+async def timer(ctx, action: Union[float, str], name: Optional[str] = None):
+    if action == 'now':
+        if timers.get(name) is None:
+            await ctx.send(embed=discord.Embed(
+                title=f"\"{name}\"이란 이름을 가진 타이머는 없습니다!",
+                color=discord.Colour.dark_red()
+            ))
+        else:
+            await ctx.send(embed=discord.Embed(
+                title=f"\"{name}\" 타이머 남은 시간 :",
+                description=f"{timers[name].left_sec()}초 남았습니다!"
+            ))
+    elif action == 'cancel':
+        if timers.get(name) is None:
+            await ctx.send(embed=discord.Embed(
+                title=f"\"{name}\"이란 이름을 가진 타이머는 없습니다!",
+                color=discord.Colour.dark_red()
+            ))
+        else:
+            await timers[name].cancel()
+    else:
+        if name is None:
+            global timer_count
+            name = str(timer_count)
+            timer_count += 1
+        timers[name] = Timer(ctx.channel, name, action)
 
 # TODO : make calc of each v2funcs (m;calc nero2|jet2|osu2)
 
