@@ -101,7 +101,7 @@ def dice(s: str):
     return tuple(str(random.randint(1, int(s[2]))) for _ in range(int(s[0])))
 
 
-def getrecent(_id: int):
+def getrecent(_id: int) -> Optional[Tuple[Sequence[AnyStr], Sequence[AnyStr], Sequence[AnyStr]]]:
     url = url_base + str(_id)
     html = requests.get(url)
     bs = BeautifulSoup(html.text, "html.parser")
@@ -109,7 +109,10 @@ def getrecent(_id: int):
     recent_mapinfo = recent.select("a.clear > strong.block")[0].text
     recent_playinfo = recent.select("a.clear > small")[0].text
     recent_miss = recent.select("#statics")[0].text
-    return (mapr.match(recent_mapinfo).groups(),
+    rmimatch = mapr.match(recent_mapinfo)
+    if rmimatch is None:
+        return None
+    return (rmimatch.groups(),
             playr.match(recent_playinfo).groups(),
             missr.match(recent_miss).groups())
 
@@ -518,6 +521,9 @@ class Scrim:
                             f"{getusername(player)}의 UID가 등록되어있지 않음"
                     continue
                 player_recent_info = getrecent(uids[player])
+                if player_recent_info is None:
+                    desc += f"등록 실패 : " \
+                            f"{getusername(player)}의 최근 플레이 정보가 기본 형식에 맞지 않음"
                 p = dict()
                 p['artist'], p['title'], p['author'], p['diff'] = player_recent_info[0]
                 p['score'] = int(player_recent_info[1][1].replace(',', ''))
