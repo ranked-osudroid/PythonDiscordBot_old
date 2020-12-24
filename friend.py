@@ -553,7 +553,7 @@ class Scrim:
                         break
                     if checkbit & infotoint[k]:
                         nowk = self.getfuncs[k]()
-                        nowk_edited = rchange.sub(nowk, '').replace('\'', ' ')
+                        nowk_edited = rchange.sub('', nowk).replace('\'', ' ')
                         if nowk != p[k]:
                             flag = True
                             desc += f"등록 실패 : " \
