@@ -125,7 +125,6 @@ def is_owner():
 
 ####################################################################################################################
 
-# TODO : make Timer class
 class Timer:
     def __init__(self, ch: discord.TextChannel, name: str, seconds: float):
         self.channel: discord.TextChannel = ch
@@ -207,6 +206,7 @@ class Scrim:
         self.loop = asyncio.get_event_loop()
         self.guild: discord.Guild = ctx.guild
         self.channel: discord.TextChannel = ctx.channel
+        self.start_time = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
 
         self.team: Dict[str, Set[int]] = dict()
         # teamname : {member1_id, member2_id, ...}
@@ -258,7 +258,7 @@ class Scrim:
             'autosc': self.getautoscore,
         }
 
-        self.timer: Optional[Timer] = None
+        self.log: List[str] = []
 
     async def maketeam(self, name: str):
         if self.team.get(name) is not None:
@@ -421,7 +421,9 @@ class Scrim:
         for t in teamscore:
             sendtxt.add_field(
                 name=f"*\"{t}\"팀 결과 : {teamscore[t]}*",
-                value='\n'.join(f"{getusername(p)} : {calculatedscores[p]}" for p in self.team[t])+'\n',
+                value='\n'.join(f"{getusername(p)} : "
+                                f"{' / '.join(str(x) for x in self.score[p])} = "
+                                f"{calculatedscores[p]}" for p in self.team[t])+'\n',
                 inline=False
             )
         sendtxt.add_field(
@@ -435,6 +437,14 @@ class Scrim:
             inline=False
         )
         await resultmessage.edit(embed=sendtxt)
+        logtxt = []
+        logtxt.append(f'Winner Team : {desc}')
+        for t in self.team:
+            logtxt.append(f'\nTeam {t} = {teamscore[t]}')
+            for p in self.team[t]:
+                logtxt.append(f"Player {getusername(p)} = {calculatedscores[p]} "
+                              f"({' / '.join(str(x) for x in self.score[p])})")
+        self.log.append('\n'.join(logtxt))
         self.resetmap()
 
     def resetmap(self):
@@ -664,10 +674,15 @@ class Scrim:
         )
         sendtxt.add_field(
             name="수고하셨습니다!",
-            value='스크림 정보가 자동으로 초기화됩니다.',
+            value='스크림 정보가 자동으로 초기화됩니다.\n'
+                  '스크림 기록은 아래 파일을 다운받아 텍스트 에디터로 열어보실 수 있습니다.',
             inline=False
         )
-        await self.channel.send(embed=sendtxt)
+        filename = f'scrim{self.start_time}.log'
+        with open(filename, 'w') as f:
+            f.write('\n=================\n'.join(self.log))
+        with open(filename, 'rb') as f:
+            await self.channel.send(embed=sendtxt, file=discord.File(f, filename))
 
 
 member_names: Dict[int, str] = dict()
@@ -967,8 +982,7 @@ async def mapmoderule(
             return set(map(int, x.split(',')))
         s['scrim'].setmoderule(temp(nm), temp(hd), temp(hr), temp(dt), temp(fm), temp(tb))
 
-# TODO : make timer (m;timer, m;timer now, m;timer cancel)
-#@app.command()
+@app.command()
 async def timer(ctx, action: Union[float, str], name: Optional[str] = None):
     if action == 'now':
         if timers.get(name) is None:
@@ -995,9 +1009,48 @@ async def timer(ctx, action: Union[float, str], name: Optional[str] = None):
             name = str(timer_count)
             timer_count += 1
         timers[name] = Timer(ctx.channel, name, action)
+        await ctx.send(embed=discord.Embed(
+            title=f"\"{name}\" 타이머 설정 완료!",
+            description=f"{timers[name].seconds}초로 설정되었습니다.",
+            color=discord.Colour.blue()
+        ))
 
-# TODO : make calc of each v2funcs (m;calc nero2|jet2|osu2)
+@app.command()
+async def calc(ctx, kind: str, maxscore: d, score: d, acc: d, miss: d):
+    if kind == "nero2":
+        result = neroscorev2(maxscore, score, acc, miss)
+    elif kind == "jet2":
+        result = jetonetv2(maxscore, score, acc, miss)
+    elif kind == "osu2":
+        result = osuv2(maxscore, score, acc, miss)
+    else:
+        await ctx.send(embed=discord.Embed(
+            title=f"\"{kind}\"라는 계산 방식이 없습니다!",
+            description="nero2, jet2, osu2 중 하나를 입력해주세요.",
+            color=discord.Colour.dark_red()
+        ))
+        return
+    await ctx.send(embed=discord.Embed(
+        title=f"계산 결과 ({kind})",
+        description=f"maxscore = {maxscore}\n"
+                    f"score = {score}\n"
+                    f"acc = {acc}\n"
+                    f"miss = {miss}\n\n"
+                    f"calculated = **{result}**",
+        color=discord.Colour.dark_blue()
+    ))
 
+async def now(ctx):
+    s = datas[ctx.guild.id][ctx.channel.id]
+    if s['valid']:
+        scrim = s['scrim']
+        e = discord.Embed(title="현재 스크림 정보", color=discord.Colour.orange())
+        for t in scrim.team:
+            e.add_field(
+                name="팀 "+t,
+                value='\n'.join(getusername(x) for x in scrim.team[t])
+            )
+        await ctx.send(embed=e)
 
 ####################################################################################################################
 
