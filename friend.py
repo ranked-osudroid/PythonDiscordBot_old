@@ -414,6 +414,11 @@ class Scrim:
             color=discord.Colour.red()
         )
         sendtxt.add_field(
+            name="맵 정보",
+            value=self.getmapfull(),
+            inline=False
+        )
+        sendtxt.add_field(
             name=blank,
             value='='*20+'\n'+blank,
             inline=False
@@ -438,6 +443,8 @@ class Scrim:
         )
         await resultmessage.edit(embed=sendtxt)
         logtxt = []
+        logtxt.append(f'Map : {self.getmapfull()}')
+        logtxt.append(f'CalcFormula : {calcmode if calcmode else "V1"}')
         logtxt.append(f'Winner Team : {desc}')
         for t in self.team:
             logtxt.append(f'\nTeam {t} = {teamscore[t]}')
@@ -680,7 +687,7 @@ class Scrim:
         )
         filename = f'scrim{self.start_time}.log'
         with open(filename, 'w') as f:
-            f.write('\n=================\n'.join(self.log))
+            f.write('\n\n====================\n\n'.join(self.log))
         with open(filename, 'rb') as f:
             await self.channel.send(embed=sendtxt, file=discord.File(f, filename))
 
