@@ -9,6 +9,7 @@ import requests
 import time
 import traceback
 import scoreCalc
+import os
 from typing import *
 from collections import defaultdict as dd
 
@@ -134,6 +135,7 @@ class Timer:
         self.loop = asyncio.get_event_loop()
         self.task: asyncio.Task = loop.create_task(self.run())
         self.message: discord.Message
+        self.done = False
 
     async def run(self):
         try:
@@ -149,26 +151,28 @@ class Timer:
             await self.cancel()
 
     async def timeover(self):
-        await self.message.edit(
+        await self.message.edit(embed=discord.Embed(
             title="타임 오버!",
             description=f"타이머 이름 : {self.name}\n"
                         f"타이머 시간 : {self.seconds}",
             color=discord.Colour.dark_grey()
-        )
+        ))
+        self.done = True
 
     async def cancel(self):
         if self.task.done() or self.task.cancelled():
             return
         self.task.cancel()
-        await self.message.edit(
+        await self.message.edit(embed=discord.Embed(
             title="타이머 강제 중지!",
             description=f"타이머 이름 : {self.name}\n"
                         f"타이머 시간 : {self.seconds}",
             color=discord.Colour.dark_red()
-        )
+        ))
+        self.done = True
 
     def left_sec(self) -> float:
-        return self.seconds - ((datetime.datetime.utcnow() - self.start_time).seconds * 1000)
+        return self.seconds - ((datetime.datetime.utcnow() - self.start_time).total_seconds())
 
 
 ####################################################################################################################
@@ -443,7 +447,8 @@ class Scrim:
         )
         await resultmessage.edit(embed=sendtxt)
         logtxt = []
-        logtxt.append(f'Map : {self.getmapfull()}')
+        logtxt.append(f'Map         : {self.getmapfull()}')
+        logtxt.append(f'MapNick     : {self.map_number}')
         logtxt.append(f'CalcFormula : {calcmode if calcmode else "V1"}')
         logtxt.append(f'Winner Team : {desc}')
         for t in self.team:
@@ -740,7 +745,7 @@ async def on_command_error(ctx, error):
     print('================ ERROR ================')
     print(errortxt)
     print('=======================================')
-    await ctx.send('```'+errortxt+'```')
+    await ctx.send(f'Error occured :\n```{errortxt}```')
 
 
 @app.command(name="help")
@@ -752,6 +757,8 @@ async def _help(ctx):
 async def ping(ctx):
     msgtime = ctx.message.created_at
     nowtime = datetime.datetime.utcnow()
+    print(msgtime)
+    print(nowtime)
     await ctx.send(f"Pong! `{(nowtime - msgtime).total_seconds() * 1000 :.4f}ms`")
 
 
@@ -900,6 +907,12 @@ async def _map(ctx, *, name: str):
                     color=discord.Colour.dark_red()
                 ))
                 return
+            except Exception as e:
+                await resultmessage.eddit(embed=discord.Embed(
+                    title="오류 발생!",
+                    description=f"오류 : `[{type(e)}] {e}`",
+                    color=discord.Colour.dark_red()
+                ))
             for i, k in enumerate(['author', 'artist', 'title', 'diff']):
                 scrim.setfuncs[k](worksheet.cell(target.row, i+1).value)
             autosc = worksheet.cell(target.row, 5).value
@@ -1015,6 +1028,12 @@ async def timer(ctx, action: Union[float, str], name: Optional[str] = None):
             global timer_count
             name = str(timer_count)
             timer_count += 1
+        if not timers[name].done:
+            await ctx.send(embed=discord.Embed(
+                title=f"\"{name}\"이란 이름을 가진 타이머는 이미 작동하고 있습니다!",
+                color=discord.Colour.dark_red()
+            ))
+            return
         timers[name] = Timer(ctx.channel, name, action)
         await ctx.send(embed=discord.Embed(
             title=f"\"{name}\" 타이머 설정 완료!",
@@ -1047,6 +1066,7 @@ async def calc(ctx, kind: str, maxscore: d, score: d, acc: d, miss: d):
         color=discord.Colour.dark_blue()
     ))
 
+@app.command()
 async def now(ctx):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
