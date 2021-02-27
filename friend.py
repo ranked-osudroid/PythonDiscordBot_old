@@ -127,7 +127,7 @@ def is_owner():
 ####################################################################################################################
 
 class Timer:
-    def __init__(self, ch: discord.TextChannel, name: str, seconds: float):
+    def __init__(self, ch: discord.TextChannel, name: str, seconds: Union[float, d]):
         self.channel: discord.TextChannel = ch
         self.name: str = name
         self.seconds: float = seconds
@@ -204,6 +204,7 @@ infotoint = {
     'mode': 16
 }
 
+timer_color = [0x800000, 0xff8000, 0x00ff00]
 
 class Scrim:
     def __init__(self, ctx: discord.ext.commands.Context):
@@ -211,6 +212,8 @@ class Scrim:
         self.guild: discord.Guild = ctx.guild
         self.channel: discord.TextChannel = ctx.channel
         self.start_time = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
+
+        self.match_task: Optional[asyncio.Task] = None
 
         self.team: Dict[str, Set[int]] = dict()
         # teamname : {member1_id, member2_id, ...}
@@ -227,6 +230,7 @@ class Scrim:
         self.map_author: Optional[str] = None
         self.map_title: Optional[str] = None
         self.map_diff: Optional[str] = None
+        self.map_time: Optional[int] = None
 
         self.map_number: Optional[str] = None
         self.map_mode: Optional[str] = None
@@ -467,6 +471,7 @@ class Scrim:
         self.map_number = None
         self.map_mode = None
         self.map_auto_score = None
+        self.map_time = None
         for p in self.score:
             self.score[p] = (getd(0), getd(0), getd(0))
 
@@ -506,11 +511,17 @@ class Scrim:
     def getmode(self) -> str:
         return self.map_mode if self.map_mode else '-'
 
-    def setautoscore(self, score: Union[int, dd]):
+    def setautoscore(self, score: Union[int, d]):
         self.map_auto_score = score
 
-    def getautoscore(self) -> Union[int, dd]:
+    def getautoscore(self) -> Union[int, d]:
         return self.map_auto_score if self.map_auto_score else -1
+
+    def setmaptime(self, t: Union[int, d]):
+        self.map_time = t
+
+    def getmaptime(self) -> Union[int, d]:
+        return self.map_time if self.map_time else -1
 
     def setmapinfo(self, infostr: str):
         m = analyze.match(infostr)
@@ -691,10 +702,66 @@ class Scrim:
             inline=False
         )
         filename = f'scrim{self.start_time}.log'
-        with open(filename, 'w') as f:
-            f.write('\n\n====================\n\n'.join(self.log))
-        with open(filename, 'rb') as f:
-            await self.channel.send(embed=sendtxt, file=discord.File(f, filename))
+        with open(filename, 'w') as _f:
+            _f.write('\n\n====================\n\n'.join(self.log))
+        with open(filename, 'rb') as _f:
+            await self.channel.send(embed=sendtxt, file=discord.File(_f, filename))
+
+    async def do_match_start(self):
+        self.match_task = asyncio.create_task(self.match_start())
+
+    async def match_start(self):
+        if self.map_time is None:
+            await self.channel.send(embed=discord.Embed(
+                title="맵 타임이 설정되지 않았습니다!",
+                description="`m;maptime`으로 맵 타임을 설정해주세요",
+                color=discord.Colour.dark_red()
+            ))
+            return
+        try:
+            await self.channel.send(embed=discord.Embed(
+                title="매치 시작!",
+                description=f"맵 정보 : {self.getmapfull()}\n"
+                            f"맵 번호 : {self.getnumber()} / 모드 : {self.getmode()}\n"
+                            f"맵 SS 점수 : {self.getautoscore()} / 맵 시간(초) : {self.getmaptime()}",
+                color=discord.Colour.from_rgb(255, 255, 0)
+            ))
+            a = self.map_time
+            timermessage = await self.channel.send(embed=discord.Embed(
+                title=f"매치 타이머 준비중",
+                color=discord.Colour.from_rgb(0, 0, 255)
+            ))
+            for i in range(self.map_time):
+                a -= 1
+                timermessage = await timermessage.edit(embed=discord.Embed(
+                    title=f"{a//60}분 {a%60}초 남았습니다...",
+                    color=discord.Colour(timer_color[int(a*3/self.map_time)])
+                ))
+                await asyncio.sleep(1)
+            timermessage = await self.channel.send(embed=discord.Embed(
+                title=f"매치 시간 종료!",
+                color=discord.Colour.from_rgb(128, 128, 255)
+            ))
+            for i in range(30, -1, -1):
+                timermessage = await timermessage.edit(embed=discord.Embed(
+                    title=f"매치 시간 종료!",
+                    description=f"추가 시간 {i}초 남았습니다...",
+                    color=discord.Colour.from_rgb(128, 128, 255)
+                ))
+                await asyncio.sleep(1)
+            await self.channel.send(embed=discord.Embed(
+                title=f"매치 추가 시간 종료!",
+                description="온라인 기록을 불러옵니다...",
+                color=discord.Colour.from_rgb(128, 128, 255)
+            ))
+            await self.onlineload()
+            await self.submit('nero2')
+        except asyncio.CancelledError:
+            await self.channel.send(embed=discord.Embed(
+                title="매치가 중단되었습니다!",
+                color=discord.Colour.dark_red()
+            ))
+            return
 
 
 member_names: Dict[int, str] = dict()
@@ -712,6 +779,7 @@ helptxt = discord.Embed(title=helptxt_title, description=helptxt_desc, color=dis
 helptxt.add_field(name=helptxt_forscrim_name, value=helptxt_forscrim_desc1, inline=False)
 helptxt.add_field(name=blank, value=helptxt_forscrim_desc2, inline=False)
 helptxt.add_field(name=blank, value=helptxt_forscrim_desc3, inline=False)
+helptxt.add_field(name=blank, value=helptxt_forscrim_desc4, inline=False)
 helptxt.add_field(name=helptxt_other_name, value=helptxt_other_desc, inline=False)
 
 
@@ -731,9 +799,16 @@ async def on_message(message):
     p = message.author
     if p == app.user:
         return
-    print(
-        f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}] "
-        f"[{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}")
+    if isinstance(message.channel, discord.channel.DMChannel):
+        print(
+            f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}] "
+            f"[DM] <{p.name};{p.id}> {message.content}"
+        )
+    else:
+        print(
+            f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}] "
+            f"[{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}"
+        )
     if credentials.access_token_expired:
         gs.login()
     await app.process_commands(message)
@@ -868,6 +943,17 @@ async def submit(ctx, calcmode: Optional[str] = None):
     if s['valid']:
         await s['scrim'].submit(calcmode)
 
+@app.command()
+async def start(ctx):
+    s = datas[ctx.guild.id][ctx.channel.id]
+    if s['valid']:
+        await s['scrim'].do_match_start()
+
+@app.command()
+async def abort(ctx):
+    s = datas[ctx.guild.id][ctx.channel.id]
+    if s['valid']:
+        s['scrim'].match_task.cancel()
 
 @app.command()
 async def end(ctx):
@@ -875,7 +961,6 @@ async def end(ctx):
     if s['valid']:
         await s['scrim'].end()
         del datas[ctx.guild.id][ctx.channel.id]
-
 
 @app.command()
 async def bind(ctx, number: int):
@@ -913,6 +998,7 @@ async def _map(ctx, *, name: str):
                     description=f"오류 : `[{type(e)}] {e}`",
                     color=discord.Colour.dark_red()
                 ))
+                return
             for i, k in enumerate(['author', 'artist', 'title', 'diff']):
                 scrim.setfuncs[k](worksheet.cell(target.row, i+1).value)
             autosc = worksheet.cell(target.row, 5).value
@@ -924,7 +1010,7 @@ async def _map(ctx, *, name: str):
             title=f"설정 완료!",
             description=f"맵 정보 : {scrim.getmapfull()}\n"
                         f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
-                        f"맵 SS 점수 : {scrim.getautoscore()}",
+                        f"맵 SS 점수 : {scrim.getautoscore()} / 맵 시간(초) : {scrim.getmaptime()}",
             color=discord.Colour.blue()
         ))
 
@@ -943,7 +1029,7 @@ async def mapmode(ctx, mode: str):
             title=f"설정 완료!",
             description=f"맵 정보 : {scrim.getmapfull()}\n"
                         f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
-                        f"맵 SS 점수 : {scrim.getautoscore()}",
+                        f"맵 SS 점수 : {scrim.getautoscore()} / 맵 시간(초) : {scrim.getmaptime()}",
             color=discord.Colour.blue()
         ))
 
@@ -967,7 +1053,7 @@ async def mapscore(ctx, sc_or_auto: Union[int, str], *, path: Optional[str] = No
             title=f"설정 완료!",
             description=f"맵 정보 : {scrim.getmapfull()}\n"
                         f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
-                        f"맵 SS 점수 : {scrim.getautoscore()}",
+                        f"맵 SS 점수 : {scrim.getautoscore()} / 맵 시간(초) : {scrim.getmaptime()}",
             color=discord.Colour.blue()
         ))
 

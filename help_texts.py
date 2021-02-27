@@ -49,6 +49,10 @@ helptxt_forscrim_desc1 = """
 맵 모드를 등록합니다. NM, HR, FM 등으로 정해주세요
 
 
+**m;__maptime|mt__ <*숫자*>**
+맵 시간을 설정합니다. `m;start` 명령어를 사용할 때 필수로 설정해야 합니다.
+
+
 **m;__mapscore|ms__ __<*숫자*|auto>__ (*filepath*)**
 *숫자*를 입력하면 이 맵의 오토 점수를 등록합니다.
 이 때 *filepath*는 입력하지 않아도 됩니다. (V2 계산에 사용)
@@ -130,6 +134,14 @@ V2점수 = 반올림((점수/오토점수) x 500,000 + (max(확도-80, 0)/20)^2 
 
 osu2 = osu!에서 사용하는 V2 계산식입니다.
 V2점수 = 반올림((점수/오토점수) x 700,000 + (확도/100)^10 * 300,000)
+\u200b
+"""
+helptxt_forscrim_desc4 = """
+**m;start**
+현재 저장된 맵 정보를 가지고 다음을 자동으로 실행합니다.
+1. 맵 시간만큼 기다립니다. (`m;maptime` 필수)
+2. 이후 30초를 추가로 기다립니다.
+3. 온라인 기록을 자동으로 불러오고 결과를 nero V2로 집계합니다.
 
 \u200b
 """.strip()
@@ -154,3 +166,9 @@ m;say
 m;sayresult
 m;run
 """.strip()
+
+if __name__ == '__main__':
+    print(len(helptxt_forscrim_desc1))
+    print(len(helptxt_forscrim_desc2))
+    print(len(helptxt_forscrim_desc3))
+    print(len(helptxt_forscrim_desc4))
