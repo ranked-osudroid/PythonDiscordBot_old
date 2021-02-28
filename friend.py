@@ -660,7 +660,8 @@ class Scrim:
                 if self.map_mode is not None:
                     pmodeint = 0
                     for md in p['modes']:
-                        pmodeint |= modetoint[md]
+                        if modetoint.get(md):
+                            pmodeint |= modetoint[md]
                     if pmodeint not in self.availablemode[self.map_mode]:
                         desc += f"등록 실패 : " \
                                 f"{getusername(player)}의 모드가 조건에 맞지 않음 " \
@@ -746,7 +747,7 @@ class Scrim:
             ))
             for i in range(self.map_time):
                 a -= 1
-                timermessage = await timermessage.edit(embed=discord.Embed(
+                await timermessage.edit(embed=discord.Embed(
                     title=f"{a//60}분 {a%60}초 남았습니다...",
                     color=discord.Colour(timer_color[int(a*3/self.map_time)])
                 ))
@@ -756,7 +757,7 @@ class Scrim:
                 color=discord.Colour.from_rgb(128, 128, 255)
             ))
             for i in range(30, -1, -1):
-                timermessage = await timermessage.edit(embed=discord.Embed(
+                await timermessage.edit(embed=discord.Embed(
                     title=f"매치 시간 종료!",
                     description=f"추가 시간 {i}초 남았습니다...",
                     color=discord.Colour.from_rgb(128, 128, 255)
@@ -966,7 +967,8 @@ async def start(ctx):
 async def abort(ctx):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
-        s['scrim'].match_task.cancel()
+        if not s['scrim'].match_task.done():
+            s['scrim'].match_task.cancel()
 
 @app.command()
 async def end(ctx):
