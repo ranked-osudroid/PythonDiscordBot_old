@@ -708,13 +708,20 @@ class Scrim:
             await self.channel.send(embed=sendtxt, file=discord.File(_f, filename))
 
     async def do_match_start(self):
-        self.match_task = asyncio.create_task(self.match_start())
+        if self.match_task is None or self.match_task.done():
+            self.match_task = asyncio.create_task(self.match_start())
+        else:
+            await self.channel.send(embed=discord.Embed(
+                title="매치가 이미 진행 중입니다!",
+                description="매치가 끝난 후 다시 시도해주세요.",
+                color=discord.Colour.dark_red()
+            ))
 
     async def match_start(self):
         if self.map_time is None:
             await self.channel.send(embed=discord.Embed(
                 title="맵 타임이 설정되지 않았습니다!",
-                description="`m;maptime`으로 맵 타임을 설정해주세요",
+                description="`m;maptime`으로 맵 타임을 설정해주세요.",
                 color=discord.Colour.dark_red()
             ))
             return
