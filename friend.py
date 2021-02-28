@@ -711,6 +711,7 @@ class Scrim:
             _f.write('\n\n====================\n\n'.join(self.log))
         with open(filename, 'rb') as _f:
             await self.channel.send(embed=sendtxt, file=discord.File(_f, filename))
+        os.remove(filename)
 
     async def do_match_start(self):
         if self.match_task is None or self.match_task.done():
@@ -1011,11 +1012,17 @@ async def _map(ctx, *, name: str):
                     color=discord.Colour.dark_red()
                 ))
                 return
-            for i, k in enumerate(['author', 'artist', 'title', 'diff']):
-                scrim.setfuncs[k](worksheet.cell(target.row, i+1).value)
-            autosc = worksheet.cell(target.row, 5).value
-            if autosc:
-                scrim.setautoscore(int(autosc))
+            values = worksheet.row_values(target.row)
+            scrim.setfuncs['author'](values[0])
+            scrim.setfuncs['artist'](values[1])
+            scrim.setfuncs['title'](values[2])
+            scrim.setfuncs['diff'](values[3])
+            mapautosc = values[4]
+            maptime = values[8]
+            if mapautosc:
+                scrim.setautoscore(int(mapautosc))
+            if maptime:
+                scrim.setmaptime(int(maptime))
             scrim.setnumber(name)
             scrim.setmode(re.findall('|'.join(modes), name.split(';')[-1])[0])
         await resultmessage.edit(embed=discord.Embed(
@@ -1045,6 +1052,23 @@ async def mapmode(ctx, mode: str):
             color=discord.Colour.blue()
         ))
 
+@app.command(aliases=['mt'])
+async def maptime(ctx, _time: int):
+    s = datas[ctx.guild.id][ctx.channel.id]
+    if s['valid']:
+        resultmessage = await ctx.send(embed=discord.Embed(
+            title="계산 중...",
+            color=discord.Colour.orange()
+        ))
+        scrim = s['scrim']
+        scrim.setmaptime(_time)
+        await resultmessage.edit(embed=discord.Embed(
+            title=f"설정 완료!",
+            description=f"맵 정보 : {scrim.getmapfull()}\n"
+                        f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
+                        f"맵 SS 점수 : {scrim.getautoscore()} / 맵 시간(초) : {scrim.getmaptime()}",
+            color=discord.Colour.blue()
+        ))
 
 @app.command(aliases=['ms'])
 async def mapscore(ctx, sc_or_auto: Union[int, str], *, path: Optional[str] = None):
