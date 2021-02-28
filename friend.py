@@ -34,7 +34,9 @@ doc = gs.open_by_url(spreadsheet)
 
 worksheet = doc.worksheet('data')
 
-app = commands.Bot(command_prefix='m;', help_command=None)
+intents = discord.Intents.default()
+intents.members = True
+app = commands.Bot(command_prefix='m;', help_command=None, intents=intents)
 
 with open("key.txt", 'r') as f:
     token = f.read()
@@ -180,7 +182,10 @@ class Timer:
 
 def getusername(x: int) -> str:
     if member_names.get(x) is None:
-        member_names[x] = app.get_user(x).name
+        user = app.get_user(x)
+        if user is None:
+            user = app.fetch_user(x)
+        member_names[x] = user.name
     return member_names[x]
 
 
