@@ -10,6 +10,7 @@ import time
 import traceback
 import scoreCalc
 import os
+import elo_rating
 from typing import *
 from collections import defaultdict as dd
 
@@ -136,12 +137,12 @@ class Timer:
         self.start_time: datetime.datetime = datetime.datetime.utcnow()
         self.loop = asyncio.get_event_loop()
         self.task: asyncio.Task = loop.create_task(self.run())
-        self.message: discord.Message
+        self.message: Optional[discord.Message] = None
         self.done = False
 
     async def run(self):
         try:
-            self.message: discord.Message = await self.channel.send(embed=discord.Embed(
+            self.message = await self.channel.send(embed=discord.Embed(
                 title="타이머 작동 시작!",
                 description=f"타이머 이름 : {self.name}\n"
                             f"타이머 시간 : {self.seconds}",
@@ -401,14 +402,14 @@ class Scrim:
                 description="`m;mapscore`로 오토점수를 등록해주세요!"
             ))
             return
-        calc = v2dict[calcmode]
+        calcf = v2dict[calcmode]
         resultmessage = await self.channel.send(embed=discord.Embed(
             title="계산 중...",
             color=discord.Colour.orange()
         ))
         calculatedscores = dict()
         for p in self.score:
-            calculatedscores[p] = calc(self.map_auto_score, *self.score[p])
+            calculatedscores[p] = calcf(self.map_auto_score, *self.score[p])
         teamscore = dict()
         for t in self.team:
             teamscore[t] = 0
@@ -455,11 +456,8 @@ class Scrim:
             inline=False
         )
         await resultmessage.edit(embed=sendtxt)
-        logtxt = []
-        logtxt.append(f'Map         : {self.getmapfull()}')
-        logtxt.append(f'MapNick     : {self.map_number}')
-        logtxt.append(f'CalcFormula : {calcmode if calcmode else "V1"}')
-        logtxt.append(f'Winner Team : {desc}')
+        logtxt = [f'Map         : {self.getmapfull()}', f'MapNick     : {self.map_number}',
+                  f'CalcFormula : {calcmode if calcmode else "V1"}', f'Winner Team : {desc}']
         for t in self.team:
             logtxt.append(f'\nTeam {t} = {teamscore[t]}')
             for p in self.team[t]:
@@ -537,18 +535,18 @@ class Scrim:
                 self.setfuncs[k](m.group(k))
 
     def getmapinfo(self) -> Dict[str, str]:
-        r = dict()
+        res = dict()
         for k in visibleinfo:
-            r[k] = self.getfuncs[k]()
-        return r
+            res[k] = self.getfuncs[k]()
+        return res
 
     def getmapfull(self):
         return makefull(**self.getmapinfo())
 
-    async def setform(self, form: str):
+    async def setform(self, formstr: str):
         args = list()
         for k in rkind:
-            findks = re.findall(k, form)
+            findks = re.findall(k, formstr)
             if len(findks):
                 args.append(k)
             elif len(findks) > 1:
@@ -558,10 +556,10 @@ class Scrim:
                 ))
                 return
         for c in rmeta:
-            form = form.replace(c, '\\'+c)
+            formstr = formstr.replace(c, '\\' + c)
         for a in args:
-            form = form.replace(a, f'(?P<{a}>.*?)')
-        self.form = [re.compile(form), args]
+            formstr = formstr.replace(a, f'(?P<{a}>.*?)')
+        self.form = [re.compile(formstr), args]
         await self.channel.send(embed=discord.Embed(
             title="형식 지정 완료!",
             description=f"RegEx 패턴 : `{self.form[0].pattern}`",
@@ -782,9 +780,19 @@ member_names: Dict[int, str] = dict()
 datas: dd[Dict[int, dd[Dict[int, Dict[str, Union[int, Scrim]]], Callable[[], Dict]]]] = \
     dd(lambda: dd(lambda: {'valid': False, 'scrim': None}))
 uids: dd[int, int] = dd(int)
+ratings: dd[int, d] = dd(d)
 timers: dd[str, Optional[Timer]] = dd(lambda: None)
 timer_count = 0
 
+with open('uids.txt', 'r') as f:
+    while data := f.readline():
+        discordid, userid = data.split(' ')
+        uids[int(discordid)] = int(userid)
+
+with open('ratings.txt', 'r') as f:
+    while data := f.readline():
+        userid, r = data.split(' ')
+        ratings[int(userid)] = getd(r)
 
 ####################################################################################################################
 
@@ -880,8 +888,8 @@ async def say(ctx, *, txt: str):
 @app.command()
 @is_owner()
 async def sayresult(ctx, *, com: str):
-    r = eval(com)
-    await ctx.send('RESULT : `' + str(r) + '`')
+    res = eval(com)
+    await ctx.send('RESULT : `' + str(res) + '`')
 
 
 @app.command()
@@ -1020,11 +1028,11 @@ async def _map(ctx, *, name: str):
             scrim.setfuncs['title'](values[2])
             scrim.setfuncs['diff'](values[3])
             mapautosc = values[4]
-            maptime = values[8]
+            maptime_ = values[8]
             if mapautosc:
                 scrim.setautoscore(int(mapautosc))
-            if maptime:
-                scrim.setmaptime(int(maptime))
+            if maptime_:
+                scrim.setmaptime(int(maptime_))
             scrim.setnumber(name)
             scrim.setmode(re.findall('|'.join(modes), name.split(';')[-1])[0])
         await resultmessage.edit(embed=discord.Embed(
@@ -1104,10 +1112,10 @@ async def onlineload(ctx, checkbit: Optional[int] = None):
 
 
 @app.command()
-async def form(ctx, *, f: str):
+async def form(ctx, *, f_: str):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
-        await s['scrim'].setform(f)
+        await s['scrim'].setform(f_)
 
 
 @app.command(aliases=['mr'])
@@ -1214,6 +1222,12 @@ except BaseException as ex:
     print(repr(ex))
     print(ex)
 finally:
+    with open('uids.txt', 'w') as f:
+        for u in uids:
+            f.write(f"{u} {uids[u]}\n")
+    with open('ratings.txt', 'w') as f:
+        for u in ratings:
+            f.write(f"{u} {ratings[u]}\n")
     loop.run_until_complete(app.logout())
     loop.run_until_complete(app.close())
     loop.run_until_complete(loop.shutdown_asyncgens())
