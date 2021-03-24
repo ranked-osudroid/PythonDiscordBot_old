@@ -1,33 +1,28 @@
-import asyncio
-import datetime
-import decimal
-import discord
-import gspread
-import random
-import re
-import requests
-import time
-import traceback
-import scoreCalc
-import os
-import elo_rating
+import asyncio, aiohttp, aiofiles, asyncpool, logging, yarl, \
+    datetime, decimal, discord, gspread, random, re, time, \
+    traceback, scoreCalc, os, elo_rating, json5, osuapi
 from typing import *
 from collections import defaultdict as dd
 
+from osuapi import OsuApi, AHConnector
+
 from bs4 import BeautifulSoup
 from discord.ext import commands
-from oauth2client.service_account import ServiceAccountCredentials as SAC
+from google.oauth2.service_account import Credentials
+
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 
 from help_texts import *
 
 ####################################################################################################################
 
-scope = [
-    'https://spreadsheets.google.com/feeds',
+scopes = [
+    'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive',
 ]
 jsonfile = 'friend-266503-91ab7f0dce62.json'
-credentials = SAC.from_json_keyfile_name(jsonfile, scope)
+credentials = Credentials.from_service_account_file(jsonfile, scopes=scopes)
 gs = gspread.authorize(credentials)
 gs.login()
 spreadsheet = "https://docs.google.com/spreadsheets/d/1SA2u-KgTsHcXcsGEbrcfqWugY7sgHIYJpPa5fxNEJYc/edit#gid=0"
@@ -35,12 +30,32 @@ doc = gs.open_by_url(spreadsheet)
 
 worksheet = doc.worksheet('data')
 
+gauth = GoogleAuth()
+gauth.LoadCredentialsFile('credentials.json')
+if gauth.credentials is None:
+    gauth.LocalWebserverAuth()
+elif gauth.access_token_expired:
+    gauth.Refresh()
+else:
+    gauth.Authorize()
+gauth.SaveCredentialsFile('credentials.json')
+drive = GoogleDrive(gauth)
+
 intents = discord.Intents.default()
 intents.members = True
 app = commands.Bot(command_prefix='m;', help_command=None, intents=intents)
 
+ses: Optional[aiohttp.ClientSession] = None
+api: Optional[OsuApi] = None
+
 with open("key.txt", 'r') as f:
-    token = f.read()
+    token = f.read().strip()
+
+with open("osu_login.json", 'r') as f:
+    BASE_LOGIN_DATA = json5.load(f)
+
+with open("osu_api_key.txt", 'r') as f:
+    api_key = f.read().strip()
 
 ####################################################################################################################
 
@@ -48,6 +63,12 @@ url_base = "http://ops.dgsrz.com/profile.php?uid="
 mapr = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[]]")
 playr = re.compile(r"(.*) / (.*) / (.*) / (.*)x / (.*)%")
 missr = re.compile(r"[{]\"miss\":(\d+), \"hash\":.*[}]")
+
+OSU_HOME = "https://osu.ppy.sh/home"
+OSU_SESSION = "https://osu.ppy.sh/session"
+OSU_BEATMAP_BASEURL = "https://osu.ppy.sh/beatmapsets/"
+
+downloadpath = os.path.join('songs', '%s.zip')
 
 d = decimal.Decimal
 
@@ -105,9 +126,10 @@ def dice(s: str):
     return tuple(str(random.randint(1, int(s[2]))) for _ in range(int(s[0])))
 
 
-def getrecent(_id: int) -> Optional[Tuple[Sequence[AnyStr], Sequence[AnyStr], Sequence[AnyStr]]]:
+async def getrecent(_id: int) -> Optional[Tuple[Sequence[AnyStr], Sequence[AnyStr], Sequence[AnyStr]]]:
     url = url_base + str(_id)
-    html = requests.get(url)
+    async with aiohttp.ClientSession() as s:
+        html = await s.get(url)
     bs = BeautifulSoup(html.text, "html.parser")
     recent = bs.select_one("#activity > ul > li:nth-child(1)")
     recent_mapinfo = recent.select("a.clear > strong.block")[0].text
@@ -130,15 +152,18 @@ def is_owner():
 ####################################################################################################################
 
 class Timer:
-    def __init__(self, ch: discord.TextChannel, name: str, seconds: Union[float, d]):
+    def __init__(self, ch: discord.TextChannel, name: str, seconds: Union[float, d], async_callback=None, args=None):
         self.channel: discord.TextChannel = ch
         self.name: str = name
         self.seconds: float = seconds
         self.start_time: datetime.datetime = datetime.datetime.utcnow()
         self.loop = asyncio.get_event_loop()
-        self.task: asyncio.Task = loop.create_task(self.run())
         self.message: Optional[discord.Message] = None
         self.done = False
+        self.callback = async_callback
+        self.args = None
+
+        self.task: asyncio.Task = loop.create_task(self.run())
 
     async def run(self):
         try:
@@ -152,6 +177,12 @@ class Timer:
             await self.timeover()
         except asyncio.CancelledError:
             await self.cancel()
+        finally:
+            if self.callback:
+                if self.args:
+                    await self.callback(self.task.cancelled(), *self.args)
+                else:
+                    await self.callback(self.task.cancelled())
 
     async def timeover(self):
         await self.message.edit(embed=discord.Embed(
@@ -607,7 +638,7 @@ class Scrim:
                     desc += f"등록 실패 : " \
                             f"{getusername(player)}의 UID가 등록되어있지 않음"
                     continue
-                player_recent_info = getrecent(uids[player])
+                player_recent_info = await getrecent(uids[player])
                 if player_recent_info is None:
                     desc += f"등록 실패 : " \
                             f"{getusername(player)}의 최근 플레이 정보가 기본 형식에 맞지 않음"
@@ -624,7 +655,7 @@ class Scrim:
                     if m is None:
                         desc += f"등록 실패 : " \
                                 f"{getusername(player)}의 최근 플레이 난이도명이 저장된 형식에 맞지 않음 " \
-                                f"(플레이어 난이도명 : {p['diff']}"
+                                f"(플레이어 난이도명 : {p['diff']})"
                         continue
                     for k in self.form[1]:
                         if k == 'number':
@@ -633,8 +664,7 @@ class Scrim:
                             if mnum != pnum:
                                 flag = True
                                 desc += f"등록 실패 : " \
-                                        f"{getusername(player)}의 맵 번호가 다름 " \
-                                        f"(현재 맵 번호 : {mnum} / 플레이어 맵 번호 : {pnum})"
+                                        f"{getusername(player)}의 맵 번호가 다름 (플레이어 맵 번호 : {pnum})"
                                 break
                             continue
                         p[k] = m.group(k)
@@ -651,7 +681,7 @@ class Scrim:
                             flag = True
                             desc += f"등록 실패 : " \
                                     f"{getusername(player)}의 {k}가 다름 " \
-                                    f"(현재 {k} : {nowk_edited} {'('+nowk+')' if nowk!=nowk_edited else ''} / " \
+                                    f"(현재 {k} : {nowk_edited} {'('+nowk+') ' if nowk!=nowk_edited else ''}/ " \
                                     f"플레이어 {k} : {p[k]})"
                 if flag:
                     continue
@@ -663,7 +693,8 @@ class Scrim:
                     if pmodeint not in self.availablemode[self.map_mode]:
                         desc += f"등록 실패 : " \
                                 f"{getusername(player)}의 모드가 조건에 맞지 않음 " \
-                                f"(현재 가능한 모드 숫자 : {self.availablemode[self.map_mode]} / 플레이어 모드 숫자 : {pmodeint})"
+                                f"(현재 가능한 모드 숫자 : {self.availablemode[self.map_mode]} / " \
+                                f"플레이어 모드 숫자 : {pmodeint})"
                         continue
                 self.score[player] = (getd(p['score']), getd(p['acc']), getd(p['miss']))
                 desc += f"등록 완료! : " \
@@ -796,6 +827,271 @@ with open('ratings.txt', 'r') as f:
 
 ####################################################################################################################
 
+class Match:
+    def __init__(self, ctx: discord.ext.commands.Context,
+                 player: discord.Member, opponent: discord.Member, bo: int = 7):
+        self.channel = ctx.channel
+        self.player = player
+        self.opponent = opponent
+
+        self.mappoolmaker: Optional[MappoolMaker] = None
+        self.map_order: List[str] = []
+
+        self.scrim = Scrim(ctx)
+        self.made_time = datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")
+        self.timer: Optional[Timer] = None
+
+        self.round = -1
+        # -2 = 매치 생성 전
+        # -1 = 플레이어 참가 대기
+        # 0 = 맵풀 다운로드 대기
+        # n = n라운드 준비 대기
+        self.abort = False
+
+        self.player_ready: bool = False
+        self.opponent_ready: bool = False
+
+    async def trigger_ready(self, subj):
+        if self.player == subj:
+            self.player_ready = True
+        elif self.opponent == subj:
+            self.opponent_ready = True
+        else:
+            return
+        await self.channel.send(embed=discord.Embed(
+            title=f"{subj} 준비됨!",
+            color=discord.Colour.green()
+        ))
+
+    async def trigger_unready(self, subj):
+        if self.player == subj:
+            self.player_ready = False
+        elif self.opponent == subj:
+            self.opponent_ready = False
+        else:
+            return
+        await self.channel.send(embed=discord.Embed(
+            title=f"{subj} 준비 해제됨!",
+            color=discord.Colour.red()
+        ))
+
+    def is_all_ready(self):
+        return self.player_ready and self.opponent_ready
+
+    def reset_ready(self):
+        self.player_ready = False
+        self.opponent_ready = False
+
+    async def go_next_status(self, timer_cancelled):
+        if self.round == -1 and self.is_all_ready():
+            if timer_cancelled:
+                self.round = 0
+                await self.channel.send(embed=discord.Embed(
+                    title="모두 참가가 완료되었습니다!",
+                    description="스크림 & 맵풀 생성 중입니다...",
+                    color=discord.Colour.dark_red()
+                ))
+                await self.scrim.maketeam(self.player.display_name)
+                await self.scrim.maketeam(self.opponent.display_name)
+                await self.scrim.addplayer(self.player.display_name, self.player)
+                await self.scrim.addplayer(self.opponent.display_name, self.opponent)
+            else:
+                await self.channel.send(embed=discord.Embed(
+                    title="상대가 참가하지 않았습니다.",
+                    description="매치가 취소되고, 두 유저는 다시 매칭 풀에 들어갑니다.",
+                    color=discord.Colour.dark_red()
+                ))
+                self.abort = True
+        elif self.round == 0 and self.is_all_ready():
+            if timer_cancelled:
+                self.round = 1
+                await self.channel.send(embed=discord.Embed(
+                    title="모두 준비되었습니다!",
+                    description="매치 시작 준비 중입니다...",
+                    color=discord.Colour.dark_red()
+                ))
+                await self.scrim.setform('[number] artist - title [diff]')
+            else:
+                await self.channel.send(embed=discord.Embed(
+                    title="상대가 준비되지 않았습니다.",
+                    description="인터넷 문제를 가지고 있을 수 있습니다.\n"
+                                "매치 진행에 어려움이 있을 수 있기 때문에 매치를 취소합니다.",
+                    color=discord.Colour.dark_red()
+                ))
+                self.abort = True
+        else:
+            self.round += 1
+            if self.is_all_ready() and timer_cancelled:
+                message = await self.channel.send(embed=discord.Embed(
+                    title="모두 준비되었습니다!",
+                    description=f"10초 뒤 {self.round}라운드가 시작됩니다...",
+                    color=discord.Colour.purple()
+                ))
+                for i in range(9, -1, -1):
+                    await message.edit(embed=discord.Embed(
+                        title="모두 준비되었습니다!",
+                        description=f"**{i}**초 뒤 {self.round}라운드가 시작됩니다...",
+                        color=discord.Colour.purple()
+                    ))
+                    await asyncio.sleep(1)
+            else:
+                message = await self.channel.send(embed=discord.Embed(
+                    title="준비 시간이 끝났습니다!",
+                    description=f"10초 뒤 {self.round}라운드를 **강제로 시작**합니다...",
+                    color=discord.Colour.purple()
+                ))
+                for i in range(9, -1, -1):
+                    await message.edit(embed=discord.Embed(
+                        title="준비 시간이 끝났습니다!",
+                        description=f"**{i}**초 뒤 {self.round}라운드를 **강제로 시작**합니다...",
+                        color=discord.Colour.purple()
+                    ))
+                    await asyncio.sleep(1)
+            await self.scrim.do_match_start()
+
+    async def do_progress(self):
+        if self.abort:
+            return
+        elif self.round == -1:
+            await self.channel.send(
+                f"{self.player.mention} {self.opponent.mention}",
+                embed=discord.Embed(
+                    title="매치가 생성되었습니다!",
+                    description="이 메세지가 올라온 후 2분 안에 `rdy`를 말해주세요!"
+                )
+            )
+            self.timer = Timer(self.channel, f"Match_{self.made_time}", 120, self.go_next_status)
+        elif self.round == 0:
+            statusmessage = await self.channel.send(embed=discord.Embed(
+                title="맵풀 다운로드 상태 메세지입니다.",
+                description="이 문구가 5초 이상 바뀌지 않는다면 개발자를 불러주세요.",
+                color=discord.Colour.orange()
+            ))
+            self.mappoolmaker = MappoolMaker(statusmessage)
+
+            # 레이팅에 맞춰서 맵 번호 등록
+
+            self.map_order.extend(self.mappoolmaker.maps.keys())
+            random.shuffle(self.map_order)
+            mappool_link = await self.mappoolmaker.execute_osz()
+
+            if mappool_link is False:
+                print("FATAL ERROR : SESSION CLOSED")
+                return
+            await self.channel.send(embed=discord.Embed(
+                title="맵풀이 완성되었습니다!",
+                description=f"다음 링크에서 맵풀을 다운로드해주세요 : {mappool_link}\n"
+                            f"맵풀 다운로드 로그 중 다운로드에 실패한 맵풀이 있다면 "
+                            f"이 매치를 취소시키고 개발자를 불러주세요\n"
+                            f"다운로드가 완료되었고, 준비가 되었다면 `rdy`를 말해주세요!\n"
+                            f"다운로드 제한 시간은 5분입니다.",
+                color=discord.Colour.blue()
+            ))
+            self.timer = Timer(self.channel, f"Match_{self.made_time}", 300, self.go_next_status)
+        elif self.round > 8:
+            pass
+        else:
+            now_mapnum = self.map_order[self.round - 1]
+            now_bid = self.mappoolmaker.maps[now_mapnum]
+            now_beatmap: osuapi.osu.Beatmap = (await api.get_beatmaps(beatmap_id=now_bid))[0]
+            self.scrim.setnumber(now_mapnum)
+            self.scrim.setartist(now_beatmap.artist)
+            self.scrim.setauthor(now_beatmap.creator)
+            self.scrim.settitle(now_beatmap.title)
+            self.scrim.setdiff(now_beatmap.version)
+            self.scrim.setmaptime(now_beatmap.total_length)
+            self.scrim.setmode(now_mapnum[:2])
+            scorecalc = scoreCalc.scoreCalc(os.path.join(
+                self.mappoolmaker.save_folder_path, f"{now_beatmap.beatmapset_id}+{now_bid}.osz"))
+            self.scrim.setautoscore(scorecalc.getAutoScore())
+            await self.channel.send(embed=discord.Embed(
+                title=f"{self.round}라운드 준비!",
+                description="2분 안에 `rdy`를 말해주세요!",
+                color=discord.Colour.orange()
+            ))
+            self.timer = Timer(self.channel, f"Match_{self.made_time}", 120, self.go_next_status)
+
+
+####################################################################################################################
+
+class MappoolMaker:
+    def __init__(self, message, session=ses):
+        self.maps: Dict[str, Tuple[int, int]] = dict()  # MODE: (MAPSET ID, MAPDIFF ID)
+        self.queue = asyncio.Queue()
+        self.session: Optional[aiohttp.ClientSession] = session
+        self.message: Optional[discord.Message] = message
+
+        self.pool_name = f'Match_{datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")}'
+        self.save_folder_path = os.path.join('songs', self.pool_name)
+
+    def add_map(self, mode: str, mapid: int, diffid: int):
+        self.maps[mode] = (mapid, diffid)
+
+    def remove_map(self, mode: str):
+        del self.maps[mode]
+
+    async def downloadBeatmap(self, number: int):
+        downloadurl = OSU_BEATMAP_BASEURL + str(number)
+        async with self.session.get(downloadurl + '/download', headers={"referer": downloadurl}) as res:
+            if res.status < 400:
+                async with aiofiles.open(downloadpath % number, 'wb') as f_:
+                    await f_.write(await res.read())
+                print(f'{number}번 비트맵셋 다운로드 완료')
+            else:
+                print(f'{number}번 비트맵셋 다운로드 실패 ({res.status})')
+                await self.queue.put((number, False))
+                return
+        await self.queue.put((number, True))
+
+    async def show_result(self):
+        desc = blank
+        await self.message.edit(embed=discord.Embed(
+            title="맵풀 다운로드 중",
+            description=desc,
+            color=discord.Colour.orange()
+        ))
+        while True:
+            v = await self.queue.get()
+            if v is None:
+                await self.message.edit(embed=discord.Embed(
+                    title="맵풀 다운로드 완료",
+                    description=desc,
+                    color=discord.Colour.orange()
+                ))
+                break
+            if v[1]:
+                desc += f"{v[0]}번 다운로드 성공"
+            else:
+                desc += f"{v[0]}번 다운로드 성공"
+            await self.message.edit(embed=discord.Embed(
+                title="맵풀 다운로드 중",
+                description=desc,
+                color=discord.Colour.orange()
+            ))
+
+    async def execute_osz(self) -> Union[str, bool]:
+        if self.session.closed:
+            return False
+        t = asyncio.create_task(self.show_result())
+        async with asyncpool.AsyncPool(loop, num_workers=4, name="DownloaderPool",
+                                       logger=logging.getLogger("DownloaderPool"),
+                                       worker_co=self.downloadBeatmap, max_task_time=300,
+                                       log_every_n=10) as pool:
+            for x in self.maps:
+                mapid = self.maps[x][0]
+                await pool.push(mapid)
+
+        await pool.push(None)
+        await t
+
+        # 이후 할 것
+        # 1. 맵풀 전체/부분 압축해제 하여 필요한 난이도 osu 파일 획득
+        # 2. osu 파일 내용을 수정하여 맵풀 압축할 준비
+        # 3. 압축 후 드라이브에 업로드
+        # 4. 링크 전송
+
+####################################################################################################################
+
 
 helptxt = discord.Embed(title=helptxt_title, description=helptxt_desc, color=discord.Colour(0xfefefe))
 helptxt.add_field(name=helptxt_forscrim_name, value=helptxt_forscrim_desc1, inline=False)
@@ -842,7 +1138,7 @@ async def on_command_error(ctx, error):
     print('================ ERROR ================')
     print(errortxt)
     print('=======================================')
-    await ctx.send(f'Error occured :\n```{errortxt}```')
+    await ctx.send(f'에러 발생 :\n```{errortxt}```')
 
 
 @app.command(name="help")
@@ -867,7 +1163,7 @@ async def roll(ctx, *dices: str):
         if not x:
             continue
         sendtxt.append(f"{_d}: **{' / '.join(x)}**")
-    await ctx.send(embed=discord.Embed(title="Dice Roll Result", description='\n'.join(sendtxt)))
+    await ctx.send(embed=discord.Embed(title="주사위 결과", description='\n'.join(sendtxt)))
 
 
 @app.command()
@@ -889,14 +1185,14 @@ async def say(ctx, *, txt: str):
 @is_owner()
 async def sayresult(ctx, *, com: str):
     res = eval(com)
-    await ctx.send('RESULT : `' + str(res) + '`')
+    await ctx.send('결과값 : `' + str(res) + '`')
 
 
 @app.command()
 @is_owner()
 async def run(ctx, *, com: str):
     exec(com)
-    await ctx.send('DONE')
+    await ctx.send('실행됨')
 
 
 ####################################################################################################################
@@ -1213,24 +1509,64 @@ async def now(ctx):
 
 ####################################################################################################################
 
+async def osu_login(session):
+    jar = aiohttp.CookieJar()
+    async with session.get(OSU_HOME) as page:
+        if page.status != 200:
+            print(f'홈페이지 접속 실패 ({page.status})')
+            print(page.raw_headers)
+            await session.close()
+            return False
+
+        csrf = jar.filter_cookies(yarl.URL(OSU_HOME)).get('XSRF-TOKEN').value
+        login_info = {**BASE_LOGIN_DATA, **{'_token': csrf}}
+
+        async with session.post(OSU_SESSION, data=login_info, headers={'referer': OSU_HOME}) as req:
+            if req.status != 200:
+                print(f'로그인 실패 ({req.status})')
+                await session.close()
+                return False
+            print('로그인 성공')
+    return True
+
 loop = asyncio.get_event_loop()
-try:
-    loop.run_until_complete(app.start(token))
-except KeyboardInterrupt:
-    print("\nForce stop")
-except BaseException as ex:
-    print(repr(ex))
-    print(ex)
-finally:
-    with open('uids.txt', 'w') as f:
-        for u in uids:
-            f.write(f"{u} {uids[u]}\n")
-    with open('ratings.txt', 'w') as f:
-        for u in ratings:
-            f.write(f"{u} {ratings[u]}\n")
-    loop.run_until_complete(app.logout())
-    loop.run_until_complete(app.close())
-    loop.run_until_complete(loop.shutdown_asyncgens())
-    loop.run_until_complete(asyncio.sleep(0.5))
-    loop.close()
-    print('Program Close')
+ses = aiohttp.ClientSession(loop=loop)
+got_login = loop.run_until_complete(osu_login(ses))
+if got_login:
+    print('OSU LOGIN SUCCESS')
+    turnoff = False
+    try:
+        api = OsuApi(api_key, connector=AHConnector())
+        res = loop.run_until_complete(api.get_user("peppy"))
+        assert res == 2
+    except osuapi.errors.HTTPError:
+        print("Invalid osu!API key")
+        turnoff = True
+    except AssertionError:
+        print("Something went wrong")
+        turnoff = True
+    try:
+        assert turnoff == False
+        loop.run_until_complete(app.start(token))
+    except KeyboardInterrupt:
+        print("\nForce stop")
+    except BaseException as ex:
+        print(repr(ex))
+        print(ex)
+    finally:
+        with open('uids.txt', 'w') as f:
+            for u in uids:
+                f.write(f"{u} {uids[u]}\n")
+        with open('ratings.txt', 'w') as f:
+            for u in ratings:
+                f.write(f"{u} {ratings[u]}\n")
+        api.close()
+        loop.run_until_complete(app.logout())
+        loop.run_until_complete(app.close())
+        loop.run_until_complete(ses.close())
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.run_until_complete(asyncio.sleep(0.5))
+        loop.close()
+        print('Program Close')
+else:
+    print('OSU LOGIN FAILED')
