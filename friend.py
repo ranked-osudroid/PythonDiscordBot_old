@@ -1,6 +1,6 @@
 import asyncio, aiohttp, aiofiles, asyncpool, logging, yarl, \
     datetime, decimal, discord, gspread, random, re, time, \
-    traceback, scoreCalc, os, elo_rating, json5, osuapi, zipfile
+    traceback, scoreCalc, os, elo_rating, json5, osuapi, zipfile, pydrive
 from typing import *
 from collections import defaultdict as dd
 
@@ -41,6 +41,10 @@ else:
 gauth.SaveCredentialsFile('credentials.json')
 drive = GoogleDrive(gauth)
 
+drive_folder = drive.ListFile(
+    {'q': "title='od' and mimeType='application/vnd.google-apps.folder' and trashed=false"}
+).GetList()[0]
+
 intents = discord.Intents.default()
 intents.members = True
 app = commands.Bot(command_prefix='m;', help_command=None, intents=intents)
@@ -67,6 +71,11 @@ missr = re.compile(r"[{]\"miss\":(\d+), \"hash\":.*[}]")
 OSU_HOME = "https://osu.ppy.sh/home"
 OSU_SESSION = "https://osu.ppy.sh/session"
 OSU_BEATMAP_BASEURL = "https://osu.ppy.sh/beatmapsets/"
+
+CHIMU = "https://api.chimu.moe/v1/download/"
+chimu_params = {'n': '1'}
+
+BEATCONNECT = "https://beatconnect.io/b/"
 
 downloadpath = os.path.join('songs', '%s.zip')
 
@@ -854,6 +863,8 @@ class Match:
         self.player_ready: bool = False
         self.opponent_ready: bool = False
 
+        self.match_task: Optional[asyncio.Task] = None
+
     async def trigger_ready(self, subj):
         if self.player == subj:
             self.player_ready = True
@@ -951,6 +962,7 @@ class Match:
                     ))
                     await asyncio.sleep(1)
             await self.scrim.do_match_start()
+        self.reset_ready()
 
     async def do_progress(self):
         if self.abort:
@@ -963,7 +975,7 @@ class Match:
                     description="이 메세지가 올라온 후 2분 안에 `rdy`를 말해주세요!"
                 )
             )
-            self.timer = Timer(self.channel, f"Match_{self.made_time}", 120, self.go_next_status)
+            self.timer = Timer(self.channel, f"Match_{self.made_time}_{self.round}", 120, self.go_next_status)
         elif self.round == 0:
             statusmessage = await self.channel.send(embed=discord.Embed(
                 title="맵풀 다운로드 상태 메세지입니다.",
@@ -990,7 +1002,7 @@ class Match:
                             f"다운로드 제한 시간은 5분입니다.",
                 color=discord.Colour.blue()
             ))
-            self.timer = Timer(self.channel, f"Match_{self.made_time}", 300, self.go_next_status)
+            self.timer = Timer(self.channel, f"Match_{self.made_time}_{self.round}", 300, self.go_next_status)
         elif self.round > self.totalrounds:
             await self.scrim.end()
             self.abort = True
@@ -1005,14 +1017,35 @@ class Match:
             self.scrim.setmaptime(now_beatmap.total_length)
             self.scrim.setmode(now_mapnum[:2])
             scorecalc = scoreCalc.scoreCalc(os.path.join(
-                self.mappoolmaker.save_folder_path, f"{now_beatmap.beatmapset_id}+{now_beatmap.beatmap_id}.osz"))
+                self.mappoolmaker.save_folder_path, f"{now_mapnum}.osz"))
             self.scrim.setautoscore(scorecalc.getAutoScore())
             await self.channel.send(embed=discord.Embed(
                 title=f"{self.round}라운드 준비!",
                 description="2분 안에 `rdy`를 말해주세요!",
                 color=discord.Colour.orange()
             ))
-            self.timer = Timer(self.channel, f"Match_{self.made_time}", 120, self.go_next_status)
+            self.timer = Timer(self.channel, f"Match_{self.made_time}_{self.round}", 120, self.go_next_status)
+
+    async def match_start(self):
+        while not self.abort:
+            await self.do_progress()
+            while True:
+                if self.abort:
+                    break
+                if self.is_all_ready():
+                    await self.timer.cancel()
+                    break
+                await asyncio.sleep(1)
+
+    async def do_match_start(self):
+        if self.match_task is None or self.match_task.done():
+            self.match_task = asyncio.create_task(self.match_start())
+        else:
+            await self.channel.send(embed=discord.Embed(
+                title="매치가 이미 진행 중입니다!",
+                description="매치가 끝난 후 다시 시도해주세요.",
+                color=discord.Colour.dark_red()
+            ))
 
 
 ####################################################################################################################
@@ -1024,6 +1057,7 @@ class MappoolMaker:
         self.queue = asyncio.Queue()
         self.session: Optional[aiohttp.ClientSession] = session
         self.message: Optional[discord.Message] = message
+        self.drive_file: Optional[pydrive.drive.GoogleDriveFile] = None
 
         self.pool_name = f'Match_{datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")}'
         self.save_folder_path = os.path.join('songs', self.pool_name)
@@ -1035,20 +1069,35 @@ class MappoolMaker:
         del self.maps[mode]
 
     async def downloadBeatmap(self, number: int):
-        downloadurl = OSU_BEATMAP_BASEURL + str(number)
-        async with self.session.get(downloadurl + '/download', headers={"referer": downloadurl}) as res:
-            if res.status < 400:
+        async with self.session.get(CHIMU + str(number), params=chimu_params) as res_chimu:
+            if res_chimu.status == 200:
                 async with aiofiles.open(downloadpath % number, 'wb') as f_:
-                    await f_.write(await res.read())
-                print(f'{number}번 비트맵셋 다운로드 완료')
+                    await f_.write(await res_chimu.read())
+                print(f'{number}번 비트맵셋 다운로드 완료 (chimu.moe)')
             else:
-                print(f'{number}번 비트맵셋 다운로드 실패 ({res.status})')
-                await self.queue.put((number, False))
-                return
+                print(f'{number}번 비트맵셋 다운로드 실패 (chimu.moe) ({res_chimu.status})')
+                async with self.session.get(BEATCONNECT + str(number)) as res_beat:
+                    if res_beat.status == 200:
+                        async with aiofiles.open(downloadpath % number, 'wb') as f_:
+                            await f_.write(await res_beat.read())
+                        print(f'{number}번 비트맵셋 다운로드 완료 (beatconnect.io)')
+                    else:
+                        print(f'{number}번 비트맵셋 다운로드 실패 (beatconnect.io) ({res_beat.status})')
+                        downloadurl = OSU_BEATMAP_BASEURL + str(number)
+                        async with self.session.get(downloadurl + '/download', headers={"referer": downloadurl}) as res:
+                            if res.status < 400:
+                                async with aiofiles.open(downloadpath % number, 'wb') as f_:
+                                    await f_.write(await res.read())
+                                print(f'{number}번 비트맵셋 다운로드 완료 (osu.ppy.sh)')
+                            else:
+                                print(f'{number}번 비트맵셋 다운로드 실패 (osu.ppy.sh) ({res.status})')
+                                await self.queue.put((number, False))
+                                return
         await self.queue.put((number, True))
 
     async def show_result(self):
         desc = blank
+        has_error = dd(int)
         await self.message.edit(embed=discord.Embed(
             title="맵풀 다운로드 중",
             description=desc,
@@ -1066,12 +1115,15 @@ class MappoolMaker:
             if v[1]:
                 desc += f"{v[0]}번 다운로드 성공"
             else:
-                desc += f"{v[0]}번 다운로드 실패"
+                has_error[v[0]] += 1
+                if has_error[v[0]] == 3:
+                    desc += f"{v[0]}번 다운로드 실패"
             await self.message.edit(embed=discord.Embed(
                 title="맵풀 다운로드 중",
                 description=desc,
                 color=discord.Colour.orange()
             ))
+        return has_error
 
     async def execute_osz(self) -> Union[str, bool]:
         if self.session.closed:
@@ -1088,16 +1140,25 @@ class MappoolMaker:
         await self.queue.put(None)
         await t
 
+        if 3 in set(t.result().values()):
+            return 'Map download failed'
+
         try:
             os.mkdir(self.save_folder_path)
         except FileExistsError:
             pass
 
+        await self.message.edit(embed=discord.Embed(
+            title="`.osu` 파일 추출 및 메타데이터 수정 중...",
+            color=discord.Colour.green()
+        ))
+
         for x in self.maps:
             beatmap_info: osuapi.osu.Beatmap = (await api.get_beatmaps(beatmap_id=self.maps[x][1]))[0]
             self.beatmap_objects[x] = beatmap_info
 
-            zf = zipfile.ZipFile(downloadpath % beatmap_info.beatmapset_id)
+            zipfile_path = downloadpath % beatmap_info.beatmapset_id
+            zf = zipfile.ZipFile(zipfile_path)
             target_name = f"{beatmap_info.artist} - {beatmap_info.title} " \
                           f"({beatmap_info.creator}) [{beatmap_info.version}].osu"
             try:
@@ -1150,16 +1211,48 @@ class MappoolMaker:
                 await osufile.writelines(texts)
 
             os.rename(extracted_path, extracted_path.replace(osufile_name, f"{x}.osu"))
-            os.remove(extracted_path)
+            zf.close()
+            os.remove(zipfile_path)
 
-        result_zipfile = f"{self.pool_name}.zip"
+        await self.message.edit(embed=discord.Embed(
+            title="맵풀 압축 중...",
+            color=discord.Colour.orange()
+        ))
+
+        result_zipfile = f"{self.pool_name}.osz"
         with zipfile.ZipFile(result_zipfile, 'w') as zf:
             for fn in os.listdir(self.save_folder_path):
                 zf.write(os.path.join(self.save_folder_path, fn))
 
-        # 이후 할 것
-        # 1. 드라이브에 업로드
-        # 2. 링크 전송
+        self.drive_file = drive.CreateFile({'title': result_zipfile, 'parents': [{'id': drive_folder['id']}]})
+        self.drive_file.SetContentFile(result_zipfile)
+        await self.message.edit(embed=discord.Embed(
+            title="맵풀을 구글 드라이브에 업로드 중...",
+            description="꽤 시간이 걸립니다! 느긋하게 기다려 주세요... (약 3~5분 소요)",
+            color=discord.Colour.greyple()
+        ))
+        try:
+            await loop.run_in_executor(None, self.drive_file.Upload)
+        finally:
+            self.drive_file.content.close()
+        if self.drive_file.uploaded:
+            await self.message.edit(embed=discord.Embed(
+                title="업로드 완료!",
+                color=discord.Colour.green()
+            ))
+            self.drive_file.InsertPermission({
+                'type': 'anyone',
+                'role': 'reader',
+                'withLink': True
+            })
+            os.remove(result_zipfile)
+            return self.drive_file['alternateLink']
+        else:
+            await self.message.edit(embed=discord.Embed(
+                title="업로드 실패!",
+                color=discord.Colour.dark_red()
+            ))
+            return 'Failed'
 
 ####################################################################################################################
 
