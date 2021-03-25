@@ -4,6 +4,7 @@ client_secrets.json
 credentials.json
 osu_login.json
 osu_api_key.txt
+test_field.py
 songs
 .idea/
 uids.txt

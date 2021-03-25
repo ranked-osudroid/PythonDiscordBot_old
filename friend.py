@@ -70,6 +70,8 @@ OSU_BEATMAP_BASEURL = "https://osu.ppy.sh/beatmapsets/"
 
 downloadpath = os.path.join('songs', '%s.zip')
 
+prohibitted = re.compile(r"[\\/:*?\"<>|]")
+
 d = decimal.Decimal
 
 def getd(n: Union[int, float, str]):
@@ -1064,7 +1066,7 @@ class MappoolMaker:
             if v[1]:
                 desc += f"{v[0]}번 다운로드 성공"
             else:
-                desc += f"{v[0]}번 다운로드 성공"
+                desc += f"{v[0]}번 다운로드 실패"
             await self.message.edit(embed=discord.Embed(
                 title="맵풀 다운로드 중",
                 description=desc,
@@ -1083,28 +1085,38 @@ class MappoolMaker:
                 mapid = self.maps[x][0]
                 await pool.push(mapid)
 
-        await pool.push(None)
+        await self.queue.put(None)
         await t
+
+        try:
+            os.mkdir(self.save_folder_path)
+        except FileExistsError:
+            pass
 
         for x in self.maps:
             beatmap_info: osuapi.osu.Beatmap = (await api.get_beatmaps(beatmap_id=self.maps[x][1]))[0]
             self.beatmap_objects[x] = beatmap_info
-            try:
-                os.mkdir(self.save_folder_path)
-            except FileExistsError:
-                pass
 
             zf = zipfile.ZipFile(downloadpath % beatmap_info.beatmapset_id)
             target_name = f"{beatmap_info.artist} - {beatmap_info.title} " \
                           f"({beatmap_info.creator}) [{beatmap_info.version}].osu"
             try:
-                extracted_path = zf.extract(target_name, self.save_folder_path)
-            except KeyError:
-                print(f"File not exist : {target_name}")
+                target_name_search = prohibitted.sub('', target_name.lower())
+                zipfile_list = zf.namelist()
+                extracted_path = None
+                osufile_name = None
+                for zfn in zipfile_list:
+                    if zfn.lower() == target_name_search:
+                        osufile_name = zfn
+                        extracted_path = zf.extract(zfn, self.save_folder_path)
+                        break
+                assert extracted_path is not None
+            except AssertionError:
+                print(f"파일이 없음 : {target_name}")
                 continue
 
             texts = ''
-            async with aiofiles.open(extracted_path, 'r') as osufile:
+            async with aiofiles.open(extracted_path, 'r', encoding='utf-8') as osufile:
                 texts = await osufile.readlines()
                 for i in range(len(texts)):
                     text = texts[i].rstrip()
@@ -1121,25 +1133,34 @@ class MappoolMaker:
                         after_filename = f"{x}.{extension}"
                         os.rename(bg_extracted, bg_extracted.replace(background_path, after_filename))
                         texts[i] = texts[i].replace(background_path, after_filename)
-                    elif m := re.match(r'Title(Unicode)?:(.*)', text):
+                    elif m := re.match(r'Title(Unicode)?[:](.*)', text):
                         orig_title = m.group(2)
                         texts[i] = texts[i].replace(orig_title, f'Mappool for {self.pool_name}')
-                    elif m := re.match(r'Artist(Unicode)?:(.*)', text):
+                    elif m := re.match(r'Artist(Unicode)?[:](.*)', text):
                         orig_artist = m.group(2)
-                        texts[i] = texts[i].replace(orig_title, f'V.A.')
-                    elif m := re.match(r'Version:(.*)', text):
+                        texts[i] = texts[i].replace(orig_artist, f'V.A.')
+                    elif m := re.match(r'Version[:](.*)', text):
                         orig_diffname = m.group(1)
                         texts[i] = texts[i].replace(
                             orig_diffname,
                             f"[{x}] {beatmap_info.artist} - {beatmap_info.title} [{beatmap_info.version}]"
                         )
 
-            async with aiofiles.open(extracted_path, 'w') as osufile:
+            async with aiofiles.open(extracted_path, 'w', encoding='utf-8') as osufile:
                 await osufile.writelines(texts)
 
+            os.rename(extracted_path, extracted_path.replace(osufile_name, f"{x}.osu"))
+            os.remove(extracted_path)
+
+        result_zipfile = f"{self.pool_name}.zip"
+        with zipfile.ZipFile(result_zipfile, 'w') as zf:
+            for fn in os.listdir(self.save_folder_path):
+                zf.write(os.path.join(self.save_folder_path, fn))
+
+
         # 이후 할 것
-        # 1. 맵풀 전체/부분 압축해제 하여 필요한 난이도 osu 파일 획득
-        # 2. osu 파일 내용을 수정하여 맵풀 압축할 준비
+        # 1. 맵풀 전체/부분 압축해제 하여 필요한 난이도 osu 파일 획득 O
+        # 2. osu 파일 내용을 수정하여 맵풀 압축할 준비 O
         # 3. 압축 후 드라이브에 업로드
         # 4. 링크 전송
 
@@ -1563,7 +1584,6 @@ async def now(ctx):
 ####################################################################################################################
 
 async def osu_login(session):
-    jar = aiohttp.CookieJar()
     async with session.get(OSU_HOME) as page:
         if page.status != 200:
             print(f'홈페이지 접속 실패 ({page.status})')
@@ -1571,7 +1591,7 @@ async def osu_login(session):
             await session.close()
             return False
 
-        csrf = jar.filter_cookies(yarl.URL(OSU_HOME)).get('XSRF-TOKEN').value
+        csrf = session.cookie_jar.filter_cookies(yarl.URL(OSU_HOME)).get('XSRF-TOKEN').value
         login_info = {**BASE_LOGIN_DATA, **{'_token': csrf}}
 
         async with session.post(OSU_SESSION, data=login_info, headers={'referer': OSU_HOME}) as req:
