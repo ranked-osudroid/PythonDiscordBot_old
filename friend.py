@@ -1222,7 +1222,7 @@ class MappoolMaker:
         result_zipfile = f"{self.pool_name}.osz"
         with zipfile.ZipFile(result_zipfile, 'w') as zf:
             for fn in os.listdir(self.save_folder_path):
-                zf.write(os.path.join(self.save_folder_path, fn))
+                zf.write(os.path.join(self.save_folder_path, fn), fn)
 
         self.drive_file = drive.CreateFile({'title': result_zipfile, 'parents': [{'id': drive_folder['id']}]})
         self.drive_file.SetContentFile(result_zipfile)
