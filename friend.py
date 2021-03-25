@@ -1,6 +1,6 @@
 import asyncio, aiohttp, aiofiles, asyncpool, logging, yarl, \
     datetime, decimal, discord, gspread, random, re, time, \
-    traceback, scoreCalc, os, elo_rating, json5, osuapi
+    traceback, scoreCalc, os, elo_rating, json5, osuapi, zipfile
 from typing import *
 from collections import defaultdict as dd
 
@@ -846,6 +846,7 @@ class Match:
         # -1 = 플레이어 참가 대기
         # 0 = 맵풀 다운로드 대기
         # n = n라운드 준비 대기
+        self.totalrounds = 2 * bo - 1
         self.abort = False
 
         self.player_ready: bool = False
@@ -988,12 +989,12 @@ class Match:
                 color=discord.Colour.blue()
             ))
             self.timer = Timer(self.channel, f"Match_{self.made_time}", 300, self.go_next_status)
-        elif self.round > 8:
-            pass
+        elif self.round > self.totalrounds:
+            await self.scrim.end()
+            self.abort = True
         else:
             now_mapnum = self.map_order[self.round - 1]
-            now_bid = self.mappoolmaker.maps[now_mapnum]
-            now_beatmap: osuapi.osu.Beatmap = (await api.get_beatmaps(beatmap_id=now_bid))[0]
+            now_beatmap: osuapi.osu.Beatmap = self.mappoolmaker.beatmap_objects[now_mapnum]
             self.scrim.setnumber(now_mapnum)
             self.scrim.setartist(now_beatmap.artist)
             self.scrim.setauthor(now_beatmap.creator)
@@ -1002,7 +1003,7 @@ class Match:
             self.scrim.setmaptime(now_beatmap.total_length)
             self.scrim.setmode(now_mapnum[:2])
             scorecalc = scoreCalc.scoreCalc(os.path.join(
-                self.mappoolmaker.save_folder_path, f"{now_beatmap.beatmapset_id}+{now_bid}.osz"))
+                self.mappoolmaker.save_folder_path, f"{now_beatmap.beatmapset_id}+{now_beatmap.beatmap_id}.osz"))
             self.scrim.setautoscore(scorecalc.getAutoScore())
             await self.channel.send(embed=discord.Embed(
                 title=f"{self.round}라운드 준비!",
@@ -1017,6 +1018,7 @@ class Match:
 class MappoolMaker:
     def __init__(self, message, session=ses):
         self.maps: Dict[str, Tuple[int, int]] = dict()  # MODE: (MAPSET ID, MAPDIFF ID)
+        self.beatmap_objects: Dict[str, osuapi.osu.Beatmap] = dict()
         self.queue = asyncio.Queue()
         self.session: Optional[aiohttp.ClientSession] = session
         self.message: Optional[discord.Message] = message
@@ -1083,6 +1085,57 @@ class MappoolMaker:
 
         await pool.push(None)
         await t
+
+        for x in self.maps:
+            beatmap_info: osuapi.osu.Beatmap = (await api.get_beatmaps(beatmap_id=self.maps[x][1]))[0]
+            self.beatmap_objects[x] = beatmap_info
+            try:
+                os.mkdir(self.save_folder_path)
+            except FileExistsError:
+                pass
+
+            zf = zipfile.ZipFile(downloadpath % beatmap_info.beatmapset_id)
+            target_name = f"{beatmap_info.artist} - {beatmap_info.title} " \
+                          f"({beatmap_info.creator}) [{beatmap_info.version}].osu"
+            try:
+                extracted_path = zf.extract(target_name, self.save_folder_path)
+            except KeyError:
+                print(f"File not exist : {target_name}")
+                continue
+
+            texts = ''
+            async with aiofiles.open(extracted_path, 'r') as osufile:
+                texts = await osufile.readlines()
+                for i in range(len(texts)):
+                    text = texts[i].rstrip()
+                    if m := re.match(r'AudioFilename:\s?(.*)', text):
+                        audio_path = m.group(1)
+                        audio_extracted = zf.extract(audio_path, self.save_folder_path)
+                        after_filename = f"{x}.mp3"
+                        os.rename(audio_extracted, audio_extracted.replace(audio_path, after_filename))
+                        texts[i] = texts[i].replace(audio_path, after_filename)
+                    elif m := re.match(r'\d+,\d+,\"(.*?)\".*', text):
+                        background_path = m.group(1)
+                        extension = background_path.split('.')[-1]
+                        bg_extracted = zf.extract(background_path, self.save_folder_path)
+                        after_filename = f"{x}.{extension}"
+                        os.rename(bg_extracted, bg_extracted.replace(background_path, after_filename))
+                        texts[i] = texts[i].replace(background_path, after_filename)
+                    elif m := re.match(r'Title(Unicode)?:(.*)', text):
+                        orig_title = m.group(2)
+                        texts[i] = texts[i].replace(orig_title, f'Mappool for {self.pool_name}')
+                    elif m := re.match(r'Artist(Unicode)?:(.*)', text):
+                        orig_artist = m.group(2)
+                        texts[i] = texts[i].replace(orig_title, f'V.A.')
+                    elif m := re.match(r'Version:(.*)', text):
+                        orig_diffname = m.group(1)
+                        texts[i] = texts[i].replace(
+                            orig_diffname,
+                            f"[{x}] {beatmap_info.artist} - {beatmap_info.title} [{beatmap_info.version}]"
+                        )
+
+            async with aiofiles.open(extracted_path, 'w') as osufile:
+                await osufile.writelines(texts)
 
         # 이후 할 것
         # 1. 맵풀 전체/부분 압축해제 하여 필요한 난이도 osu 파일 획득
