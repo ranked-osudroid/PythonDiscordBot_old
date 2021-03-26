@@ -733,7 +733,7 @@ class Scrim:
             self.setscore.keys()
         ))
         sendtxt = discord.Embed(
-            title="========= !스크림 종료! =========",
+            title="========= ! 매치 종료 ! =========",
             description="팀 " + ', '.join(f"\"{w}\"" for w in winnerteam) + " 최종 우승!",
             color=discord.Colour.magenta()
         )
@@ -753,8 +753,8 @@ class Scrim:
         )
         sendtxt.add_field(
             name="수고하셨습니다!",
-            value='스크림 정보가 자동으로 초기화됩니다.\n'
-                  '스크림 기록은 아래 파일을 다운받아 텍스트 에디터로 열어보실 수 있습니다.',
+            value='매치 정보가 자동으로 초기화됩니다.\n'
+                  '매치 기록은 아래 파일을 다운받아 텍스트 에디터로 열어보실 수 있습니다.',
             inline=False
         )
         filename = f'scrim{self.start_time}.log'
