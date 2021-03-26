@@ -3,6 +3,7 @@ import asyncio, aiohttp, aiofiles, asyncpool, logging, yarl, \
     traceback, scoreCalc, os, elo_rating, json5, osuapi, zipfile, pydrive
 from typing import *
 from collections import defaultdict as dd
+from collections import deque
 
 from osuapi import OsuApi, AHConnector
 
@@ -31,14 +32,15 @@ doc = gs.open_by_url(spreadsheet)
 worksheet = doc.worksheet('data')
 
 gauth = GoogleAuth()
-gauth.LoadCredentialsFile('credentials.json')
+drive_cred = 'credentials.json'
+gauth.LoadCredentialsFile(drive_cred)
 if gauth.credentials is None:
     gauth.LocalWebserverAuth()
 elif gauth.access_token_expired:
     gauth.Refresh()
 else:
     gauth.Authorize()
-gauth.SaveCredentialsFile('credentials.json')
+gauth.SaveCredentialsFile(drive_cred)
 drive = GoogleDrive(gauth)
 
 drive_folder = drive.ListFile(
@@ -47,6 +49,7 @@ drive_folder = drive.ListFile(
 
 intents = discord.Intents.default()
 intents.members = True
+intents.reactions = True
 app = commands.Bot(command_prefix='m;', help_command=None, intents=intents)
 
 ses: Optional[aiohttp.ClientSession] = None
@@ -153,6 +156,14 @@ async def getrecent(_id: int) -> Optional[Tuple[Sequence[AnyStr], Sequence[AnySt
             playr.match(recent_playinfo).groups(),
             missr.match(recent_miss).groups())
 
+async def get_rank(_id: int):
+    url = url_base + str(_id)
+    async with aiohttp.ClientSession() as s:
+        html = await s.get(url)
+    bs = BeautifulSoup(html.text, "html.parser")
+    rank = bs.select_one("#content > section > section > section > aside.aside-lg.bg-light.lter.b-r > "
+                         "section > section > div > div.panel.wrapper > div > div:nth-child(1) > a > span").text
+    return int(rank)
 
 def is_owner():
     async def predicate(ctx):
@@ -255,10 +266,9 @@ infotoint = {
 timer_color = [0x800000, 0xff8000, 0x00ff00]
 
 class Scrim:
-    def __init__(self, ctx: discord.ext.commands.Context):
+    def __init__(self, channel: discord.TextChannel):
         self.loop = asyncio.get_event_loop()
-        self.guild: discord.Guild = ctx.guild
-        self.channel: discord.TextChannel = ctx.channel
+        self.channel: discord.TextChannel = channel
         self.start_time = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
 
         self.match_task: Optional[asyncio.Task] = None
@@ -826,6 +836,9 @@ ratings: dd[int, d] = dd(d)
 timers: dd[str, Optional[Timer]] = dd(lambda: None)
 timer_count = 0
 
+matches: Dict[discord.Member, Match] = dict()
+# discord.Member : Match
+
 with open('uids.txt', 'r') as f:
     while data := f.readline():
         discordid, userid = data.split(' ')
@@ -838,18 +851,19 @@ with open('ratings.txt', 'r') as f:
 
 ####################################################################################################################
 
+match_category_channel: discord.CategoryChannel = app.get_channel(824985957165957151)
+
 class Match:
-    def __init__(self, ctx: discord.ext.commands.Context,
-                 player: discord.Member, opponent: discord.Member, bo: int = 7):
-        self.channel = ctx.channel
+    def __init__(self, player: discord.Member, opponent: discord.Member, bo: int = 7):
+        self.made_time = datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")
+        self.channel = loop.run_until_complete(match_category_channel.create_text_channel(self.made_time))
         self.player = player
         self.opponent = opponent
 
         self.mappoolmaker: Optional[MappoolMaker] = None
         self.map_order: List[str] = []
 
-        self.scrim = Scrim(ctx)
-        self.made_time = datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")
+        self.scrim = Scrim(self.channel)
         self.timer: Optional[Timer] = None
 
         self.round = -1
@@ -857,37 +871,43 @@ class Match:
         # -1 = 플레이어 참가 대기
         # 0 = 맵풀 다운로드 대기
         # n = n라운드 준비 대기
+        self.bo = bo
         self.totalrounds = 2 * bo - 1
         self.abort = False
+
+        self.player_ELO = ratings[uids[self.player.id]]
+        self.opponent_ELO = ratings[uids[self.opponent.id]]
+        self.elo_manager = elo_rating.EloRating(self.player_ELO, self.opponent_ELO)
 
         self.player_ready: bool = False
         self.opponent_ready: bool = False
 
         self.match_task: Optional[asyncio.Task] = None
 
-    async def trigger_ready(self, subj):
+    async def switch_ready(self, subj):
+        r_ = None
         if self.player == subj:
-            self.player_ready = True
+            if self.player_ready:
+                self.player_ready = r_ = False
+            else:
+                self.player_ready = r_ = True
         elif self.opponent == subj:
-            self.opponent_ready = True
+            if self.opponent_ready:
+                self.opponent_ready = r_ = False
+            else:
+                self.opponent_ready = r_ = True
         else:
             return
-        await self.channel.send(embed=discord.Embed(
-            title=f"{subj} 준비됨!",
-            color=discord.Colour.green()
-        ))
-
-    async def trigger_unready(self, subj):
-        if self.player == subj:
-            self.player_ready = False
-        elif self.opponent == subj:
-            self.opponent_ready = False
+        if r_:
+            await self.channel.send(embed=discord.Embed(
+                title=f"{subj} 준비됨!",
+                color=discord.Colour.green()
+            ))
         else:
-            return
-        await self.channel.send(embed=discord.Embed(
-            title=f"{subj} 준비 해제됨!",
-            color=discord.Colour.red()
-        ))
+            await self.channel.send(embed=discord.Embed(
+                title=f"{subj} 준비 해제됨!",
+                color=discord.Colour.green()
+            ))
 
     def is_all_ready(self):
         return self.player_ready and self.opponent_ready
@@ -1003,7 +1023,7 @@ class Match:
                 color=discord.Colour.blue()
             ))
             self.timer = Timer(self.channel, f"Match_{self.made_time}_{self.round}", 300, self.go_next_status)
-        elif self.round > self.totalrounds:
+        elif self.round > self.totalrounds or self.bo in set(self.scrim.setscore.values()):
             await self.scrim.end()
             self.abort = True
         else:
@@ -1256,6 +1276,76 @@ class MappoolMaker:
 
 ####################################################################################################################
 
+class WaitingPlayer:
+    def __init__(self, discord_member: discord.Member):
+        self.player = discord_member
+        self.player_rating = ratings[uids[discord_member.id]]
+        self.target_rating_low = self.player_rating
+        self.target_rating_high = self.player_rating
+        self.task = asyncio.create_task(self.expanding())
+
+    async def expanding(self):
+        try:
+            while True:
+                await asyncio.wait(1)
+                self.target_rating_low -= 1
+                self.target_rating_high += 1
+        except asyncio.CancelledError:
+            pass
+
+class MatchMaker:
+    def __init__(self):
+        self.pool: deque[WaitingPlayer] = deque()
+        self.players_in_pool: set[discord.Member] = set()
+        self.task = asyncio.create_task(self.check_match())
+        self.querys = asyncio.Queue()
+
+    def add_player(self, player: discord.Member):
+        self.querys.put((1, player))
+
+    def remove_player(self, player: discord.Member):
+        self.querys.put((2, player))
+
+    async def check_match(self):
+        try:
+            while True:
+                i = 0
+                while i < len(self.pool):
+                    p = self.pool.popleft()
+                    opponents = set(filter(lambda o: p.target_rating_low <= o <= p.target_rating_high, self.pool))
+                    if len(opponents) > 0:
+                        opponent = min(opponents, key=lambda o: abs(o.player_rating - p.player_rating))
+                        self.pool.remove(opponent)
+                        matches[p.player] = matches[opponent.player] = m = Match(p.player, opponent.player)
+                        await m.do_match_start()
+                        self.players_in_pool.remove(p.player)
+                        self.players_in_pool.remove(opponent.player)
+                        p.task.cancel()
+                        opponent.task.cancel()
+                        i += 1
+                    else:
+                        self.pool.append(p)
+                while not self.querys.empty():
+                    method, player = await self.querys.get()
+                    if method == 1:
+                        if player not in self.players_in_pool:
+                            self.pool.append(WaitingPlayer(player))
+                            self.players_in_pool.add(player)
+                    else:
+                        if self.pool[-1].player == player:
+                            self.pool.pop()
+                        else:
+                            for i in range(len(self.pool) - 1):
+                                p = self.pool.popleft()
+                                if p.player == player:
+                                    self.pool.remove(p)
+                                    self.players_in_pool.remove(p.player)
+                await asyncio.sleep(2)
+        except asyncio.CancelledError:
+            pass
+
+####################################################################################################################
+
 
 helptxt = discord.Embed(title=helptxt_title, description=helptxt_desc, color=discord.Colour(0xfefefe))
 helptxt.add_field(name=helptxt_forscrim_name, value=helptxt_forscrim_desc1, inline=False)
@@ -1293,6 +1383,10 @@ async def on_message(message):
         )
     if credentials.access_token_expired:
         gs.login()
+    pm = matches.get(p)
+    if message.content == 'rdy' and pm is not None:
+        pm: Match
+        await pm.switch_ready(p)
     await app.process_commands(message)
 
 
@@ -1369,7 +1463,7 @@ async def make(ctx):
         await ctx.send("이미 스크림이 존재합니다.")
         return
     s['valid'] = 1
-    s['scrim'] = Scrim(ctx)
+    s['scrim'] = Scrim(ctx.channel)
     await ctx.send(embed=discord.Embed(
         title="스크림이 만들어졌습니다! | A scrim is made",
         description=f"서버/Guild : {ctx.guild}\n채널/Channel : {ctx.channel}",
@@ -1449,6 +1543,8 @@ async def end(ctx):
 async def bind(ctx, number: int):
     mid = ctx.author.id
     uids[mid] = number
+    if ratings[number] == d():
+        ratings[number] = d('1500') - (await get_rank(number)) / d('100')
     await ctx.send(embed=discord.Embed(
         title=f'플레이어 \"{ctx.author.name}\"님을 UID {number}로 연결했습니다!',
         color=discord.Colour(0xfefefe)
@@ -1670,6 +1766,50 @@ async def now(ctx):
                 value='\n'.join(getusername(x) for x in scrim.team[t])
             )
         await ctx.send(embed=e)
+
+####################################################################################################################
+
+matchmaker = MatchMaker()
+
+@app.command(aliases=['pfme'])
+async def profileme(ctx):
+    e = discord.Embed(
+        title=f"{ctx.author.display_name}님의 정보",
+        color=discord.Colour(0xdb6ee1)
+    )
+    e.add_field(
+        name="UID",
+        value=str(uids[ctx.author.id])
+    )
+    e.add_field(
+        name="Elo",
+        value=str(ratings[uids[ctx.author.id]])
+    )
+    await ctx.send(embed=e)
+
+@app.command(aliases=['q'])
+async def queue(ctx):
+    if matches.get(ctx.author):
+        await ctx.send(embed=discord.Embed(
+            title=f"매치 도중에 큐에 추가될 수 없습니다!",
+            color=discord.Colour.dark_red()
+        ))
+    matchmaker.add_player(ctx.author)
+    await ctx.send(embed=discord.Embed(
+        title=f"{ctx.author.display_name}님을 매칭 큐에 추가하였습니다!",
+        description=f"현재 큐의 다른 플레이어 수 : {len(matchmaker.pool)}",
+        color=discord.Colour(0x78f7fb)
+    ))
+
+@app.command(aliases=['uq'])
+async def unqueue(ctx):
+    matchmaker.remove_player(ctx.author)
+    await ctx.send(embed=discord.Embed(
+        title=f"{ctx.author.display_name}님을 매칭 큐에 매치 취소 요청을 했습니다!",
+        description=f"**이 요청은 간혹 이루어지지 않을 수 있습니다.**\n"
+                    f"현재 큐의 다른 플레이어 수 : {len(matchmaker.pool)}",
+        color=discord.Colour(0x78f7fb)
+    ))
 
 ####################################################################################################################
 
