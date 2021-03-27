@@ -160,10 +160,10 @@ async def get_rank(_id: int):
     url = url_base + str(_id)
     async with aiohttp.ClientSession() as s:
         html = await s.get(url)
-    bs = BeautifulSoup(html.text, "html.parser")
-    rank = bs.select_one("#content > section > section > section > aside.aside-lg.bg-light.lter.b-r > "
-                         "section > section > div > div.panel.wrapper > div > div:nth-child(1) > a > span").text
-    return int(rank)
+        bs = BeautifulSoup(await html.text(), "html.parser")
+        rank = bs.select_one("#content > section > section > section > aside.aside-lg.bg-light.lter.b-r > "
+                             "section > section > div > div.panel.wrapper > div > div:nth-child(1) > a > span").text
+        return int(rank)
 
 def is_owner():
     async def predicate(ctx):
@@ -188,6 +188,7 @@ class Timer:
         self.task: asyncio.Task = loop.create_task(self.run())
 
     async def run(self):
+        cancelled = False
         try:
             self.message = await self.channel.send(embed=discord.Embed(
                 title="타이머 작동 시작!",
@@ -199,12 +200,13 @@ class Timer:
             await self.timeover()
         except asyncio.CancelledError:
             await self.cancel()
+            cancelled = True
         finally:
             if self.callback:
                 if self.args:
-                    await self.callback(self.task.cancelled(), *self.args)
+                    await self.callback(cancelled, *self.args)
                 else:
-                    await self.callback(self.task.cancelled())
+                    await self.callback(cancelled)
 
     async def timeover(self):
         await self.message.edit(embed=discord.Embed(
@@ -234,11 +236,11 @@ class Timer:
 ####################################################################################################################
 
 
-def getusername(x: int) -> str:
+async def getusername(x: int) -> str:
     if member_names.get(x) is None:
         user = app.get_user(x)
         if user is None:
-            user = app.fetch_user(x)
+            user = await app.fetch_user(x)
         member_names[x] = user.name
     return member_names[x]
 
@@ -383,7 +385,7 @@ class Scrim:
             await self.channel.send(embed=discord.Embed(
                 title=f"플레이어 \"{member.name}\"님이 \"{name}\"팀에 참가합니다!",
                 description=f"현재 \"{name}\"팀 플레이어 리스트:\n"
-                            f"{chr(10).join(getusername(pl) for pl in self.team[name])}",
+                            f"{chr(10).join((await getusername(pl)) for pl in self.team[name])}",
                 color=discord.Colour.blue()
             ))
 
@@ -404,7 +406,7 @@ class Scrim:
             await self.channel.send(embed=discord.Embed(
                 title=f"플레이어 \"{member.name}\"님이 \"{temp}\"팀을 떠납니다!",
                 description=f"현재 \"{temp}\"팀 플레이어 리스트:\n"
-                            f"{chr(10).join(getusername(pl) for pl in self.team[temp])}",
+                            f"{chr(10).join((await getusername(pl)) for pl in self.team[temp])}",
                 color=discord.Colour.blue()
             ))
 
@@ -492,7 +494,7 @@ class Scrim:
         for t in teamscore:
             sendtxt.add_field(
                 name=f"*\"{t}\"팀 결과 : {teamscore[t]}*",
-                value='\n'.join(f"{getusername(p)} : "
+                value='\n'.join(f"{await getusername(p)} : "
                                 f"{' / '.join(str(x) for x in self.score[p])} = "
                                 f"{calculatedscores[p]}" for p in self.team[t])+'\n',
                 inline=False
@@ -513,7 +515,7 @@ class Scrim:
         for t in self.team:
             logtxt.append(f'\nTeam {t} = {teamscore[t]}')
             for p in self.team[t]:
-                logtxt.append(f"Player {getusername(p)} = {calculatedscores[p]} "
+                logtxt.append(f"Player {await getusername(p)} = {calculatedscores[p]} "
                               f"({' / '.join(str(x) for x in self.score[p])})")
         self.log.append('\n'.join(logtxt))
         self.resetmap()
@@ -657,12 +659,12 @@ class Scrim:
                 ))
                 if uids.get(player) is None:
                     desc += f"등록 실패 : " \
-                            f"{getusername(player)}의 UID가 등록되어있지 않음"
+                            f"{await getusername(player)}의 UID가 등록되어있지 않음"
                     continue
                 player_recent_info = await getrecent(uids[player])
                 if player_recent_info is None:
                     desc += f"등록 실패 : " \
-                            f"{getusername(player)}의 최근 플레이 정보가 기본 형식에 맞지 않음"
+                            f"{await getusername(player)}의 최근 플레이 정보가 기본 형식에 맞지 않음"
                 p = dict()
                 p['artist'], p['title'], p['author'], p['diff'] = player_recent_info[0]
                 p['score'] = int(player_recent_info[1][1].replace(',', ''))
@@ -675,7 +677,7 @@ class Scrim:
                     m = self.form[0].match(p['diff'])
                     if m is None:
                         desc += f"등록 실패 : " \
-                                f"{getusername(player)}의 최근 플레이 난이도명이 저장된 형식에 맞지 않음 " \
+                                f"{await getusername(player)}의 최근 플레이 난이도명이 저장된 형식에 맞지 않음 " \
                                 f"(플레이어 난이도명 : {p['diff']})"
                         continue
                     for k in self.form[1]:
@@ -685,7 +687,7 @@ class Scrim:
                             if mnum != pnum:
                                 flag = True
                                 desc += f"등록 실패 : " \
-                                        f"{getusername(player)}의 맵 번호가 다름 (플레이어 맵 번호 : {pnum})"
+                                        f"{await getusername(player)}의 맵 번호가 다름 (플레이어 맵 번호 : {pnum})"
                                 break
                             continue
                         p[k] = m.group(k)
@@ -701,7 +703,7 @@ class Scrim:
                         if nowk != p[k]:
                             flag = True
                             desc += f"등록 실패 : " \
-                                    f"{getusername(player)}의 {k}가 다름 " \
+                                    f"{await getusername(player)}의 {k}가 다름 " \
                                     f"(현재 {k} : {nowk_edited} {'('+nowk+') ' if nowk!=nowk_edited else ''}/ " \
                                     f"플레이어 {k} : {p[k]})"
                 if flag:
@@ -713,13 +715,13 @@ class Scrim:
                             pmodeint |= modetoint[md]
                     if pmodeint not in self.availablemode[self.map_mode]:
                         desc += f"등록 실패 : " \
-                                f"{getusername(player)}의 모드가 조건에 맞지 않음 " \
+                                f"{await getusername(player)}의 모드가 조건에 맞지 않음 " \
                                 f"(현재 가능한 모드 숫자 : {self.availablemode[self.map_mode]} / " \
                                 f"플레이어 모드 숫자 : {pmodeint})"
                         continue
                 self.score[player] = (getd(p['score']), getd(p['acc']), getd(p['miss']))
                 desc += f"등록 완료! : " \
-                        f"{getusername(player)}의 점수 " \
+                        f"{await getusername(player)}의 점수 " \
                         f"{self.score[player][0]}, {self.score[player][1]}%, {self.score[player][2]}xMISS"
         await resultmessage.edit(embed=discord.Embed(
             title="계산 완료!",
@@ -848,19 +850,17 @@ with open('ratings.txt', 'r') as f:
 
 ####################################################################################################################
 
-match_category_channel: discord.CategoryChannel = app.get_channel(824985957165957151)
-
 class Match:
     def __init__(self, player: discord.Member, opponent: discord.Member, bo: int = 7):
         self.made_time = datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")
-        self.channel = loop.run_until_complete(match_category_channel.create_text_channel(self.made_time))
+        self.channel: Optional[discord.TextChannel] = None
         self.player = player
         self.opponent = opponent
 
         self.mappoolmaker: Optional[MappoolMaker] = None
         self.map_order: List[str] = []
 
-        self.scrim = Scrim(self.channel)
+        self.scrim: Optional[Scrim] = None
         self.timer: Optional[Timer] = None
 
         self.round = -1
@@ -880,9 +880,13 @@ class Match:
         self.opponent_ready: bool = False
 
         self.match_task: Optional[asyncio.Task] = None
+        
+        print('매치 init 성공')
 
     async def switch_ready(self, subj):
         r_ = None
+        if self.channel is None:
+            return
         if self.player == subj:
             if self.player_ready:
                 self.player_ready = r_ = False
@@ -916,33 +920,26 @@ class Match:
     async def go_next_status(self, timer_cancelled):
         if self.round == -1 and self.is_all_ready():
             if timer_cancelled:
-                self.round = 0
-                await self.channel.send(embed=discord.Embed(
-                    title="모두 참가가 완료되었습니다!",
-                    description="스크림 & 맵풀 생성 중입니다...",
-                    color=discord.Colour.dark_red()
-                ))
-                await self.scrim.maketeam(self.player.display_name)
-                await self.scrim.maketeam(self.opponent.display_name)
-                await self.scrim.addplayer(self.player.display_name, self.player)
-                await self.scrim.addplayer(self.opponent.display_name, self.opponent)
-            else:
                 await self.channel.send(embed=discord.Embed(
                     title="상대가 참가하지 않았습니다.",
                     description="매치가 취소되고, 두 유저는 다시 매칭 풀에 들어갑니다.",
                     color=discord.Colour.dark_red()
                 ))
                 self.abort = True
-        elif self.round == 0 and self.is_all_ready():
-            if timer_cancelled:
-                self.round = 1
+            else:
+                self.round = 0
                 await self.channel.send(embed=discord.Embed(
-                    title="모두 준비되었습니다!",
-                    description="매치 시작 준비 중입니다...",
+                    title="모두 참가가 완료되었습니다!",
+                    description="스크림 & 맵풀 생성 중입니다...",
                     color=discord.Colour.dark_red()
                 ))
-                await self.scrim.setform('[number] artist - title [diff]')
-            else:
+
+                await self.scrim.maketeam(self.player.display_name)
+                await self.scrim.maketeam(self.opponent.display_name)
+                await self.scrim.addplayer(self.player.display_name, self.player)
+                await self.scrim.addplayer(self.opponent.display_name, self.opponent)
+        elif self.round == 0 and self.is_all_ready():
+            if timer_cancelled:
                 await self.channel.send(embed=discord.Embed(
                     title="상대가 준비되지 않았습니다.",
                     description="인터넷 문제를 가지고 있을 수 있습니다.\n"
@@ -950,9 +947,17 @@ class Match:
                     color=discord.Colour.dark_red()
                 ))
                 self.abort = True
+            else:
+                self.round = 1
+                await self.channel.send(embed=discord.Embed(
+                    title="모두 준비되었습니다!",
+                    description="매치 시작 준비 중입니다...",
+                    color=discord.Colour.dark_red()
+                ))
+                await self.scrim.setform('[number] artist - title [diff]')
         else:
             self.round += 1
-            if self.is_all_ready() and timer_cancelled:
+            if self.is_all_ready() and not timer_cancelled:
                 message = await self.channel.send(embed=discord.Embed(
                     title="모두 준비되었습니다!",
                     description=f"10초 뒤 {self.round}라운드가 시작됩니다...",
@@ -985,6 +990,8 @@ class Match:
         if self.abort:
             return
         elif self.round == -1:
+            self.channel = await match_category_channel.create_text_channel(self.made_time)
+            self.scrim = Scrim(self.channel)
             await self.channel.send(
                 f"{self.player.mention} {self.opponent.mention}",
                 embed=discord.Embed(
@@ -992,7 +999,7 @@ class Match:
                     description="이 메세지가 올라온 후 2분 안에 `rdy`를 말해주세요!"
                 )
             )
-            self.timer = Timer(self.channel, f"Match_{self.made_time}_{self.round}", 120, self.go_next_status)
+            self.timer = Timer(self.channel, f"Match\_{self.made_time}\_{self.round}", 120, self.go_next_status)
         elif self.round == 0:
             statusmessage = await self.channel.send(embed=discord.Embed(
                 title="맵풀 다운로드 상태 메세지입니다.",
@@ -1297,10 +1304,13 @@ class WaitingPlayer:
         self.dr = 3
         self.task = asyncio.create_task(self.expanding())
 
+    def __repr__(self):
+        return self.player.display_name
+
     async def expanding(self):
         try:
             while True:
-                await asyncio.wait(1)
+                await asyncio.sleep(1)
                 self.target_rating_low -= self.dr
                 self.target_rating_high += self.dr
         except asyncio.CancelledError:
@@ -1308,10 +1318,9 @@ class WaitingPlayer:
 
 class MatchMaker:
     def __init__(self):
-        self.loop = asyncio.get_event_loop()
         self.pool: deque[WaitingPlayer] = deque()
-        self.players_in_pool: set[discord.Member] = set()
-        self.task = self.loop.create_task(self.check_match())
+        self.players_in_pool: set[int] = set()
+        self.task = asyncio.create_task(self.check_match())
         self.querys = deque()
 
     def add_player(self, player: discord.Member):
@@ -1323,37 +1332,43 @@ class MatchMaker:
     async def check_match(self):
         try:
             while True:
+                print(f'MatchMaker.check_match() 작동 중 : {self.players_in_pool}')
                 i = 0
                 while i < len(self.pool):
                     p = self.pool.popleft()
-                    opponents = set(filter(lambda o: p.target_rating_low <= o <= p.target_rating_high, self.pool))
+                    opponents = set(filter(lambda o: p.target_rating_low <= o.player_rating <= p.target_rating_high,
+                                           self.pool))
+                    print(p, opponents)
                     if len(opponents) > 0:
                         opponent = min(opponents, key=lambda o: abs(o.player_rating - p.player_rating))
+                        print('상대 찾음 :', opponent)
                         self.pool.remove(opponent)
                         matches[p.player] = matches[opponent.player] = m = Match(p.player, opponent.player)
+                        print('매치 만듬 :', m)
                         await m.do_match_start()
-                        self.players_in_pool.remove(p.player)
-                        self.players_in_pool.remove(opponent.player)
+                        self.players_in_pool.remove(p.player.id)
+                        self.players_in_pool.remove(opponent.player.id)
                         p.task.cancel()
                         opponent.task.cancel()
                         i += 1
                     else:
                         self.pool.append(p)
+                    i += 1
                 while len(self.querys) > 0:
                     method, player = self.querys.popleft()
                     if method == 1:
                         if player not in self.players_in_pool:
                             self.pool.append(WaitingPlayer(player))
-                            self.players_in_pool.add(player)
+                            self.players_in_pool.add(player.id)
                     else:
                         if self.pool[-1].player == player:
                             self.pool.pop()
                         else:
                             for i in range(len(self.pool) - 1):
                                 p = self.pool.popleft()
-                                if p.player == player:
+                                if p.player.id == player.id:
                                     self.pool.remove(p)
-                                    self.players_in_pool.remove(p.player)
+                                    self.players_in_pool.remove(p.player.id)
                 await asyncio.sleep(2)
         except asyncio.CancelledError:
             pass
@@ -1371,12 +1386,14 @@ helptxt.add_field(name=helptxt_other_name, value=helptxt_other_desc, inline=Fals
 
 @app.event
 async def on_ready():
+    global match_category_channel
     print(f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}]")
     print("BOT NAME :", app.user.name)
     print("BOT ID   :", app.user.id)
     game = discord.Game("m;help")
     await app.change_presence(status=discord.Status.online, activity=game)
     print("==========BOT START==========")
+    match_category_channel = await app.fetch_channel(824985957165957151)
 
 
 @app.event
@@ -1777,13 +1794,11 @@ async def now(ctx):
         for t in scrim.team:
             e.add_field(
                 name="팀 "+t,
-                value='\n'.join(getusername(x) for x in scrim.team[t])
+                value='\n'.join((await getusername(x)) for x in scrim.team[t])
             )
         await ctx.send(embed=e)
 
 ####################################################################################################################
-
-matchmaker = MatchMaker()
 
 @app.command(aliases=['pfme'])
 async def profileme(ctx):
@@ -1808,6 +1823,13 @@ async def queue(ctx):
             title=f"매치 도중에 큐에 추가될 수 없습니다!",
             color=discord.Colour.dark_red()
         ))
+        return
+    elif uids[ctx.author.id] == 0:
+        await ctx.send(embed=discord.Embed(
+            title=f"`m;bind UID`로 UID를 먼저 추가해 주세요!",
+            color=discord.Colour.dark_red()
+        ))
+        return
     matchmaker.add_player(ctx.author)
     await ctx.send(embed=discord.Embed(
         title=f"{ctx.author.display_name}님을 매칭 큐에 추가하였습니다!",
@@ -1847,6 +1869,10 @@ async def osu_login(session):
     return True
 
 loop = asyncio.get_event_loop()
+async def get_matchmaker():
+    return MatchMaker()
+match_category_channel: Optional[discord.CategoryChannel] = None
+matchmaker = loop.run_until_complete(get_matchmaker())
 ses = aiohttp.ClientSession(loop=loop)
 got_login = loop.run_until_complete(osu_login(ses))
 if got_login:
