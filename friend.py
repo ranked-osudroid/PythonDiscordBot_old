@@ -64,6 +64,9 @@ with open("osu_login.json", 'r') as f:
 with open("osu_api_key.txt", 'r') as f:
     api_key = f.read().strip()
 
+def get_traceback_str(exception):
+    return ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)).strip()
+
 ####################################################################################################################
 
 url_base = "http://ops.dgsrz.com/profile.php?uid="
@@ -183,12 +186,11 @@ class Timer:
         self.message: Optional[discord.Message] = None
         self.done = False
         self.callback = async_callback
-        self.args = None
+        self.args = args
 
         self.task: asyncio.Task = loop.create_task(self.run())
 
     async def run(self):
-        cancelled = False
         try:
             self.message = await self.channel.send(embed=discord.Embed(
                 title="타이머 작동 시작!",
@@ -200,13 +202,6 @@ class Timer:
             await self.timeover()
         except asyncio.CancelledError:
             await self.cancel()
-            cancelled = True
-        finally:
-            if self.callback:
-                if self.args:
-                    await self.callback(cancelled, *self.args)
-                else:
-                    await self.callback(cancelled)
 
     async def timeover(self):
         await self.message.edit(embed=discord.Embed(
@@ -215,7 +210,7 @@ class Timer:
                         f"타이머 시간 : {self.seconds}",
             color=discord.Colour.dark_grey()
         ))
-        self.done = True
+        await self.call_back()
 
     async def cancel(self):
         if self.task.done() or self.task.cancelled():
@@ -227,7 +222,14 @@ class Timer:
                         f"타이머 시간 : {self.seconds}",
             color=discord.Colour.dark_red()
         ))
+        await self.call_back()
+
+    async def call_back(self):
         self.done = True
+        if self.args:
+            await self.callback(self.task.cancelled(), *self.args)
+        else:
+            await self.callback(self.task.cancelled())
 
     def left_sec(self) -> float:
         return self.seconds - ((datetime.datetime.utcnow() - self.start_time).total_seconds())
@@ -385,7 +387,7 @@ class Scrim:
             await self.channel.send(embed=discord.Embed(
                 title=f"플레이어 \"{member.name}\"님이 \"{name}\"팀에 참가합니다!",
                 description=f"현재 \"{name}\"팀 플레이어 리스트:\n"
-                            f"{chr(10).join((await getusername(pl)) for pl in self.team[name])}",
+                            f"{chr(10).join([(await getusername(pl)) for pl in self.team[name]])}",
                 color=discord.Colour.blue()
             ))
 
@@ -406,7 +408,7 @@ class Scrim:
             await self.channel.send(embed=discord.Embed(
                 title=f"플레이어 \"{member.name}\"님이 \"{temp}\"팀을 떠납니다!",
                 description=f"현재 \"{temp}\"팀 플레이어 리스트:\n"
-                            f"{chr(10).join((await getusername(pl)) for pl in self.team[temp])}",
+                            f"{chr(10).join([(await getusername(pl)) for pl in self.team[temp]])}",
                 color=discord.Colour.blue()
             ))
 
@@ -920,13 +922,6 @@ class Match:
     async def go_next_status(self, timer_cancelled):
         if self.round == -1 and self.is_all_ready():
             if timer_cancelled:
-                await self.channel.send(embed=discord.Embed(
-                    title="상대가 참가하지 않았습니다.",
-                    description="매치가 취소되고, 두 유저는 다시 매칭 풀에 들어갑니다.",
-                    color=discord.Colour.dark_red()
-                ))
-                self.abort = True
-            else:
                 self.round = 0
                 await self.channel.send(embed=discord.Embed(
                     title="모두 참가가 완료되었습니다!",
@@ -938,16 +933,15 @@ class Match:
                 await self.scrim.maketeam(self.opponent.display_name)
                 await self.scrim.addplayer(self.player.display_name, self.player)
                 await self.scrim.addplayer(self.opponent.display_name, self.opponent)
-        elif self.round == 0 and self.is_all_ready():
-            if timer_cancelled:
+            else:
                 await self.channel.send(embed=discord.Embed(
-                    title="상대가 준비되지 않았습니다.",
-                    description="인터넷 문제를 가지고 있을 수 있습니다.\n"
-                                "매치 진행에 어려움이 있을 수 있기 때문에 매치를 취소합니다.",
+                    title="상대가 참가하지 않았습니다.",
+                    description="매치가 취소되고, 두 유저는 다시 매칭 풀에 들어갑니다.",
                     color=discord.Colour.dark_red()
                 ))
                 self.abort = True
-            else:
+        elif self.round == 0 and self.is_all_ready():
+            if timer_cancelled:
                 self.round = 1
                 await self.channel.send(embed=discord.Embed(
                     title="모두 준비되었습니다!",
@@ -955,9 +949,17 @@ class Match:
                     color=discord.Colour.dark_red()
                 ))
                 await self.scrim.setform('[number] artist - title [diff]')
+            else:
+                await self.channel.send(embed=discord.Embed(
+                    title="상대가 준비되지 않았습니다.",
+                    description="인터넷 문제를 가지고 있을 수 있습니다.\n"
+                                "매치 진행에 어려움이 있을 수 있기 때문에 매치를 취소합니다.",
+                    color=discord.Colour.dark_red()
+                ))
+                self.abort = True
         else:
             self.round += 1
-            if self.is_all_ready() and not timer_cancelled:
+            if self.is_all_ready() and timer_cancelled:
                 message = await self.channel.send(embed=discord.Embed(
                     title="모두 준비되었습니다!",
                     description=f"10초 뒤 {self.round}라운드가 시작됩니다...",
@@ -984,7 +986,6 @@ class Match:
                     ))
                     await asyncio.sleep(1)
             await self.scrim.do_match_start()
-        self.reset_ready()
 
     async def do_progress(self):
         if self.abort:
@@ -1006,7 +1007,7 @@ class Match:
                 description="이 문구가 5초 이상 바뀌지 않는다면 개발자를 불러주세요.",
                 color=discord.Colour.orange()
             ))
-            self.mappoolmaker = MappoolMaker(statusmessage)
+            self.mappoolmaker = MappoolMaker(statusmessage, ses)
 
             # 레이팅에 맞춰서 맵 번호 등록
 
@@ -1054,8 +1055,15 @@ class Match:
             self.scrim.setmaptime(now_beatmap.total_length)
             self.scrim.setmode(now_mapnum[:2])
             scorecalc = scoreCalc.scoreCalc(os.path.join(
-                self.mappoolmaker.save_folder_path, f"{now_mapnum}.osz"))
+                self.mappoolmaker.save_folder_path, f"{now_mapnum}.osu"))
             self.scrim.setautoscore(scorecalc.getAutoScore())
+            await self.channel.send(embed=discord.Embed(
+                title=f"설정 완료!",
+                description=f"맵 정보 : {self.scrim.getmapfull()}\n"
+                            f"맵 번호 : {self.scrim.getnumber()} / 모드 : {self.scrim.getmode()}\n"
+                            f"맵 SS 점수 : {self.scrim.getautoscore()} / 맵 시간(초) : {self.scrim.getmaptime()}",
+                color=discord.Colour.blue()
+            ))
             await self.channel.send(embed=discord.Embed(
                 title=f"{self.round}라운드 준비!",
                 description="2분 안에 `rdy`를 말해주세요!",
@@ -1071,6 +1079,8 @@ class Match:
                     break
                 if self.is_all_ready():
                     await self.timer.cancel()
+                    self.reset_ready()
+                    await self.scrim.match_task
                     break
                 await asyncio.sleep(1)
 
@@ -1090,7 +1100,7 @@ matches: Dict[discord.Member, Match] = dict()
 ####################################################################################################################
 
 class MappoolMaker:
-    def __init__(self, message, session=ses):
+    def __init__(self, message, session):
         self.maps: Dict[str, Tuple[int, int]] = dict()  # MODE: (MAPSET ID, MAPDIFF ID)
         self.beatmap_objects: Dict[str, osuapi.osu.Beatmap] = dict()
         self.queue = asyncio.Queue()
@@ -1136,7 +1146,7 @@ class MappoolMaker:
 
     async def show_result(self):
         desc = blank
-        has_error = dd(int)
+        has_exception = dd(int)
         await self.message.edit(embed=discord.Embed(
             title="맵풀 다운로드 중",
             description=desc,
@@ -1152,17 +1162,17 @@ class MappoolMaker:
                 ))
                 break
             if v[1]:
-                desc += f"{v[0]}번 다운로드 성공"
+                desc += f"{v[0]}번 다운로드 성공\n"
             else:
-                has_error[v[0]] += 1
-                if has_error[v[0]] == 3:
-                    desc += f"{v[0]}번 다운로드 실패"
+                has_exception[v[0]] += 1
+                if has_exception[v[0]] == 3:
+                    desc += f"{v[0]}번 다운로드 실패\n"
             await self.message.edit(embed=discord.Embed(
                 title="맵풀 다운로드 중",
                 description=desc,
                 color=discord.Colour.orange()
             ))
-        return has_error
+        return has_exception
 
     async def execute_osz(self) -> Union[str, bool]:
         if self.session.closed:
@@ -1332,7 +1342,6 @@ class MatchMaker:
     async def check_match(self):
         try:
             while True:
-                print(f'MatchMaker.check_match() 작동 중 : {self.players_in_pool}')
                 i = 0
                 while i < len(self.pool):
                     p = self.pool.popleft()
@@ -1422,12 +1431,12 @@ async def on_message(message):
 
 
 @app.event
-async def on_command_error(ctx, error):
-    errortxt = ''.join(traceback.format_exception(type(error), error, error.__traceback__)).strip()
+async def on_command_exception(ctx, exception):
+    exceptiontxt = get_traceback_str(exception)
     print('================ ERROR ================')
-    print(errortxt)
+    print(exceptiontxt)
     print('=======================================')
-    await ctx.send(f'에러 발생 :\n```{errortxt}```')
+    await ctx.send(f'에러 발생 :\n```{exceptiontxt}```')
 
 
 @app.command(name="help")
@@ -1481,6 +1490,17 @@ async def sayresult(ctx, *, com: str):
 @is_owner()
 async def run(ctx, *, com: str):
     exec(com)
+    await ctx.send('실행됨')
+
+@app.command()
+@is_owner()
+async def asyncrun(ctx, *, com: str):
+    exec(
+        f'async def __ex(): ' +
+        ''.join(f'\n    {_l}' for _l in com.split('\n')),
+        {**globals(), **locals()}, locals()
+    )
+    await locals()['__ex']()
     await ctx.send('실행됨')
 
 
@@ -1794,7 +1814,7 @@ async def now(ctx):
         for t in scrim.team:
             e.add_field(
                 name="팀 "+t,
-                value='\n'.join((await getusername(x)) for x in scrim.team[t])
+                value='\n'.join([(await getusername(x)) for x in scrim.team[t]])
             )
         await ctx.send(embed=e)
 
@@ -1869,6 +1889,7 @@ async def osu_login(session):
     return True
 
 loop = asyncio.get_event_loop()
+loop.get_exception_handler()
 async def get_matchmaker():
     return MatchMaker()
 match_category_channel: Optional[discord.CategoryChannel] = None
@@ -1882,7 +1903,7 @@ if got_login:
         api = OsuApi(api_key, connector=AHConnector())
         res = loop.run_until_complete(api.get_user("peppy"))
         assert res[0].user_id == 2
-    except osuapi.errors.HTTPError:
+    except osuapi.exceptions.HTTPError:
         print("Invalid osu!API key")
         turnoff = True
     except AssertionError:
