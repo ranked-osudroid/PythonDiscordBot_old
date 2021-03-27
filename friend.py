@@ -1312,13 +1312,13 @@ class MatchMaker:
         self.pool: deque[WaitingPlayer] = deque()
         self.players_in_pool: set[discord.Member] = set()
         self.task = self.loop.create_task(self.check_match())
-        self.querys = asyncio.Queue()
+        self.querys = deque()
 
     def add_player(self, player: discord.Member):
-        self.querys.put((1, player))
+        self.querys.append((1, player))
 
     def remove_player(self, player: discord.Member):
-        self.querys.put((2, player))
+        self.querys.append((2, player))
 
     async def check_match(self):
         try:
@@ -1339,8 +1339,8 @@ class MatchMaker:
                         i += 1
                     else:
                         self.pool.append(p)
-                while not self.querys.empty():
-                    method, player = await self.querys.get()
+                while len(self.querys) > 0:
+                    method, player = self.querys.popleft()
                     if method == 1:
                         if player not in self.players_in_pool:
                             self.pool.append(WaitingPlayer(player))
