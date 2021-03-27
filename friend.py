@@ -1395,7 +1395,7 @@ async def on_message(message):
             f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}] "
             f"[{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}"
         )
-    if credentials.access_token_expired:
+    if credentials.expired:
         gs.login()
     pm = matches.get(p)
     if message.content == 'rdy' and pm is not None:
