@@ -1308,9 +1308,10 @@ class WaitingPlayer:
 
 class MatchMaker:
     def __init__(self):
+        self.loop = asyncio.get_event_loop()
         self.pool: deque[WaitingPlayer] = deque()
         self.players_in_pool: set[discord.Member] = set()
-        self.task = asyncio.create_task(self.check_match())
+        self.task = self.loop.create_task(self.check_match())
         self.querys = asyncio.Queue()
 
     def add_player(self, player: discord.Member):
