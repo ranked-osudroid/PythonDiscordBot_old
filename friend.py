@@ -836,9 +836,6 @@ ratings: dd[int, d] = dd(d)
 timers: dd[str, Optional[Timer]] = dd(lambda: None)
 timer_count = 0
 
-matches: Dict[discord.Member, Match] = dict()
-# discord.Member : Match
-
 with open('uids.txt', 'r') as f:
     while data := f.readline():
         discordid, userid = data.split(' ')
@@ -1080,6 +1077,8 @@ class Match:
                 color=discord.Colour.dark_red()
             ))
 
+matches: Dict[discord.Member, Match] = dict()
+# discord.Member : Match
 
 ####################################################################################################################
 
