@@ -1006,6 +1006,16 @@ class Match:
 
             # 레이팅에 맞춰서 맵 번호 등록
 
+            # 테스트 데이터 : 디코8토너 쿼터파이널
+            self.mappoolmaker.maps = {
+                'NM1': (714329, 1509639), 'NM2': (755844, 1590814), 'NM3': (145215, 424925), 'NM4': (671199, 1419243),
+                'HR1': (41874, 132043), 'HR2': (136065, 363010), 'HR3': (90385, 245284),
+                'HD1': (708305, 1497483), 'HD2': (931886, 1945754), 'HD3': (739053, 1559618),
+                'DT1': (223092, 521280), 'DT2': (26226, 88633), 'DT3': (190754, 454158),
+                'FM1': (302535, 678106), 'FM2': (870225, 1818604), 'FM3': (830444, 1768797),
+                'TB': (1009680, 2248906)
+            }
+
             self.map_order.extend(self.mappoolmaker.maps.keys())
             random.shuffle(self.map_order)
             mappool_link = await self.mappoolmaker.execute_osz()
@@ -1025,6 +1035,9 @@ class Match:
             self.timer = Timer(self.channel, f"Match_{self.made_time}_{self.round}", 300, self.go_next_status)
         elif self.round > self.totalrounds or self.bo in set(self.scrim.setscore.values()):
             await self.scrim.end()
+            os.rmdir(self.mappoolmaker.save_folder_path)
+            self.mappoolmaker.drive_file.Delete()
+            del matches[self.player], matches[self.opponent]
             self.abort = True
         else:
             now_mapnum = self.map_order[self.round - 1]
@@ -1282,14 +1295,15 @@ class WaitingPlayer:
         self.player_rating = ratings[uids[discord_member.id]]
         self.target_rating_low = self.player_rating
         self.target_rating_high = self.player_rating
+        self.dr = 3
         self.task = asyncio.create_task(self.expanding())
 
     async def expanding(self):
         try:
             while True:
                 await asyncio.wait(1)
-                self.target_rating_low -= 1
-                self.target_rating_high += 1
+                self.target_rating_low -= self.dr
+                self.target_rating_high += self.dr
         except asyncio.CancelledError:
             pass
 
