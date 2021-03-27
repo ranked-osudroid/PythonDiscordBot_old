@@ -147,7 +147,7 @@ async def getrecent(_id: int) -> Optional[Tuple[Sequence[AnyStr], Sequence[AnySt
     url = url_base + str(_id)
     async with aiohttp.ClientSession() as s:
         html = await s.get(url)
-    bs = BeautifulSoup(html.text, "html.parser")
+    bs = BeautifulSoup(await html.text(), "html.parser")
     recent = bs.select_one("#activity > ul > li:nth-child(1)")
     recent_mapinfo = recent.select("a.clear > strong.block")[0].text
     recent_playinfo = recent.select("a.clear > small")[0].text
@@ -805,7 +805,7 @@ class Scrim:
                     title=f"{a//60}분 {a%60}초 남았습니다...",
                     color=discord.Colour(timer_color[int(a*3/self.map_time)])
                 ))
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.96875)
             timermessage = await self.channel.send(embed=discord.Embed(
                 title=f"매치 시간 종료!",
                 color=discord.Colour.from_rgb(128, 128, 255)
@@ -816,7 +816,7 @@ class Scrim:
                     description=f"추가 시간 {i}초 남았습니다...",
                     color=discord.Colour.from_rgb(128, 128, 255)
                 ))
-                await asyncio.sleep(1)
+                await asyncio.sleep(0.96875)
             await self.channel.send(embed=discord.Embed(
                 title=f"매치 추가 시간 종료!",
                 description="온라인 기록을 불러옵니다...",
@@ -991,7 +991,7 @@ class Match:
         if self.abort:
             return
         elif self.round == -1:
-            self.channel = await match_category_channel.create_text_channel(self.made_time)
+            self.channel = await match_category_channel.create_text_channel(f"Match_{self.made_time}")
             self.scrim = Scrim(self.channel)
             await self.channel.send(
                 f"{self.player.mention} {self.opponent.mention}",
@@ -1000,14 +1000,14 @@ class Match:
                     description="이 메세지가 올라온 후 2분 안에 `rdy`를 말해주세요!"
                 )
             )
-            self.timer = Timer(self.channel, f"Match\_{self.made_time}\_{self.round}", 120, self.go_next_status)
+            self.timer = Timer(self.channel, f"`Match_{self.made_time}_invite`", 120, self.go_next_status)
         elif self.round == 0:
             statusmessage = await self.channel.send(embed=discord.Embed(
                 title="맵풀 다운로드 상태 메세지입니다.",
                 description="이 문구가 5초 이상 바뀌지 않는다면 개발자를 불러주세요.",
                 color=discord.Colour.orange()
             ))
-            self.mappoolmaker = MappoolMaker(statusmessage, ses)
+            self.mappoolmaker = MappoolMaker(statusmessage, ses, self.made_time)
 
             # 레이팅에 맞춰서 맵 번호 등록
 
@@ -1022,13 +1022,14 @@ class Match:
             }
 
             self.map_order.extend(self.mappoolmaker.maps.keys())
+            self.map_order.remove('TB')
             random.shuffle(self.map_order)
             mappool_link = await self.mappoolmaker.execute_osz()
 
             if mappool_link is False:
                 print("FATAL ERROR : SESSION CLOSED")
                 return
-            await self.channel.send(embed=discord.Embed(
+            await self.channel.send(f"{self.player.mention} {self.opponent.mention}", embed=discord.Embed(
                 title="맵풀이 완성되었습니다!",
                 description=f"다음 링크에서 맵풀을 다운로드해주세요 : {mappool_link}\n"
                             f"맵풀 다운로드 로그 중 다운로드에 실패한 맵풀이 있다면 "
@@ -1037,7 +1038,7 @@ class Match:
                             f"다운로드 제한 시간은 5분입니다.",
                 color=discord.Colour.blue()
             ))
-            self.timer = Timer(self.channel, f"Match_{self.made_time}_{self.round}", 300, self.go_next_status)
+            self.timer = Timer(self.channel, f"`Match_{self.made_time}_download`", 300, self.go_next_status)
         elif self.round > self.totalrounds or self.bo in set(self.scrim.setscore.values()):
             await self.scrim.end()
             os.rmdir(self.mappoolmaker.save_folder_path)
@@ -1045,7 +1046,10 @@ class Match:
             del matches[self.player], matches[self.opponent]
             self.abort = True
         else:
-            now_mapnum = self.map_order[self.round - 1]
+            if self.round == self.totalrounds:
+                now_mapnum = 'TB'
+            else:
+                now_mapnum = self.map_order[self.round - 1]
             now_beatmap: osuapi.osu.Beatmap = self.mappoolmaker.beatmap_objects[now_mapnum]
             self.scrim.setnumber(now_mapnum)
             self.scrim.setartist(now_beatmap.artist)
@@ -1069,7 +1073,7 @@ class Match:
                 description="2분 안에 `rdy`를 말해주세요!",
                 color=discord.Colour.orange()
             ))
-            self.timer = Timer(self.channel, f"Match_{self.made_time}_{self.round}", 120, self.go_next_status)
+            self.timer = Timer(self.channel, f"`Match_{self.made_time}_{self.round}`", 120, self.go_next_status)
 
     async def match_start(self):
         while not self.abort:
@@ -1080,7 +1084,9 @@ class Match:
                 if self.is_all_ready():
                     await self.timer.cancel()
                     self.reset_ready()
-                    await self.scrim.match_task
+                    # if self.scrim is not None and not self.scrim.match_task.done():
+                    if self.round > 1:
+                        await self.scrim.match_task
                     break
                 await asyncio.sleep(1)
 
@@ -1100,7 +1106,7 @@ matches: Dict[discord.Member, Match] = dict()
 ####################################################################################################################
 
 class MappoolMaker:
-    def __init__(self, message, session):
+    def __init__(self, message, session, name):
         self.maps: Dict[str, Tuple[int, int]] = dict()  # MODE: (MAPSET ID, MAPDIFF ID)
         self.beatmap_objects: Dict[str, osuapi.osu.Beatmap] = dict()
         self.queue = asyncio.Queue()
@@ -1108,7 +1114,7 @@ class MappoolMaker:
         self.message: Optional[discord.Message] = message
         self.drive_file: Optional[pydrive.drive.GoogleDriveFile] = None
 
-        self.pool_name = f'Match_{datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")}'
+        self.pool_name = name
         self.save_folder_path = os.path.join('songs', self.pool_name)
 
     def add_map(self, mode: str, mapid: int, diffid: int):
@@ -1147,6 +1153,7 @@ class MappoolMaker:
     async def show_result(self):
         desc = blank
         has_exception = dd(int)
+        success = 0
         await self.message.edit(embed=discord.Embed(
             title="맵풀 다운로드 중",
             description=desc,
@@ -1162,7 +1169,8 @@ class MappoolMaker:
                 ))
                 break
             if v[1]:
-                desc += f"{v[0]}번 다운로드 성공\n"
+                success += 1
+                desc += f"{v[0]}번 다운로드 성공 ({success}/{len(self.maps)})\n"
             else:
                 has_exception[v[0]] += 1
                 if has_exception[v[0]] == 3:
@@ -1347,7 +1355,6 @@ class MatchMaker:
                     p = self.pool.popleft()
                     opponents = set(filter(lambda o: p.target_rating_low <= o.player_rating <= p.target_rating_high,
                                            self.pool))
-                    print(p, opponents)
                     if len(opponents) > 0:
                         opponent = min(opponents, key=lambda o: abs(o.player_rating - p.player_rating))
                         print('상대 찾음 :', opponent)
