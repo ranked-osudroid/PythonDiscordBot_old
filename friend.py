@@ -1855,7 +1855,7 @@ if got_login:
     try:
         api = OsuApi(api_key, connector=AHConnector())
         res = loop.run_until_complete(api.get_user("peppy"))
-        assert res == 2
+        assert res[0].user_id == 2
     except osuapi.errors.HTTPError:
         print("Invalid osu!API key")
         turnoff = True
