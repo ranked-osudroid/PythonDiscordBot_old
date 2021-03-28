@@ -970,34 +970,35 @@ class Match:
                 ))
                 self.abort = True
         else:
-            if self.is_all_ready() and timer_cancelled:
-                message = await self.channel.send(embed=discord.Embed(
-                    title="모두 준비되었습니다!",
-                    description=f"10초 뒤 {self.round}라운드가 시작됩니다...",
-                    color=discord.Colour.purple()
-                ))
-                for i in range(9, -1, -1):
-                    await message.edit(embed=discord.Embed(
+            if timer_cancelled:
+                if self.is_all_ready():
+                    message = await self.channel.send(embed=discord.Embed(
                         title="모두 준비되었습니다!",
-                        description=f"**{i}**초 뒤 {self.round}라운드가 시작됩니다...",
+                        description=f"10초 뒤 {self.round}라운드가 시작됩니다...",
                         color=discord.Colour.purple()
                     ))
-                    await asyncio.sleep(1)
-            else:
-                message = await self.channel.send(embed=discord.Embed(
-                    title="준비 시간이 끝났습니다!",
-                    description=f"10초 뒤 {self.round}라운드를 **강제로 시작**합니다...",
-                    color=discord.Colour.purple()
-                ))
-                for i in range(9, -1, -1):
-                    await message.edit(embed=discord.Embed(
+                    for i in range(9, -1, -1):
+                        await message.edit(embed=discord.Embed(
+                            title="모두 준비되었습니다!",
+                            description=f"**{i}**초 뒤 {self.round}라운드가 시작됩니다...",
+                            color=discord.Colour.purple()
+                        ))
+                        await asyncio.sleep(1)
+                else:
+                    message = await self.channel.send(embed=discord.Embed(
                         title="준비 시간이 끝났습니다!",
-                        description=f"**{i}**초 뒤 {self.round}라운드를 **강제로 시작**합니다...",
+                        description=f"10초 뒤 {self.round}라운드를 **강제로 시작**합니다...",
                         color=discord.Colour.purple()
                     ))
-                    await asyncio.sleep(1)
-            self.round += 1
-            await self.scrim.do_match_start()
+                    for i in range(9, -1, -1):
+                        await message.edit(embed=discord.Embed(
+                            title="준비 시간이 끝났습니다!",
+                            description=f"**{i}**초 뒤 {self.round}라운드를 **강제로 시작**합니다...",
+                            color=discord.Colour.purple()
+                        ))
+                        await asyncio.sleep(1)
+                self.round += 1
+                await self.scrim.do_match_start()
 
     async def do_progress(self):
         if self.abort:
@@ -1052,7 +1053,8 @@ class Match:
                 color=discord.Colour.blue()
             ))
             self.timer = Timer(self.channel, f"`Match_{self.made_time}_download`", 300, self.go_next_status)
-        elif self.round > self.totalrounds or self.bo in set(self.scrim.setscore.values()):
+        elif self.round == len(self.map_order) or self.round > self.totalrounds or \
+                self.bo in set(self.scrim.setscore.values()):
             await self.scrim.end()
             os.rmdir(self.mappoolmaker.save_folder_path)
             self.mappoolmaker.drive_file.Delete()
