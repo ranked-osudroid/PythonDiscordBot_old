@@ -124,7 +124,6 @@ blank = '\u200b'
 
 rkind = ['number', 'artist', 'author', 'title', 'diff']
 rmeta = r'\$()*+.?[^{|'
-rchange = re.compile(r'[\\/:*?\"<>|]')
 
 analyze = re.compile(r"(?P<artist>.*) [-] (?P<title>.*) [(](?P<author>.*)[)] \[(?P<diff>.*)]")
 
@@ -717,7 +716,7 @@ class Scrim:
                         break
                     if checkbit & infotoint[k]:
                         nowk = self.getfuncs[k]()
-                        nowk_edited = rchange.sub('', nowk).replace('\'', ' ')
+                        nowk_edited = prohibitted.sub('', nowk).replace('\'', ' ').replace('_', ' ')
                         if nowk_edited != p[k]:
                             flag = True
                             desc += f"등록 실패 : " \
