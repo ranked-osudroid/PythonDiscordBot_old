@@ -238,6 +238,8 @@ class Timer:
     async def call_back(self):
         self.done = True
         del timers[self.name]
+        if self.callback is None:
+            return
         if self.args:
             await self.callback(self.task.cancelled(), *self.args)
         else:
