@@ -52,6 +52,8 @@ intents.members = True
 intents.reactions = True
 app = commands.Bot(command_prefix='m;', help_command=None, intents=intents)
 
+d = decimal.Decimal
+
 ses: Optional[aiohttp.ClientSession] = None
 api: Optional[OsuApi] = None
 
@@ -64,8 +66,8 @@ with open("osu_login.json", 'r') as f:
 with open("osu_api_key.txt", 'r') as f:
     api_key = f.read().strip()
 
-with open("oma_pools.json", 'r', encoding='utf-8') as f:
-    maidbot_pools = json.load(f)
+with open("oma_pools.json", 'r', encoding='utf-8-sig') as f:
+    maidbot_pools = json.load(f, parse_float=d)
 
 def get_traceback_str(exception):
     return ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)).strip()
@@ -89,8 +91,6 @@ BEATCONNECT = "https://beatconnect.io/b/"
 downloadpath = os.path.join('songs', '%s.zip')
 
 prohibitted = re.compile(r"[\\/:*?\"<>|]")
-
-d = decimal.Decimal
 
 def getd(n: Union[int, float, str]):
     return d(str(n))
@@ -816,10 +816,6 @@ class Scrim:
                 color=discord.Colour.from_rgb(255, 255, 0)
             ))
             a = self.map_time
-            timermessage = await self.channel.send(embed=discord.Embed(
-                title=f"매치 타이머 준비중",
-                color=discord.Colour.from_rgb(0, 0, 255)
-            ))
             extra_rate = d('1')
             if self.getmode() == 'DT':
                 extra_rate = d('1') / d('1.5')
@@ -1021,23 +1017,30 @@ class Match:
             )
             self.timer = Timer(self.channel, f"Match_{self.made_time}_invite", 120, self.go_next_status)
         elif self.round == 0:
-            statusmessage = await self.channel.send(embed=discord.Embed(
-                title="맵풀 다운로드 상태 메세지입니다.",
-                description="이 문구가 5초 이상 바뀌지 않는다면 개발자를 불러주세요.",
-                color=discord.Colour.orange()
-            ))
-            self.mappoolmaker = MappoolMaker(statusmessage, ses, self.made_time)
-
             select_pool_mmr_range = sum(self.elo_manager.get_ratings()) / d('2')
             print('Before select_pool_mmr_range :', select_pool_mmr_range)
             # 1000 ~ 2000 => 1200 ~ 3300
             select_pool_mmr_range = (select_pool_mmr_range - 1000) * d('2.1') + 1200
             print('After  select_pool_mmr_range :', select_pool_mmr_range)
             pool_pools = list(filter(
-                lambda po: abs(select_pool_mmr_range - getd(po['averageMMR'])) <= d('50'),
+                lambda po: abs(select_pool_mmr_range - po['averageMMR']) <= d('50'),
                 maidbot_pools
             ))
             selected_pool = random.choice(pool_pools)
+            print('Selected pool :', selected_pool['name'])
+            await self.channel.send(embed=discord.Embed(
+                title="맵풀이 결정됐습니다!",
+                description=f"맵풀 이름 : `{selected_pool['name']}`\n"
+                            f"맵풀 MMR (modified) : {(selected_pool['averageMMR'] - 1200) / d('2.1') + 1000}",
+                color=discord.Colour(0x0ef37c)
+            ))
+
+            statusmessage = await self.channel.send(embed=discord.Embed(
+                title="맵풀 다운로드 상태 메세지입니다.",
+                description="이 문구가 5초 이상 바뀌지 않는다면 개발자를 불러주세요.",
+                color=discord.Colour.orange()
+            ))
+            self.mappoolmaker = MappoolMaker(statusmessage, ses, self.made_time)
             for bm in selected_pool['maps']:
                 self.mappoolmaker.add_map(bm['sheetId'], bm['mapSetId'], bm['mapId'])
 
@@ -1050,10 +1053,11 @@ class Match:
             #     'FM1': (302535, 678106), 'FM2': (870225, 1818604), 'FM3': (830444, 1768797),
             #     'TB': (1009680, 2248906)
             # }
-            tbmaps = set()
+
+            tbmaps = []
             for k in self.mappoolmaker.maps.keys():
                 if re.match('TB', k):
-                    tbmaps.add(k)
+                    tbmaps.append(k)
                 else:
                     self.map_order.append(k)
             random.shuffle(self.map_order)
@@ -1197,12 +1201,11 @@ class MappoolMaker:
         await self.queue.put((number, True))
 
     async def show_result(self):
-        desc = blank
+        desc = ''
         has_exception = dd(int)
         success = 0
         await self.message.edit(embed=discord.Embed(
             title="맵풀 다운로드 중",
-            description=desc,
             color=discord.Colour.orange()
         ))
         while True:
