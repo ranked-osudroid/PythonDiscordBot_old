@@ -782,6 +782,7 @@ class Scrim:
         with open(filename, 'rb') as _f:
             await self.channel.send(embed=sendtxt, file=discord.File(_f, filename))
         os.remove(filename)
+        return winnerteam
 
     async def do_match_start(self):
         if self.match_task is None or self.match_task.done():
@@ -1054,7 +1055,13 @@ class Match:
             self.timer = Timer(self.channel, f"`Match_{self.made_time}_download`", 300, self.go_next_status)
         elif self.round == len(self.map_order) or self.round > self.totalrounds or \
                 self.bo in set(self.scrim.setscore.values()):
-            await self.scrim.end()
+            winner = await self.scrim.end()
+            winner = app.get_user(list(self.scrim.team[winner[0]])[0])
+            if winner == self.player:
+                self.elo_manager.update(True)
+            else:
+                self.elo_manager.update(False)
+            ratings[uids[self.player.id]], ratings[uids[self.opponent.id]] = self.elo_manager.get_ratings()
             os.rmdir(self.mappoolmaker.save_folder_path)
             self.mappoolmaker.drive_file.Delete()
             del matches[self.player], matches[self.opponent]
