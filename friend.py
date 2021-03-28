@@ -900,6 +900,10 @@ class Match:
 
         self.match_task: Optional[asyncio.Task] = None
 
+    def get_debug_txt(self):
+        if self.match_task.exception() is not None:
+            return get_traceback_str(self.match_task.exception())
+
     async def switch_ready(self, subj):
         r_ = None
         if self.channel is None:
