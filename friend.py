@@ -932,7 +932,7 @@ class Match:
         self.opponent_ready = False
 
     async def go_next_status(self, timer_cancelled):
-        if self.round == -1 and self.is_all_ready():
+        if self.round == -1:
             if timer_cancelled:
                 self.round = 0
                 await self.channel.send(embed=discord.Embed(
@@ -952,7 +952,7 @@ class Match:
                     color=discord.Colour.dark_red()
                 ))
                 self.abort = True
-        elif self.round == 0 and self.is_all_ready():
+        elif self.round == 0:
             if timer_cancelled:
                 self.round = 1
                 await self.channel.send(embed=discord.Embed(
@@ -971,34 +971,33 @@ class Match:
                 self.abort = True
         else:
             if timer_cancelled:
-                if self.is_all_ready():
-                    message = await self.channel.send(embed=discord.Embed(
+                message = await self.channel.send(embed=discord.Embed(
+                    title="모두 준비되었습니다!",
+                    description=f"10초 뒤 {self.round}라운드가 시작됩니다...",
+                    color=discord.Colour.purple()
+                ))
+                for i in range(9, -1, -1):
+                    await message.edit(embed=discord.Embed(
                         title="모두 준비되었습니다!",
-                        description=f"10초 뒤 {self.round}라운드가 시작됩니다...",
+                        description=f"**{i}**초 뒤 {self.round}라운드가 시작됩니다...",
                         color=discord.Colour.purple()
                     ))
-                    for i in range(9, -1, -1):
-                        await message.edit(embed=discord.Embed(
-                            title="모두 준비되었습니다!",
-                            description=f"**{i}**초 뒤 {self.round}라운드가 시작됩니다...",
-                            color=discord.Colour.purple()
-                        ))
-                        await asyncio.sleep(1)
-                else:
-                    message = await self.channel.send(embed=discord.Embed(
+                    await asyncio.sleep(1)
+            else:
+                message = await self.channel.send(embed=discord.Embed(
+                    title="준비 시간이 끝났습니다!",
+                    description=f"10초 뒤 {self.round}라운드를 **강제로 시작**합니다...",
+                    color=discord.Colour.purple()
+                ))
+                for i in range(9, -1, -1):
+                    await message.edit(embed=discord.Embed(
                         title="준비 시간이 끝났습니다!",
-                        description=f"10초 뒤 {self.round}라운드를 **강제로 시작**합니다...",
+                        description=f"**{i}**초 뒤 {self.round}라운드를 **강제로 시작**합니다...",
                         color=discord.Colour.purple()
                     ))
-                    for i in range(9, -1, -1):
-                        await message.edit(embed=discord.Embed(
-                            title="준비 시간이 끝났습니다!",
-                            description=f"**{i}**초 뒤 {self.round}라운드를 **강제로 시작**합니다...",
-                            color=discord.Colour.purple()
-                        ))
-                        await asyncio.sleep(1)
-                self.round += 1
-                await self.scrim.do_match_start()
+                    await asyncio.sleep(1)
+            self.round += 1
+            await self.scrim.do_match_start()
 
     async def do_progress(self):
         if self.abort:
