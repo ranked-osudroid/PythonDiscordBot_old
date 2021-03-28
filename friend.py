@@ -1,6 +1,6 @@
 import asyncio, aiohttp, aiofiles, asyncpool, logging, yarl, \
     datetime, decimal, discord, gspread, random, re, time, \
-    traceback, scoreCalc, os, elo_rating, json5, osuapi, zipfile, pydrive, shutil
+    traceback, scoreCalc, os, elo_rating, json, osuapi, zipfile, pydrive, shutil
 from typing import *
 from collections import defaultdict as dd
 from collections import deque
@@ -59,13 +59,13 @@ with open("key.txt", 'r') as f:
     token = f.read().strip()
 
 with open("osu_login.json", 'r') as f:
-    BASE_LOGIN_DATA = json5.load(f)
+    BASE_LOGIN_DATA = json.load(f)
 
 with open("osu_api_key.txt", 'r') as f:
     api_key = f.read().strip()
 
 with open("oma_pools.json", 'r', encoding='utf-8') as f:
-    maidbot_pools = json5.load(f)
+    maidbot_pools = json.load(f)
 
 def get_traceback_str(exception):
     return ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)).strip()
