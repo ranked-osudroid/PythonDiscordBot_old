@@ -882,8 +882,6 @@ class Match:
         self.opponent_ready: bool = False
 
         self.match_task: Optional[asyncio.Task] = None
-        
-        print('매치 init 성공')
 
     async def switch_ready(self, subj):
         r_ = None
@@ -1022,7 +1020,8 @@ class Match:
             }
 
             self.map_order.extend(self.mappoolmaker.maps.keys())
-            self.map_order.remove('TB')
+            if 'TB' in self.map_order:
+                self.map_order.remove('TB')
             random.shuffle(self.map_order)
             mappool_link = await self.mappoolmaker.execute_osz()
 
@@ -1046,7 +1045,7 @@ class Match:
             del matches[self.player], matches[self.opponent]
             self.abort = True
         else:
-            if self.round == self.totalrounds:
+            if self.round == self.totalrounds and self.mappoolmaker.maps.get('TB'):
                 now_mapnum = 'TB'
             else:
                 now_mapnum = self.map_order[self.round - 1]
@@ -1059,7 +1058,7 @@ class Match:
             self.scrim.setmaptime(now_beatmap.total_length)
             self.scrim.setmode(now_mapnum[:2])
             scorecalc = scoreCalc.scoreCalc(os.path.join(
-                self.mappoolmaker.save_folder_path, f"{now_mapnum}.osu"))
+                self.mappoolmaker.save_folder_path, self.mappoolmaker.osufile_path[now_mapnum]))
             self.scrim.setautoscore(scorecalc.getAutoScore())
             await self.channel.send(embed=discord.Embed(
                 title=f"설정 완료!",
@@ -1080,6 +1079,7 @@ class Match:
             await self.do_progress()
             while True:
                 if self.abort:
+                    await self.match_task
                     break
                 if self.is_all_ready():
                     await self.timer.cancel()
@@ -1108,13 +1108,14 @@ matches: Dict[discord.Member, Match] = dict()
 class MappoolMaker:
     def __init__(self, message, session, name):
         self.maps: Dict[str, Tuple[int, int]] = dict()  # MODE: (MAPSET ID, MAPDIFF ID)
+        self.osufile_path: Dict[str, str] = dict()
         self.beatmap_objects: Dict[str, osuapi.osu.Beatmap] = dict()
         self.queue = asyncio.Queue()
         self.session: Optional[aiohttp.ClientSession] = session
         self.message: Optional[discord.Message] = message
         self.drive_file: Optional[pydrive.drive.GoogleDriveFile] = None
 
-        self.pool_name = name
+        self.pool_name = f"Match_{name}"
         self.save_folder_path = os.path.join('songs', self.pool_name)
 
     def add_map(self, mode: str, mapid: int, diffid: int):
@@ -1218,6 +1219,8 @@ class MappoolMaker:
             zf = zipfile.ZipFile(zipfile_path)
             target_name = f"{beatmap_info.artist} - {beatmap_info.title} " \
                           f"({beatmap_info.creator}) [{beatmap_info.version}].osu"
+            rename_file_name = f"V.A. - {self.pool_name} ({beatmap_info.creator}) " \
+                               f"[[{x}] {beatmap_info.artist} - {beatmap_info.title} [{beatmap_info.version}]].osu"
             try:
                 target_name_search = prohibitted.sub('', target_name.lower())
                 zipfile_list = zf.namelist()
@@ -1267,7 +1270,8 @@ class MappoolMaker:
             async with aiofiles.open(extracted_path, 'w', encoding='utf-8') as osufile:
                 await osufile.writelines(texts)
 
-            os.rename(extracted_path, extracted_path.replace(osufile_name, f"{x}.osu"))
+            os.rename(extracted_path, extracted_path.replace(osufile_name, rename_file_name))
+            self.osufile_path[x] = rename_file_name
             zf.close()
             os.remove(zipfile_path)
 
@@ -1357,10 +1361,8 @@ class MatchMaker:
                                            self.pool))
                     if len(opponents) > 0:
                         opponent = min(opponents, key=lambda o: abs(o.player_rating - p.player_rating))
-                        print('상대 찾음 :', opponent)
                         self.pool.remove(opponent)
                         matches[p.player] = matches[opponent.player] = m = Match(p.player, opponent.player)
-                        print('매치 만듬 :', m)
                         await m.do_match_start()
                         self.players_in_pool.remove(p.player.id)
                         self.players_in_pool.remove(opponent.player.id)
@@ -1896,7 +1898,6 @@ async def osu_login(session):
     return True
 
 loop = asyncio.get_event_loop()
-loop.get_exception_handler()
 async def get_matchmaker():
     return MatchMaker()
 match_category_channel: Optional[discord.CategoryChannel] = None
