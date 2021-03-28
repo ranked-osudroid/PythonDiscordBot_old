@@ -1,6 +1,6 @@
 import asyncio, aiohttp, aiofiles, asyncpool, logging, yarl, \
     datetime, decimal, discord, gspread, random, re, time, \
-    traceback, scoreCalc, os, elo_rating, json5, osuapi, zipfile, pydrive
+    traceback, scoreCalc, os, elo_rating, json5, osuapi, zipfile, pydrive, shutil
 from typing import *
 from collections import defaultdict as dd
 from collections import deque
@@ -132,7 +132,7 @@ analyze = re.compile(r"(?P<artist>.*) [-] (?P<title>.*) [(](?P<author>.*)[)] \[(
 
 
 def makefull(**kwargs: str):
-    return f"`{kwargs['artist']} - {kwargs['title']} ({kwargs['author']}) [{kwargs['diff']}]`"
+    return f"{kwargs['artist']} - {kwargs['title']} ({kwargs['author']}) [{kwargs['diff']}]"
 
 
 def dice(s: str):
@@ -194,7 +194,7 @@ class Timer:
         try:
             self.message = await self.channel.send(embed=discord.Embed(
                 title="타이머 작동 시작!",
-                description=f"타이머 이름 : {self.name}\n"
+                description=f"타이머 이름 : `{self.name}`\n"
                             f"타이머 시간 : {self.seconds}",
                 color=discord.Colour.dark_orange()
             ))
@@ -208,7 +208,7 @@ class Timer:
             return
         await self.message.edit(embed=discord.Embed(
                 title="타이머 작동 시작!",
-                description=f"타이머 이름 : {self.name}\n"
+                description=f"타이머 이름 : `{self.name}`\n"
                             f"타이머 시간 : {self.seconds}\n"
                             f"타이머 남은 시간 : {self.left_sec()}",
                 color=discord.Colour.dark_orange()
@@ -217,7 +217,7 @@ class Timer:
     async def timeover(self):
         await self.message.edit(embed=discord.Embed(
             title="타임 오버!",
-            description=f"타이머 이름 : {self.name}\n"
+            description=f"타이머 이름 : `{self.name}`\n"
                         f"타이머 시간 : {self.seconds}",
             color=discord.Colour.dark_grey()
         ))
@@ -228,8 +228,8 @@ class Timer:
             return
         self.task.cancel()
         await self.message.edit(embed=discord.Embed(
-            title="타이머 강제 중지!",
-            description=f"타이머 이름 : {self.name}\n"
+            title="타이머 강제 중지됨!",
+            description=f"타이머 이름 : `{self.name}`\n"
                         f"타이머 시간 : {self.seconds}",
             color=discord.Colour.dark_red()
         ))
@@ -807,7 +807,7 @@ class Scrim:
         try:
             await self.channel.send(embed=discord.Embed(
                 title="매치 시작!",
-                description=f"맵 정보 : {self.getmapfull()}\n"
+                description=f"맵 정보 : `{self.getmapfull()}`\n"
                             f"맵 번호 : {self.getnumber()} / 모드 : {self.getmode()}\n"
                             f"맵 SS 점수 : {self.getautoscore()} / 맵 시간(초) : {self.getmaptime()}",
                 color=discord.Colour.from_rgb(255, 255, 0)
@@ -870,7 +870,7 @@ with open('ratings.txt', 'r') as f:
 ####################################################################################################################
 
 class Match:
-    def __init__(self, player: discord.Member, opponent: discord.Member, bo: int = 7):
+    def __init__(self, player: discord.Member, opponent: discord.Member, bo: int = 4):
         self.made_time = datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")
         self.channel: Optional[discord.TextChannel] = None
         self.player = player
@@ -1015,7 +1015,7 @@ class Match:
                     description="이 메세지가 올라온 후 2분 안에 `rdy`를 말해주세요!"
                 )
             )
-            self.timer = Timer(self.channel, f"`Match_{self.made_time}_invite`", 120, self.go_next_status)
+            self.timer = Timer(self.channel, f"Match_{self.made_time}_invite", 120, self.go_next_status)
         elif self.round == 0:
             statusmessage = await self.channel.send(embed=discord.Embed(
                 title="맵풀 다운로드 상태 메세지입니다.",
@@ -1054,7 +1054,7 @@ class Match:
                             f"다운로드 제한 시간은 5분입니다.",
                 color=discord.Colour.blue()
             ))
-            self.timer = Timer(self.channel, f"`Match_{self.made_time}_download`", 300, self.go_next_status)
+            self.timer = Timer(self.channel, f"Match_{self.made_time}_download", 300, self.go_next_status)
         elif self.round == len(self.map_order) or self.round > self.totalrounds or \
                 self.bo in set(self.scrim.setscore.values()):
             winner = await self.scrim.end()
@@ -1064,7 +1064,7 @@ class Match:
             else:
                 self.elo_manager.update(False)
             ratings[uids[self.player.id]], ratings[uids[self.opponent.id]] = self.elo_manager.get_ratings()
-            os.rmdir(self.mappoolmaker.save_folder_path)
+            shutil.rmtree(self.mappoolmaker.save_folder_path)
             self.mappoolmaker.drive_file.Delete()
             del matches[self.player], matches[self.opponent]
             self.abort = True
@@ -1086,7 +1086,7 @@ class Match:
             self.scrim.setautoscore(scorecalc.getAutoScore()[1])
             await self.channel.send(embed=discord.Embed(
                 title=f"설정 완료!",
-                description=f"맵 정보 : {self.scrim.getmapfull()}\n"
+                description=f"맵 정보 : `{self.scrim.getmapfull()}`\n"
                             f"맵 번호 : {self.scrim.getnumber()} / 모드 : {self.scrim.getmode()}\n"
                             f"맵 SS 점수 : {self.scrim.getautoscore()} / 맵 시간(초) : {self.scrim.getmaptime()}",
                 color=discord.Colour.blue()
@@ -1096,7 +1096,7 @@ class Match:
                 description="2분 안에 `rdy`를 말해주세요!",
                 color=discord.Colour.orange()
             ))
-            self.timer = Timer(self.channel, f"`Match_{self.made_time}_{self.round}`", 120, self.go_next_status)
+            self.timer = Timer(self.channel, f"Match_{self.made_time}_{self.round}", 120, self.go_next_status)
 
     async def match_start(self):
         while not self.abort:
@@ -1104,6 +1104,9 @@ class Match:
             while True:
                 if self.abort:
                     await self.match_task
+                    await self.channel.send(embed=discord.Embed(
+                        title="매치가 정상적으로 종료됨"
+                    ))
                     break
                 if self.is_all_ready():
                     await self.timer.cancel()
@@ -1678,7 +1681,7 @@ async def _map(ctx, *, name: str):
             scrim.setmode(re.findall('|'.join(modes), name.split(';')[-1])[0])
         await resultmessage.edit(embed=discord.Embed(
             title=f"설정 완료!",
-            description=f"맵 정보 : {scrim.getmapfull()}\n"
+            description=f"맵 정보 : `{scrim.getmapfull()}`\n"
                         f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
                         f"맵 SS 점수 : {scrim.getautoscore()} / 맵 시간(초) : {scrim.getmaptime()}",
             color=discord.Colour.blue()
@@ -1697,7 +1700,7 @@ async def mapmode(ctx, mode: str):
         scrim.setmode(mode)
         await resultmessage.edit(embed=discord.Embed(
             title=f"설정 완료!",
-            description=f"맵 정보 : {scrim.getmapfull()}\n"
+            description=f"맵 정보 : `{scrim.getmapfull()}`\n"
                         f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
                         f"맵 SS 점수 : {scrim.getautoscore()} / 맵 시간(초) : {scrim.getmaptime()}",
             color=discord.Colour.blue()
@@ -1715,7 +1718,7 @@ async def maptime(ctx, _time: int):
         scrim.setmaptime(_time)
         await resultmessage.edit(embed=discord.Embed(
             title=f"설정 완료!",
-            description=f"맵 정보 : {scrim.getmapfull()}\n"
+            description=f"맵 정보 : `{scrim.getmapfull()}`\n"
                         f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
                         f"맵 SS 점수 : {scrim.getautoscore()} / 맵 시간(초) : {scrim.getmaptime()}",
             color=discord.Colour.blue()
@@ -1738,7 +1741,7 @@ async def mapscore(ctx, sc_or_auto: Union[int, str], *, path: Optional[str] = No
             scrim.setautoscore(sc_or_auto)
         await resultmessage.edit(embed=discord.Embed(
             title=f"설정 완료!",
-            description=f"맵 정보 : {scrim.getmapfull()}\n"
+            description=f"맵 정보 : `{scrim.getmapfull()}`\n"
                         f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
                         f"맵 SS 점수 : {scrim.getautoscore()} / 맵 시간(초) : {scrim.getmaptime()}",
             color=discord.Colour.blue()
