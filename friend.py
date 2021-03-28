@@ -205,6 +205,8 @@ class Timer:
             await self.cancel()
 
     async def edit(self):
+        if self.task.done():
+            return
         await self.message.edit(embed=discord.Embed(
                 title="타이머 작동 시작!",
                 description=f"타이머 이름 : {self.name}\n"
@@ -236,6 +238,7 @@ class Timer:
 
     async def call_back(self):
         self.done = True
+        del timers[self.name]
         if self.args:
             await self.callback(self.task.cancelled(), *self.args)
         else:
@@ -339,7 +342,7 @@ class Scrim:
         self.log: List[str] = []
         self.timer: Optional[Timer] = None
 
-    async def maketeam(self, name: str):
+    async def maketeam(self, name: str, do_print: bool = True):
         if self.team.get(name) is not None:
             await self.channel.send(embed=discord.Embed(
                 title=f"\"{name}\" 팀은 이미 존재합니다!",
@@ -349,13 +352,14 @@ class Scrim:
         else:
             self.team[name] = set()
             self.setscore[name] = 0
-            await self.channel.send(embed=discord.Embed(
-                title=f"\"{name}\" 팀을 추가했습니다!",
-                description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
-                color=discord.Colour.blue()
-            ))
+            if do_print:
+                await self.channel.send(embed=discord.Embed(
+                    title=f"\"{name}\" 팀을 추가했습니다!",
+                    description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
+                    color=discord.Colour.blue()
+                ))
 
-    async def removeteam(self, name: str):
+    async def removeteam(self, name: str, do_print: bool = True):
         if self.team.get(name) is None:
             await self.channel.send(embed=discord.Embed(
                 title=f"\"{name}\"이란 팀은 존재하지 않습니다!",
@@ -366,13 +370,14 @@ class Scrim:
             for p in self.team[name]:
                 del self.findteam[p]
             del self.team[name], self.setscore[name]
-            await self.channel.send(embed=discord.Embed(
-                title=f"\"{name}\" 팀이 해산되었습니다!",
-                description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
-                color=discord.Colour.blue()
-            ))
+            if do_print:
+                await self.channel.send(embed=discord.Embed(
+                    title=f"\"{name}\" 팀이 해산되었습니다!",
+                    description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
+                    color=discord.Colour.blue()
+                ))
 
-    async def addplayer(self, name: str, member: Optional[discord.Member]):
+    async def addplayer(self, name: str, member: Optional[discord.Member], do_print: bool = True):
         if not member:
             return
         mid = member.id
@@ -393,14 +398,15 @@ class Scrim:
             self.team[name].add(mid)
             self.players.add(mid)
             self.score[mid] = (getd(0), getd(0), getd(0))
-            await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.name}\"님이 \"{name}\"팀에 참가합니다!",
-                description=f"현재 \"{name}\"팀 플레이어 리스트:\n"
-                            f"{chr(10).join([(await getusername(pl)) for pl in self.team[name]])}",
-                color=discord.Colour.blue()
-            ))
+            if do_print:
+                await self.channel.send(embed=discord.Embed(
+                    title=f"플레이어 \"{member.name}\"님이 \"{name}\"팀에 참가합니다!",
+                    description=f"현재 \"{name}\"팀 플레이어 리스트:\n"
+                                f"{chr(10).join([(await getusername(pl)) for pl in self.team[name]])}",
+                    color=discord.Colour.blue()
+                ))
 
-    async def removeplayer(self, member: Optional[discord.Member]):
+    async def removeplayer(self, member: Optional[discord.Member], do_print: bool = True):
         if not member:
             return
         mid = member.id
@@ -414,12 +420,13 @@ class Scrim:
             del self.findteam[mid], self.score[mid]
             self.team[temp].remove(mid)
             self.players.remove(mid)
-            await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.name}\"님이 \"{temp}\"팀을 떠납니다!",
-                description=f"현재 \"{temp}\"팀 플레이어 리스트:\n"
-                            f"{chr(10).join([(await getusername(pl)) for pl in self.team[temp]])}",
-                color=discord.Colour.blue()
-            ))
+            if do_print:
+                await self.channel.send(embed=discord.Embed(
+                    title=f"플레이어 \"{member.name}\"님이 \"{temp}\"팀을 떠납니다!",
+                    description=f"현재 \"{temp}\"팀 플레이어 리스트:\n"
+                                f"{chr(10).join([(await getusername(pl)) for pl in self.team[temp]])}",
+                    color=discord.Colour.blue()
+                ))
 
     async def addscore(self, member: Optional[discord.Member], score: int, acc: float, miss: int):
         if not member:
@@ -935,10 +942,10 @@ class Match:
                     color=discord.Colour.dark_red()
                 ))
 
-                await self.scrim.maketeam(self.player.display_name)
-                await self.scrim.maketeam(self.opponent.display_name)
-                await self.scrim.addplayer(self.player.display_name, self.player)
-                await self.scrim.addplayer(self.opponent.display_name, self.opponent)
+                await self.scrim.maketeam(self.player.display_name, False)
+                await self.scrim.maketeam(self.opponent.display_name, False)
+                await self.scrim.addplayer(self.player.display_name, self.player, False)
+                await self.scrim.addplayer(self.opponent.display_name, self.opponent, False)
             else:
                 await self.channel.send(embed=discord.Embed(
                     title="상대가 참가하지 않았습니다.",
@@ -1793,7 +1800,7 @@ async def timer(ctx, action: Union[float, str], name: Optional[str] = None):
             global timer_count
             name = str(timer_count)
             timer_count += 1
-        if not timers[name].done:
+        if timers.get(name) is not None and not timers[name].done:
             await ctx.send(embed=discord.Embed(
                 title=f"\"{name}\"이란 이름을 가진 타이머는 이미 작동하고 있습니다!",
                 color=discord.Colour.dark_red()
