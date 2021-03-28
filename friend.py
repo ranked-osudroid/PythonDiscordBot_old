@@ -133,7 +133,7 @@ analyze = re.compile(r"(?P<artist>.*) [-] (?P<title>.*) [(](?P<author>.*)[)] \[(
 
 
 def makefull(**kwargs: str):
-    return f"{kwargs['artist']} - {kwargs['title']} ({kwargs['author']}) [{kwargs['diff']}]"
+    return f"`{kwargs['artist']} - {kwargs['title']} ({kwargs['author']}) [{kwargs['diff']}]`"
 
 
 def dice(s: str):
@@ -178,6 +178,7 @@ def is_owner():
 
 class Timer:
     def __init__(self, ch: discord.TextChannel, name: str, seconds: Union[float, d], async_callback=None, args=None):
+        timers[name] = self
         self.channel: discord.TextChannel = ch
         self.name: str = name
         self.seconds: float = seconds
@@ -202,6 +203,15 @@ class Timer:
             await self.timeover()
         except asyncio.CancelledError:
             await self.cancel()
+
+    async def edit(self):
+        await self.message.edit(embed=discord.Embed(
+                title="타이머 작동 시작!",
+                description=f"타이머 이름 : {self.name}\n"
+                            f"타이머 시간 : {self.seconds}\n"
+                            f"타이머 남은 시간 : {self.left_sec()}",
+                color=discord.Colour.dark_orange()
+            ))
 
     async def timeover(self):
         await self.message.edit(embed=discord.Embed(
@@ -267,8 +277,6 @@ infotoint = {
     'mode': 16
 }
 
-timer_color = [0x800000, 0xff8000, 0x00ff00]
-
 class Scrim:
     def __init__(self, channel: discord.TextChannel):
         self.loop = asyncio.get_event_loop()
@@ -292,7 +300,7 @@ class Scrim:
         self.map_author: Optional[str] = None
         self.map_title: Optional[str] = None
         self.map_diff: Optional[str] = None
-        self.map_time: Optional[int] = None
+        self.map_time: Optional[d, int] = None
 
         self.map_number: Optional[str] = None
         self.map_mode: Optional[str] = None
@@ -329,6 +337,7 @@ class Scrim:
         }
 
         self.log: List[str] = []
+        self.timer: Optional[Timer] = None
 
     async def maketeam(self, name: str):
         if self.team.get(name) is not None:
@@ -496,9 +505,9 @@ class Scrim:
         for t in teamscore:
             sendtxt.add_field(
                 name=f"*\"{t}\"팀 결과 : {teamscore[t]}*",
-                value='\n'.join(f"{await getusername(p)} : "
-                                f"{' / '.join(str(x) for x in self.score[p])} = "
-                                f"{calculatedscores[p]}" for p in self.team[t])+'\n',
+                value='\n'.join(
+                    [f"{await getusername(p)} : {' / '.join(str(x) for x in self.score[p])} = {calculatedscores[p]}"
+                     for p in self.team[t]])+'\n',
                 inline=False
             )
         sendtxt.add_field(
@@ -508,7 +517,7 @@ class Scrim:
         )
         sendtxt.add_field(
             name="__현재 점수:__",
-            value='\n'.join(f"**{t} : {self.setscore[t]}**" for t in teamscore),
+            value='\n'.join([f"**{t} : {self.setscore[t]}**" for t in teamscore]),
             inline=False
         )
         await resultmessage.edit(embed=sendtxt)
@@ -702,11 +711,11 @@ class Scrim:
                     if checkbit & infotoint[k]:
                         nowk = self.getfuncs[k]()
                         nowk_edited = rchange.sub('', nowk).replace('\'', ' ')
-                        if nowk != p[k]:
+                        if nowk_edited != p[k]:
                             flag = True
                             desc += f"등록 실패 : " \
                                     f"{await getusername(player)}의 {k}가 다름 " \
-                                    f"(현재 {k} : {nowk_edited} {'('+nowk+') ' if nowk!=nowk_edited else ''}/ " \
+                                    f"(현재 {k} : {nowk_edited} {'(`'+nowk+'`) ' if nowk!=nowk_edited else ''}/ " \
                                     f"플레이어 {k} : {p[k]})"
                 if flag:
                     continue
@@ -799,13 +808,12 @@ class Scrim:
                 title=f"매치 타이머 준비중",
                 color=discord.Colour.from_rgb(0, 0, 255)
             ))
-            for i in range(self.map_time):
-                a -= 1
-                await timermessage.edit(embed=discord.Embed(
-                    title=f"{a//60}분 {a%60}초 남았습니다...",
-                    color=discord.Colour(timer_color[int(a*3/self.map_time)])
-                ))
-                await asyncio.sleep(0.96875)
+            extra_rate = d('1')
+            if self.getmode() == 'DT':
+                extra_rate = d('1') / d('1.5')
+            self.timer = Timer(self.channel, f"{self.start_time}_{self.getnumber()}",
+                               int(self.getmaptime() * extra_rate))
+            await self.timer.task
             timermessage = await self.channel.send(embed=discord.Embed(
                 title=f"매치 시간 종료!",
                 color=discord.Colour.from_rgb(128, 128, 255)
@@ -816,7 +824,7 @@ class Scrim:
                     description=f"추가 시간 {i}초 남았습니다...",
                     color=discord.Colour.from_rgb(128, 128, 255)
                 ))
-                await asyncio.sleep(0.96875)
+                await asyncio.sleep(1)
             await self.channel.send(embed=discord.Embed(
                 title=f"매치 추가 시간 종료!",
                 description="온라인 기록을 불러옵니다...",
@@ -956,7 +964,6 @@ class Match:
                 ))
                 self.abort = True
         else:
-            self.round += 1
             if self.is_all_ready() and timer_cancelled:
                 message = await self.channel.send(embed=discord.Embed(
                     title="모두 준비되었습니다!",
@@ -983,6 +990,7 @@ class Match:
                         color=discord.Colour.purple()
                     ))
                     await asyncio.sleep(1)
+            self.round += 1
             await self.scrim.do_match_start()
 
     async def do_progress(self):
@@ -1059,7 +1067,7 @@ class Match:
             self.scrim.setmode(now_mapnum[:2])
             scorecalc = scoreCalc.scoreCalc(os.path.join(
                 self.mappoolmaker.save_folder_path, self.mappoolmaker.osufile_path[now_mapnum]))
-            self.scrim.setautoscore(scorecalc.getAutoScore())
+            self.scrim.setautoscore(scorecalc.getAutoScore()[1])
             await self.channel.send(embed=discord.Embed(
                 title=f"설정 완료!",
                 description=f"맵 정보 : {self.scrim.getmapfull()}\n"
@@ -1221,6 +1229,7 @@ class MappoolMaker:
                           f"({beatmap_info.creator}) [{beatmap_info.version}].osu"
             rename_file_name = f"V.A. - {self.pool_name} ({beatmap_info.creator}) " \
                                f"[[{x}] {beatmap_info.artist} - {beatmap_info.title} [{beatmap_info.version}]].osu"
+            rename_file_name = prohibitted.sub('', rename_file_name)
             try:
                 target_name_search = prohibitted.sub('', target_name.lower())
                 zipfile_list = zf.namelist()
@@ -1771,6 +1780,14 @@ async def timer(ctx, action: Union[float, str], name: Optional[str] = None):
             ))
         else:
             await timers[name].cancel()
+    elif action == 'update':
+        if timers.get(name) is None:
+            await ctx.send(embed=discord.Embed(
+                title=f"\"{name}\"이란 이름을 가진 타이머는 없습니다!",
+                color=discord.Colour.dark_red()
+            ))
+        else:
+            await timers[name].edit()
     else:
         if name is None:
             global timer_count
@@ -1782,7 +1799,7 @@ async def timer(ctx, action: Union[float, str], name: Optional[str] = None):
                 color=discord.Colour.dark_red()
             ))
             return
-        timers[name] = Timer(ctx.channel, name, action)
+        Timer(ctx.channel, name, action)
         await ctx.send(embed=discord.Embed(
             title=f"\"{name}\" 타이머 설정 완료!",
             description=f"{timers[name].seconds}초로 설정되었습니다.",
