@@ -64,6 +64,9 @@ with open("osu_login.json", 'r') as f:
 with open("osu_api_key.txt", 'r') as f:
     api_key = f.read().strip()
 
+with open("oma_pools.json", 'r') as f:
+    maidbot_pools = json5.load(f)
+
 def get_traceback_str(exception):
     return ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)).strip()
 
@@ -878,6 +881,7 @@ class Match:
 
         self.mappoolmaker: Optional[MappoolMaker] = None
         self.map_order: List[str] = []
+        self.map_tb: Optional[str] = None
 
         self.scrim: Optional[Scrim] = None
         self.timer: Optional[Timer] = None
@@ -1024,22 +1028,32 @@ class Match:
             ))
             self.mappoolmaker = MappoolMaker(statusmessage, ses, self.made_time)
 
-            # 레이팅에 맞춰서 맵 번호 등록
+            select_pool_mmr_range = sum(self.elo_manager.get_ratings()) / d('2')
+            pool_pools = list(filter(
+                lambda po: abs(select_pool_mmr_range - getd(po['averageMMR'])) <= d('50'),
+                maidbot_pools
+            ))
+            selected_pool = random.choice(pool_pools)
+            for bm in selected_pool['maps']:
+                self.mappoolmaker.add_map(bm['sheetId'], bm['mapSetId'], bm['mapId'])
 
             # 테스트 데이터 : 디코8토너 쿼터파이널
-            self.mappoolmaker.maps = {
-                'NM1': (714329, 1509639), 'NM2': (755844, 1590814), 'NM3': (145215, 424925), 'NM4': (671199, 1419243),
-                'HR1': (41874, 132043), 'HR2': (136065, 363010), 'HR3': (90385, 245284),
-                'HD1': (708305, 1497483), 'HD2': (931886, 1945754), 'HD3': (739053, 1559618),
-                'DT1': (223092, 521280), 'DT2': (26226, 88633), 'DT3': (190754, 454158),
-                'FM1': (302535, 678106), 'FM2': (870225, 1818604), 'FM3': (830444, 1768797),
-                'TB': (1009680, 2248906)
-            }
-
-            self.map_order.extend(self.mappoolmaker.maps.keys())
-            if 'TB' in self.map_order:
-                self.map_order.remove('TB')
+            # self.mappoolmaker.maps = {
+            #     'NM1': (714329, 1509639), 'NM2': (755844, 1590814), 'NM3': (145215, 424925), 'NM4': (671199, 1419243),
+            #     'HR1': (41874, 132043), 'HR2': (136065, 363010), 'HR3': (90385, 245284),
+            #     'HD1': (708305, 1497483), 'HD2': (931886, 1945754), 'HD3': (739053, 1559618),
+            #     'DT1': (223092, 521280), 'DT2': (26226, 88633), 'DT3': (190754, 454158),
+            #     'FM1': (302535, 678106), 'FM2': (870225, 1818604), 'FM3': (830444, 1768797),
+            #     'TB': (1009680, 2248906)
+            # }
+            tbmaps = set()
+            for k in self.mappoolmaker.maps.keys():
+                if re.match('TB', k):
+                    tbmaps.add(k)
+                else:
+                    self.map_order.append(k)
             random.shuffle(self.map_order)
+            self.map_tb = random.choice(tbmaps)
             mappool_link = await self.mappoolmaker.execute_osz()
 
             if mappool_link is False:
@@ -1069,8 +1083,8 @@ class Match:
             del matches[self.player], matches[self.opponent]
             self.abort = True
         else:
-            if self.round == self.totalrounds and self.mappoolmaker.maps.get('TB'):
-                now_mapnum = 'TB'
+            if self.round == self.totalrounds and self.map_tb is not None:
+                now_mapnum = self.map_tb
             else:
                 now_mapnum = self.map_order[self.round - 1]
             now_beatmap: osuapi.osu.Beatmap = self.mappoolmaker.beatmap_objects[now_mapnum]
