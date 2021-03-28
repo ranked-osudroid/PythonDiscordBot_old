@@ -1029,6 +1029,10 @@ class Match:
             self.mappoolmaker = MappoolMaker(statusmessage, ses, self.made_time)
 
             select_pool_mmr_range = sum(self.elo_manager.get_ratings()) / d('2')
+            print('Before select_pool_mmr_range :', select_pool_mmr_range)
+            # 1000 ~ 2000 => 1200 ~ 3300
+            select_pool_mmr_range = (select_pool_mmr_range - 1000) * d('2.1') + 1200
+            print('After  select_pool_mmr_range :', select_pool_mmr_range)
             pool_pools = list(filter(
                 lambda po: abs(select_pool_mmr_range - getd(po['averageMMR'])) <= d('50'),
                 maidbot_pools
@@ -1365,7 +1369,7 @@ class WaitingPlayer:
         self.player_rating = ratings[uids[discord_member.id]]
         self.target_rating_low = self.player_rating
         self.target_rating_high = self.player_rating
-        self.dr = 3
+        self.dr = 10
         self.task = asyncio.create_task(self.expanding())
 
     def __repr__(self):
