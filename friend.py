@@ -75,7 +75,7 @@ def get_traceback_str(exception):
 ####################################################################################################################
 
 url_base = "http://ops.dgsrz.com/profile.php?uid="
-mapr = re.compile(r"(.*) [-] (.*) [(](.*)[)] [\[](.*)[]]")
+mapr = re.compile(r"(.*?) [-] ([^\[]*) [(](.*?)[)] [\[](.*)[]]")
 playr = re.compile(r"(.*) / (.*) / (.*) / (.*)x / (.*)%")
 missr = re.compile(r"[{]\"miss\":(\d+), \"hash\":.*[}]")
 
@@ -1129,7 +1129,6 @@ class Match:
             await self.do_progress()
             while True:
                 if self.abort:
-                    await self.match_task
                     await self.channel.send(embed=discord.Embed(
                         title="매치가 정상적으로 종료됨"
                     ))
@@ -1389,7 +1388,7 @@ class WaitingPlayer:
                 self.target_rating_low -= self.dr
                 self.target_rating_high += self.dr
         except asyncio.CancelledError:
-            pass
+            return
 
 class MatchMaker:
     def __init__(self):
