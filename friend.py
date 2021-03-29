@@ -1427,7 +1427,7 @@ class MatchMaker:
                 while len(self.querys) > 0:
                     method, player = self.querys.popleft()
                     if method == 1:
-                        if player not in self.players_in_pool:
+                        if player.id not in self.players_in_pool:
                             self.pool.append(WaitingPlayer(player))
                             self.players_in_pool.add(player.id)
                     else:
