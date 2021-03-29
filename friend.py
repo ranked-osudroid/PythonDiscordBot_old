@@ -955,7 +955,7 @@ class Match:
             else:
                 await self.channel.send(embed=discord.Embed(
                     title="상대가 참가하지 않았습니다.",
-                    description="매치가 취소되고, 두 유저는 다시 매칭 풀에 들어갑니다.",
+                    description="매치를 취소합니다.",
                     color=discord.Colour.dark_red()
                 ))
                 self.abort = True
