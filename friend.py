@@ -92,6 +92,8 @@ downloadpath = os.path.join('songs', '%s.zip')
 
 prohibitted = re.compile(r"[\\/:*?\"<>|]")
 
+parse_fixca = re.compile(r"Various Artists - Ranked Osu!droid Match #\d+ \[\[(.*?)] (.*) - (.*)\((.*)\)][.]osu")
+
 def getd(n: Union[int, float, str]):
     return d(str(n))
 
@@ -274,7 +276,8 @@ modetoint = {
     'NoFail': 8,
     'HalfTime': 16,
     'NightCore': 32,
-    'Easy': 64
+    'Easy': 64,
+    'Precise': 128
 }
 infotoint = {
     'artist': 1,
@@ -1059,7 +1062,7 @@ class Match:
             # }
 
             tbmaps = []
-            for k in self.mappoolmaker.maps.keys():
+            for k in self.mappoolmaker.beatmap_objects.keys():
                 if re.match('TB', k):
                     tbmaps.append(k)
                 else:
@@ -1167,6 +1170,7 @@ class MappoolMaker:
         self.message: Optional[discord.Message] = message
         self.drive_file: Optional[pydrive.drive.GoogleDriveFile] = None
 
+        self.match_made_time = name
         self.pool_name = f"Match_{name}"
         self.save_folder_path = os.path.join('songs', self.pool_name)
 
@@ -1366,6 +1370,45 @@ class MappoolMaker:
                 color=discord.Colour.dark_red()
             ))
             return 'Failed'
+
+    async def execute_osz_from_fixca(self, uuid: str):
+        if self.session is None:
+            return
+        headers = {
+            "key": "key",  # INPUT KEY HERE
+            "uuid": uuid,
+            "matchid": self.match_made_time
+        }
+
+        target_beatmap_info = list(filter(lambda po: po['uuid'] == uuid, maidbot_pools))
+        if len(target_beatmap_info) == 0:
+            return False
+        target_beatmap_info = target_beatmap_info[0]
+        for mn in target_beatmap_info:
+            self.beatmap_objects[mn['sheetId']] = (await api.get_beatmaps(beatmap_id=mn['mapId']))[0]
+
+        async with self.session.post("http://ranked-osudroid.kro.kr/createPack") as resp:
+            if resp.status != 200:
+                return False
+            res_data = await resp.json(encoding='utf-8')   # MAYBE FIX HERE
+            download_link = res_data['downlink']
+
+        async with self.session.get(download_link) as resp:
+            if resp.status != 200:
+                return False
+            osz_file = self.save_folder_path + '.osz'
+            async with aiofiles.open(osz_file, 'wb') as df:
+                await df.write(await resp.content.read())
+            zf = zipfile.ZipFile(osz_file)
+            zf.extractall(self.save_folder_path)
+            for fn in os.listdir(self.save_folder_path):
+                if fn.endswith(".osu"):
+                    m = parse_fixca.match(fn)
+                    if m is None:
+                        return False
+                    mapnum = m.group(1)
+                    self.osufile_path[mapnum] = fn
+        return download_link
 
 ####################################################################################################################
 
@@ -1922,7 +1965,8 @@ async def queue(ctx):
     matchmaker.add_player(ctx.author)
     await ctx.send(embed=discord.Embed(
         title=f"{ctx.author.display_name}님을 매칭 큐에 추가하였습니다!",
-        description=f"현재 큐의 다른 플레이어 수 : {len(matchmaker.pool)}",
+        description=f"이미 큐에 들어가있다면 무시됩니다.\n"
+                    f"현재 큐의 다른 플레이어 수 : {len(matchmaker.pool)}",
         color=discord.Colour(0x78f7fb)
     ))
 
