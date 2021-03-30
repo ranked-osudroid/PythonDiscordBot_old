@@ -2069,7 +2069,7 @@ async def _main():
             assert turnoff == False
             await app.start(token)
         except BaseException as _ex:
-            if isinstance(ex, [KeyboardInterrupt, asyncio.CancelledError]):
+            if isinstance(ex, (KeyboardInterrupt, asyncio.CancelledError)):
                 print('Ctrl-C or Cancelled')
             else:
                 traceback.print_exception(type(_ex), _ex, _ex.__traceback__)
@@ -2093,7 +2093,7 @@ if __name__ == '__main__':
     try:
         loop.run_forever()
     except BaseException as ex:
-        if isinstance(ex, [KeyboardInterrupt, asyncio.CancelledError]):
+        if isinstance(ex, (KeyboardInterrupt, asyncio.CancelledError)):
             print('Ctrl-C or Cancelled')
         else:
             traceback.print_exception(type(ex), ex, ex.__traceback__)
