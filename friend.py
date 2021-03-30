@@ -2100,4 +2100,5 @@ if __name__ == '__main__':
     finally:
         running.cancel()
         loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.run_until_complete(asyncio.sleep(1))
         loop.close()
