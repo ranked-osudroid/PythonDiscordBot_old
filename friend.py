@@ -2069,7 +2069,10 @@ async def _main():
             assert turnoff == False
             await app.start(token)
         except BaseException as _ex:
-            traceback.print_exception(type(_ex), _ex, _ex.__traceback__)
+            if isinstance(ex, [KeyboardInterrupt, asyncio.CancelledError]):
+                print('Ctrl-C or Cancelled')
+            else:
+                traceback.print_exception(type(_ex), _ex, _ex.__traceback__)
         finally:
             with open('uids.txt', 'w') as f:
                 for u in uids:
@@ -2090,7 +2093,10 @@ if __name__ == '__main__':
     try:
         loop.run_forever()
     except BaseException as ex:
-        traceback.print_exception(type(ex), ex, ex.__traceback__)
+        if isinstance(ex, [KeyboardInterrupt, asyncio.CancelledError]):
+            print('Ctrl-C or Cancelled')
+        else:
+            traceback.print_exception(type(ex), ex, ex.__traceback__)
     finally:
         running.cancel()
         loop.run_until_complete(loop.shutdown_asyncgens())
