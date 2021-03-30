@@ -66,6 +66,9 @@ with open("osu_login.json", 'r') as f:
 with open("osu_api_key.txt", 'r') as f:
     api_key = f.read().strip()
 
+with open("fixca_api_key.txt", 'r') as f:
+    fixca_key = f.read().strip()
+
 with open("oma_pools.json", 'r', encoding='utf-8-sig') as f:
     maidbot_pools = json.load(f, parse_float=d)
 
@@ -1038,7 +1041,8 @@ class Match:
             await self.channel.send(embed=discord.Embed(
                 title="맵풀이 결정됐습니다!",
                 description=f"맵풀 이름 : `{selected_pool['name']}`\n"
-                            f"맵풀 MMR (modified) : {(selected_pool['averageMMR'] - 1200) / d('2.1') + 1000}",
+                            f"맵풀 MMR (modified) : {(selected_pool['averageMMR'] - 1200) / d('2.1') + 1000}\n"
+                            f"맵풀 UUID : `{selected_pool['uuid']}`",
                 color=discord.Colour(0x0ef37c)
             ))
 
@@ -1069,11 +1073,22 @@ class Match:
                     self.map_order.append(k)
             random.shuffle(self.map_order)
             self.map_tb = random.choice(tbmaps)
-            mappool_link = await self.mappoolmaker.execute_osz()
-
-            if mappool_link is False:
-                print("FATAL ERROR : SESSION CLOSED")
-                return
+            mappool_link = await self.mappoolmaker.execute_osz_from_fixca(selected_pool['uuid'])
+            if mappool_link[0] is False:
+                print(mappool_link[1])
+                await self.channel.send(embed=discord.Embed(
+                    title="에러 발생",
+                    description=mappool_link[1] + '\n잠시 후 개별 비트맵을 다운받아 다시 시도합니다...'
+                ))
+                mappool_link = await self.mappoolmaker.execute_osz()
+                if mappool_link[0] is False:
+                    print(mappool_link[1])
+                    await self.channel.send(embed=discord.Embed(
+                        title="에러 발생",
+                        description=mappool_link[1]
+                    ))
+                    return
+            mappool_link = mappool_link[1]
             await self.channel.send(f"{self.player.mention} {self.opponent.mention}", embed=discord.Embed(
                 title="맵풀이 완성되었습니다!",
                 description=f"다음 링크에서 맵풀을 다운로드해주세요 : {mappool_link}\n"
@@ -1238,9 +1253,9 @@ class MappoolMaker:
             ))
         return has_exception
 
-    async def execute_osz(self) -> Union[str, bool]:
+    async def execute_osz(self) -> Tuple[bool, str]:
         if self.session.closed:
-            return False
+            return False, 'Session is closed'
         t = asyncio.create_task(self.show_result())
         async with asyncpool.AsyncPool(loop, num_workers=4, name="DownloaderPool",
                                        logger=logging.getLogger("DownloaderPool"),
@@ -1254,7 +1269,7 @@ class MappoolMaker:
         await t
 
         if 3 in set(t.result().values()):
-            return 'Map download failed'
+            return False, 'Map download failed'
 
         try:
             os.mkdir(self.save_folder_path)
@@ -1363,39 +1378,57 @@ class MappoolMaker:
                 'withLink': True
             })
             os.remove(result_zipfile)
-            return self.drive_file['alternateLink']
+            return True, self.drive_file['alternateLink']
         else:
             await self.message.edit(embed=discord.Embed(
                 title="업로드 실패!",
                 color=discord.Colour.dark_red()
             ))
-            return 'Failed'
+            return False, 'Failed'
 
     async def execute_osz_from_fixca(self, uuid: str):
         if self.session is None:
-            return
+            return False, 'Session is closed'
         headers = {
-            "key": "key",  # INPUT KEY HERE
+            "key": fixca_key,  # INPUT KEY HERE
             "uuid": uuid,
             "matchid": self.match_made_time
         }
+        desc = ['맵풀 검색 중...']
+        e = discord.Embed(
+            title="맵풀 생성 중",
+            color=discord.Colour(0x5aef6b)
+        )
+        e.description = '\n'.join(desc)
+        e.set_footer(text="맵풀 다운로드 서버는 `@라카#4749`께서 제공해주셨습니다. 감사합니다!")
+        await self.message.edit(embed=e)
 
         target_beatmap_info = list(filter(lambda po: po['uuid'] == uuid, maidbot_pools))
         if len(target_beatmap_info) == 0:
-            return False
+            return False, 'Not pool found'
         target_beatmap_info = target_beatmap_info[0]
-        for mn in target_beatmap_info:
+        for mn in target_beatmap_info['maps']:
             self.beatmap_objects[mn['sheetId']] = (await api.get_beatmaps(beatmap_id=mn['mapId']))[0]
 
-        async with self.session.post("http://ranked-osudroid.kro.kr/createPack") as resp:
+        desc[-1] += ' 완료'
+        desc.append('맵풀 다운로드 링크 불러오는 중...')
+        e.description = '\n'.join(desc)
+        await self.message.edit(embed=e)
+
+        async with self.session.post("http://ranked-osudroid.kro.kr/createPack", data=headers) as resp:
             if resp.status != 200:
-                return False
-            res_data = await resp.json(encoding='utf-8')   # MAYBE FIX HERE
+                return False, f'Get info failed : {resp.status}'
+            res_data = await resp.json(encoding='utf-8')
             download_link = res_data['downlink']
+
+        desc[-1] += ' 완료'
+        desc.append('맵풀 로딩 및 필요 데이터 세팅 중...')
+        e.description = '\n'.join(desc)
+        await self.message.edit(embed=e)
 
         async with self.session.get(download_link) as resp:
             if resp.status != 200:
-                return False
+                return False, f'Download failed : {resp.status}'
             osz_file = self.save_folder_path + '.osz'
             async with aiofiles.open(osz_file, 'wb') as df:
                 await df.write(await resp.content.read())
@@ -1405,10 +1438,15 @@ class MappoolMaker:
                 if fn.endswith(".osu"):
                     m = parse_fixca.match(fn)
                     if m is None:
-                        return False
+                        return False, f'Matching failed : {fn}'
                     mapnum = m.group(1)
                     self.osufile_path[mapnum] = fn
-        return download_link
+
+        desc[-1] += ' 완료'
+        e.description = '\n'.join(desc)
+        await self.message.edit(embed=e)
+
+        return True, download_link
 
 ####################################################################################################################
 
