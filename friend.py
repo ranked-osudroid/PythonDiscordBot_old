@@ -1417,7 +1417,7 @@ class MappoolMaker:
             color=discord.Colour(0x5aef6b)
         )
         e.description = '\n'.join(desc)
-        e.set_footer(text="맵풀 다운로드 서버는 `@라카#4749`께서 제공해주셨습니다. 감사합니다!")
+        e.set_footer(text="맵풀 다운로드 서버는 라카#4749님께서 제공해주셨습니다. 감사합니다!")
         await self.message.edit(embed=e)
 
         target_beatmap_info = list(filter(lambda po: po['uuid'] == uuid, maidbot_pools))
