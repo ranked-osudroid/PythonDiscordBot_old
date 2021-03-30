@@ -1052,8 +1052,6 @@ class Match:
                 color=discord.Colour.orange()
             ))
             self.mappoolmaker = MappoolMaker(statusmessage, ses, self.made_time)
-            for bm in selected_pool['maps']:
-                self.mappoolmaker.add_map(bm['sheetId'], bm['mapSetId'], bm['mapId'])
 
             # 테스트 데이터 : 디코8토너 쿼터파이널
             # self.mappoolmaker.maps = {
@@ -1065,14 +1063,6 @@ class Match:
             #     'TB': (1009680, 2248906)
             # }
 
-            tbmaps = []
-            for k in self.mappoolmaker.beatmap_objects.keys():
-                if re.match('TB', k):
-                    tbmaps.append(k)
-                else:
-                    self.map_order.append(k)
-            random.shuffle(self.map_order)
-            self.map_tb = random.choice(tbmaps)
             mappool_link = await self.mappoolmaker.execute_osz_from_fixca(selected_pool['uuid'])
             if mappool_link[0] is False:
                 print(mappool_link[1])
@@ -1080,6 +1070,8 @@ class Match:
                     title="에러 발생",
                     description=mappool_link[1] + '\n잠시 후 개별 비트맵을 다운받아 다시 시도합니다...'
                 ))
+                for bm in selected_pool['maps']:
+                    self.mappoolmaker.add_map(bm['sheetId'], bm['mapSetId'], bm['mapId'])
                 mappool_link = await self.mappoolmaker.execute_osz()
                 if mappool_link[0] is False:
                     print(mappool_link[1])
@@ -1089,6 +1081,16 @@ class Match:
                     ))
                     return
             mappool_link = mappool_link[1]
+
+            tbmaps = []
+            for k in self.mappoolmaker.beatmap_objects.keys():
+                if re.match('TB', k):
+                    tbmaps.append(k)
+                else:
+                    self.map_order.append(k)
+            random.shuffle(self.map_order)
+            self.map_tb = random.choice(tbmaps)
+
             await self.channel.send(f"{self.player.mention} {self.opponent.mention}", embed=discord.Embed(
                 title="맵풀이 완성되었습니다!",
                 description=f"다음 링크에서 맵풀을 다운로드해주세요 : {mappool_link}\n"
@@ -2066,11 +2068,8 @@ async def _main():
         try:
             assert turnoff == False
             await app.start(token)
-        except KeyboardInterrupt:
-            print("\nForce stop")
-        except BaseException as ex:
-            print(repr(ex))
-            print(ex)
+        except BaseException as _ex:
+            traceback.print_exception(type(_ex), _ex, _ex.__traceback__)
         finally:
             with open('uids.txt', 'w') as f:
                 for u in uids:
@@ -2087,6 +2086,12 @@ async def _main():
     await ses.close()
 
 if __name__ == '__main__':
-    loop.run_until_complete(_main())
-    loop.run_until_complete(loop.shutdown_asyncgens())
-    loop.close()
+    running = loop.create_task(_main())
+    try:
+        loop.run_forever()
+    except BaseException as ex:
+        traceback.print_exception(type(ex), ex, ex.__traceback__)
+    finally:
+        running.cancel()
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
