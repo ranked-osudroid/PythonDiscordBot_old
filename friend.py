@@ -2040,47 +2040,53 @@ async def osu_login(session):
     return True
 
 loop = asyncio.get_event_loop()
-async def get_matchmaker():
-    return MatchMaker()
 match_category_channel: Optional[discord.CategoryChannel] = None
-matchmaker = loop.run_until_complete(get_matchmaker())
-ses = aiohttp.ClientSession(loop=loop)
-got_login = loop.run_until_complete(osu_login(ses))
-if got_login:
-    print('OSU LOGIN SUCCESS')
-    turnoff = False
-    try:
-        api = OsuApi(api_key, connector=AHConnector())
-        res = loop.run_until_complete(api.get_user("peppy"))
-        assert res[0].user_id == 2
-    except osuapi.exceptions.HTTPError:
-        print("Invalid osu!API key")
-        turnoff = True
-    except AssertionError:
-        print("Something went wrong")
-        turnoff = True
-    try:
-        assert turnoff == False
-        loop.run_until_complete(app.start(token))
-    except KeyboardInterrupt:
-        print("\nForce stop")
-    except BaseException as ex:
-        print(repr(ex))
-        print(ex)
-    finally:
-        with open('uids.txt', 'w') as f:
-            for u in uids:
-                f.write(f"{u} {uids[u]}\n")
-        with open('ratings.txt', 'w') as f:
-            for u in ratings:
-                f.write(f"{u} {ratings[u]}\n")
-        api.close()
-        loop.run_until_complete(app.logout())
-        loop.run_until_complete(app.close())
-        loop.run_until_complete(ses.close())
-        loop.run_until_complete(loop.shutdown_asyncgens())
-        loop.run_until_complete(asyncio.sleep(0.5))
-        loop.close()
-        print('Program Close')
-else:
-    print('OSU LOGIN FAILED')
+matchmaker: Optional[MatchMaker] = None
+
+async def _main():
+    global ses, matchmaker, api
+    ses = aiohttp.ClientSession(loop=loop)
+    matchmaker = MatchMaker()
+    got_login = await osu_login(ses)
+    if got_login:
+        print('OSU LOGIN SUCCESS')
+        turnoff = False
+
+        try:
+            api = OsuApi(api_key, connector=AHConnector())
+            res = await api.get_user("peppy")
+            assert res[0].user_id == 2
+        except osuapi.exceptions.HTTPError:
+            print("Invalid osu!API key")
+            turnoff = True
+        except AssertionError:
+            print("Something went wrong")
+            turnoff = True
+
+        try:
+            assert turnoff == False
+            await app.start(token)
+        except KeyboardInterrupt:
+            print("\nForce stop")
+        except BaseException as ex:
+            print(repr(ex))
+            print(ex)
+        finally:
+            with open('uids.txt', 'w') as f:
+                for u in uids:
+                    f.write(f"{u} {uids[u]}\n")
+            with open('ratings.txt', 'w') as f:
+                for u in ratings:
+                    f.write(f"{u} {ratings[u]}\n")
+            api.close()
+            await app.logout()
+            await app.close()
+            print('Program Close')
+    else:
+        print('OSU LOGIN FAILED')
+    await ses.close()
+
+if __name__ == '__main__':
+    loop.run_until_complete(_main())
+    loop.run_until_complete(loop.shutdown_asyncgens())
+    loop.close()
