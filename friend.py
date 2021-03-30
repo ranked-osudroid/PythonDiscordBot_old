@@ -1421,6 +1421,8 @@ class MappoolMaker:
             if resp.status != 200:
                 return False, f'Get info failed : {resp.status}'
             res_data = await resp.json(encoding='utf-8')
+            if res_data['status'] == 'failed':
+                return False, 'Get info failed : FIXCUCKED'
             download_link = res_data['downlink']
 
         desc[-1] += ' 완료'
