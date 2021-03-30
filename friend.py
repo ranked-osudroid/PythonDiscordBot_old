@@ -210,6 +210,9 @@ class Timer:
             await self.timeover()
         except asyncio.CancelledError:
             await self.cancel()
+        except BaseException as ex_:
+            print(get_traceback_str(ex_))
+            raise ex_
 
     async def edit(self):
         if self.task.done():
@@ -806,52 +809,56 @@ class Scrim:
             ))
 
     async def match_start(self):
-        if self.map_time is None:
-            await self.channel.send(embed=discord.Embed(
-                title="맵 타임이 설정되지 않았습니다!",
-                description="`m;maptime`으로 맵 타임을 설정해주세요.",
-                color=discord.Colour.dark_red()
-            ))
-            return
         try:
-            await self.channel.send(embed=discord.Embed(
-                title="매치 시작!",
-                description=f"맵 정보 : `{self.getmapfull()}`\n"
-                            f"맵 번호 : {self.getnumber()} / 모드 : {self.getmode()}\n"
-                            f"맵 SS 점수 : {self.getautoscore()} / 맵 시간(초) : {self.getmaptime()}",
-                color=discord.Colour.from_rgb(255, 255, 0)
-            ))
-            a = self.map_time
-            extra_rate = d('1')
-            if self.getmode() == 'DT':
-                extra_rate = d('1') / d('1.5')
-            self.timer = Timer(self.channel, f"{self.start_time}_{self.getnumber()}",
-                               int(self.getmaptime() * extra_rate))
-            await self.timer.task
-            timermessage = await self.channel.send(embed=discord.Embed(
-                title=f"매치 시간 종료!",
-                color=discord.Colour.from_rgb(128, 128, 255)
-            ))
-            for i in range(30, -1, -1):
-                await timermessage.edit(embed=discord.Embed(
+            if self.map_time is None:
+                await self.channel.send(embed=discord.Embed(
+                    title="맵 타임이 설정되지 않았습니다!",
+                    description="`m;maptime`으로 맵 타임을 설정해주세요.",
+                    color=discord.Colour.dark_red()
+                ))
+                return
+            try:
+                await self.channel.send(embed=discord.Embed(
+                    title="매치 시작!",
+                    description=f"맵 정보 : `{self.getmapfull()}`\n"
+                                f"맵 번호 : {self.getnumber()} / 모드 : {self.getmode()}\n"
+                                f"맵 SS 점수 : {self.getautoscore()} / 맵 시간(초) : {self.getmaptime()}",
+                    color=discord.Colour.from_rgb(255, 255, 0)
+                ))
+                a = self.map_time
+                extra_rate = d('1')
+                if self.getmode() == 'DT':
+                    extra_rate = d('1') / d('1.5')
+                self.timer = Timer(self.channel, f"{self.start_time}_{self.getnumber()}",
+                                   int(self.getmaptime() * extra_rate))
+                await self.timer.task
+                timermessage = await self.channel.send(embed=discord.Embed(
                     title=f"매치 시간 종료!",
-                    description=f"추가 시간 {i}초 남았습니다...",
                     color=discord.Colour.from_rgb(128, 128, 255)
                 ))
-                await asyncio.sleep(1)
-            await self.channel.send(embed=discord.Embed(
-                title=f"매치 추가 시간 종료!",
-                description="온라인 기록을 불러옵니다...",
-                color=discord.Colour.from_rgb(128, 128, 255)
-            ))
-            await self.onlineload()
-            await self.submit('nero2')
-        except asyncio.CancelledError:
-            await self.channel.send(embed=discord.Embed(
-                title="매치가 중단되었습니다!",
-                color=discord.Colour.dark_red()
-            ))
-            return
+                for i in range(30, -1, -1):
+                    await timermessage.edit(embed=discord.Embed(
+                        title=f"매치 시간 종료!",
+                        description=f"추가 시간 {i}초 남았습니다...",
+                        color=discord.Colour.from_rgb(128, 128, 255)
+                    ))
+                    await asyncio.sleep(1)
+                await self.channel.send(embed=discord.Embed(
+                    title=f"매치 추가 시간 종료!",
+                    description="온라인 기록을 불러옵니다...",
+                    color=discord.Colour.from_rgb(128, 128, 255)
+                ))
+                await self.onlineload()
+                await self.submit('nero2')
+            except asyncio.CancelledError:
+                await self.channel.send(embed=discord.Embed(
+                    title="매치가 중단되었습니다!",
+                    color=discord.Colour.dark_red()
+                ))
+                return
+        except BaseException as ex_:
+            print(get_traceback_str(ex_))
+            raise ex_
 
 
 member_names: Dict[int, str] = dict()
@@ -1145,22 +1152,26 @@ class Match:
             self.timer = Timer(self.channel, f"Match_{self.made_time}_{self.round}", 120, self.go_next_status)
 
     async def match_start(self):
-        while not self.abort:
-            await self.do_progress()
-            while True:
-                if self.abort:
-                    await self.channel.send(embed=discord.Embed(
-                        title="매치가 정상적으로 종료됨"
-                    ))
-                    break
-                if self.is_all_ready():
-                    await self.timer.cancel()
-                    self.reset_ready()
-                    # if self.scrim is not None and not self.scrim.match_task.done():
-                    if self.round > 1:
-                        await self.scrim.match_task
-                    break
-                await asyncio.sleep(1)
+        try:
+            while not self.abort:
+                await self.do_progress()
+                while True:
+                    if self.abort:
+                        await self.channel.send(embed=discord.Embed(
+                            title="매치가 정상적으로 종료됨"
+                        ))
+                        break
+                    if self.is_all_ready():
+                        await self.timer.cancel()
+                        self.reset_ready()
+                        # if self.scrim is not None and not self.scrim.match_task.done():
+                        if self.round > 1:
+                            await self.scrim.match_task
+                        break
+                    await asyncio.sleep(1)
+        except BaseException as ex_:
+            print(get_traceback_str(ex_))
+            raise ex_
 
     async def do_match_start(self):
         if self.match_task is None or self.match_task.done():
@@ -1232,28 +1243,32 @@ class MappoolMaker:
             title="맵풀 다운로드 중",
             color=discord.Colour.orange()
         ))
-        while True:
-            v = await self.queue.get()
-            if v is None:
+        try:
+            while True:
+                v = await self.queue.get()
+                if v is None:
+                    await self.message.edit(embed=discord.Embed(
+                        title="맵풀 다운로드 완료",
+                        description=desc,
+                        color=discord.Colour.orange()
+                    ))
+                    break
+                if v[1]:
+                    success += 1
+                    desc += f"{v[0]}번 다운로드 성공 ({success}/{len(self.maps)})\n"
+                else:
+                    has_exception[v[0]] += 1
+                    if has_exception[v[0]] == 3:
+                        desc += f"{v[0]}번 다운로드 실패\n"
                 await self.message.edit(embed=discord.Embed(
-                    title="맵풀 다운로드 완료",
+                    title="맵풀 다운로드 중",
                     description=desc,
                     color=discord.Colour.orange()
                 ))
-                break
-            if v[1]:
-                success += 1
-                desc += f"{v[0]}번 다운로드 성공 ({success}/{len(self.maps)})\n"
-            else:
-                has_exception[v[0]] += 1
-                if has_exception[v[0]] == 3:
-                    desc += f"{v[0]}번 다운로드 실패\n"
-            await self.message.edit(embed=discord.Embed(
-                title="맵풀 다운로드 중",
-                description=desc,
-                color=discord.Colour.orange()
-            ))
-        return has_exception
+            return has_exception
+        except BaseException as ex_:
+            print(get_traceback_str(ex_))
+            raise ex_
 
     async def execute_osz(self) -> Tuple[bool, str]:
         if self.session.closed:
@@ -1474,6 +1489,9 @@ class WaitingPlayer:
                 self.target_rating_high += self.dr
         except asyncio.CancelledError:
             return
+        except BaseException as ex_:
+            print(get_traceback_str(ex_))
+            raise ex_
 
 class MatchMaker:
     def __init__(self):
