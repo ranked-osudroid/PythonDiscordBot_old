@@ -94,6 +94,7 @@ BEATCONNECT = "https://beatconnect.io/b/"
 downloadpath = os.path.join('songs', '%s.zip')
 
 prohibitted = re.compile(r"[\\/:*?\"<>|]")
+multi_spaces_remover = re.compile(r"[ ]+")
 
 parse_fixca = re.compile(r"Various Artists - Ranked Osu!droid Match #\d+ \(Various Mappers\) "
                          r"\[\[(.*?)] (.*) - (.*)\((.*)\)][.]osu")
@@ -738,6 +739,7 @@ class Scrim:
                     if checkbit & infotoint[k]:
                         nowk = self.getfuncs[k]()
                         nowk_edited = prohibitted.sub('', nowk).replace('\'', ' ').replace('_', ' ')
+                        nowk_edited = multi_spaces_remover.sub(' ', nowk_edited)
                         if nowk_edited != p[k]:
                             flag = True
                             desc += f"등록 실패 : " \
@@ -1126,7 +1128,8 @@ class Match:
             self.elo_manager.update(score_diff / d('8') + d('.5'), True)
             ratings[uids[self.player.id]], ratings[uids[self.opponent.id]] = self.elo_manager.get_ratings()
             shutil.rmtree(self.mappoolmaker.save_folder_path)
-            self.mappoolmaker.drive_file.Delete()
+            if self.mappoolmaker.drive_file is not None:
+                self.mappoolmaker.drive_file.Delete()
             del matches[self.player], matches[self.opponent]
             self.abort = True
         else:
