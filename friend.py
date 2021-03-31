@@ -78,7 +78,7 @@ def get_traceback_str(exception):
 ####################################################################################################################
 
 url_base = "http://ops.dgsrz.com/profile.php?uid="
-mapr = re.compile(r"(.*?) [-] ([^\[]*) [(](.*?)[)] [\[](.*)[]]")
+mapr = re.compile(r"(.*?) [-] ([^\[]*) [(]?(.*?)[)]?[ ]?[\[](.*)[]]")
 playr = re.compile(r"(.*) / (.*) / (.*) / (.*)x / (.*)%")
 missr = re.compile(r"[{]\"miss\":(\d+), \"hash\":.*[}]")
 
@@ -701,6 +701,7 @@ class Scrim:
                 if player_recent_info is None:
                     desc += f"등록 실패 : " \
                             f"{await getusername(player)}의 최근 플레이 정보가 기본 형식에 맞지 않음"
+                    continue
                 p = dict()
                 p['artist'], p['title'], p['author'], p['diff'] = player_recent_info[0]
                 p['score'] = int(player_recent_info[1][1].replace(',', ''))
