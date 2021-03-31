@@ -514,11 +514,13 @@ class Scrim:
         )
         sendtxt.add_field(
             name="맵 정보",
-            value=self.getmapfull()
+            value='`'+self.getmapfull()+'`',
+            inline=False
         )
         sendtxt.add_field(
-            name="모드",
-            value=self.getmode()
+            name="맵 번호",
+            value=self.getnumber(),
+            inline=False
         )
         sendtxt.add_field(
             name=blank,
