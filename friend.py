@@ -901,6 +901,7 @@ class Match:
 
         self.scrim: Optional[Scrim] = None
         self.timer: Optional[Timer] = None
+        self.diff_form: str = '[number] artist - title [diff]'
 
         self.round = -1
         # -2 = 매치 생성 전
@@ -987,7 +988,7 @@ class Match:
                     description="매치 시작 준비 중입니다...",
                     color=discord.Colour.dark_red()
                 ))
-                await self.scrim.setform('[number] artist - title [diff]')
+                await self.scrim.setform(self.diff_form)
             else:
                 await self.channel.send(embed=discord.Embed(
                     title="상대가 준비되지 않았습니다.",
@@ -1094,6 +1095,8 @@ class Match:
                         description=mappool_link[1]
                     ))
                     return
+            else:
+                self.diff_form = '[number] artist - title(diff)'
             mappool_link = mappool_link[1]
 
             tbmaps = []
@@ -1465,6 +1468,8 @@ class MappoolMaker:
                         return False, f'Matching failed : {fn}'
                     mapnum = m.group(1)
                     self.osufile_path[mapnum] = fn
+            zf.close()
+            os.remove(osz_file)
 
         desc[-1] += ' 완료'
         e.description = '\n'.join(desc)
