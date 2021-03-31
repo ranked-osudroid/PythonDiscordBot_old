@@ -514,8 +514,11 @@ class Scrim:
         )
         sendtxt.add_field(
             name="맵 정보",
-            value=self.getmapfull(),
-            inline=False
+            value=self.getmapfull()
+        )
+        sendtxt.add_field(
+            name="모드",
+            value=self.getmode()
         )
         sendtxt.add_field(
             name=blank,
