@@ -78,7 +78,7 @@ def get_traceback_str(exception):
 ####################################################################################################################
 
 url_base = "http://ops.dgsrz.com/profile.php?uid="
-mapr = re.compile(r"(.*?) [-] ([^\[]*) [(]?(.*?)[)]?[ ]?[\[](.*)[]]")
+mapr = re.compile(r"(.*?) [-] ([^\[]*) [(](.*?)[)] [\[](.*)[]]")
 playr = re.compile(r"(.*) / (.*) / (.*) / (.*)x / (.*)%")
 missr = re.compile(r"[{]\"miss\":(\d+), \"hash\":.*[}]")
 
@@ -95,7 +95,8 @@ downloadpath = os.path.join('songs', '%s.zip')
 
 prohibitted = re.compile(r"[\\/:*?\"<>|]")
 
-parse_fixca = re.compile(r"Various Artists - Ranked Osu!droid Match #\d+ \[\[(.*?)] (.*) - (.*)\((.*)\)][.]osu")
+parse_fixca = re.compile(r"Various Artists - Ranked Osu!droid Match #\d+ \(Various Mappers\) "
+                         r"\[\[(.*?)] (.*) - (.*)\((.*)\)][.]osu")
 
 def getd(n: Union[int, float, str]):
     return d(str(n))
