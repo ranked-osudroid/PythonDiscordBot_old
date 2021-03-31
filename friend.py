@@ -882,7 +882,7 @@ with open('ratings.txt', 'r') as f:
 ####################################################################################################################
 
 class Match:
-    def __init__(self, player: discord.Member, opponent: discord.Member, bo: int = 4):
+    def __init__(self, player: discord.Member, opponent: discord.Member, bo: int = 7):
         self.made_time = datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")
         self.channel: Optional[discord.TextChannel] = None
         self.player = player
@@ -901,7 +901,7 @@ class Match:
         # 0 = 맵풀 다운로드 대기
         # n = n라운드 준비 대기
         self.bo = bo
-        self.totalrounds = 2 * bo - 1
+        self.winfor = (bo / d('2')).to_integral(rounding=decimal.ROUND_HALF_UP)
         self.abort = False
 
         self.player_ELO = ratings[uids[self.player.id]]
@@ -1108,21 +1108,19 @@ class Match:
                 color=discord.Colour.blue()
             ))
             self.timer = Timer(self.channel, f"Match_{self.made_time}_download", 300, self.go_next_status)
-        elif self.round == len(self.map_order) or self.round > self.totalrounds or \
-                self.bo in set(self.scrim.setscore.values()):
+        elif self.round == len(self.map_order) or self.round > self.bo or \
+                self.winfor in set(self.scrim.setscore.values()):
             winner = await self.scrim.end()
-            winner = app.get_user(list(self.scrim.team[winner[0]])[0])
-            if winner == self.player:
-                self.elo_manager.update(True)
-            else:
-                self.elo_manager.update(False)
+            score_diff = \
+                self.scrim.setscore[self.player.display_name] - self.scrim.setscore[self.opponent.display_name]
+            self.elo_manager.update(score_diff / d('8') + d('.5'), True)
             ratings[uids[self.player.id]], ratings[uids[self.opponent.id]] = self.elo_manager.get_ratings()
             shutil.rmtree(self.mappoolmaker.save_folder_path)
             self.mappoolmaker.drive_file.Delete()
             del matches[self.player], matches[self.opponent]
             self.abort = True
         else:
-            if self.round == self.totalrounds and self.map_tb is not None:
+            if self.round == self.bo and self.map_tb is not None:
                 now_mapnum = self.map_tb
             else:
                 now_mapnum = self.map_order[self.round - 1]
@@ -1414,7 +1412,7 @@ class MappoolMaker:
         desc = ['맵풀 검색 중...']
         e = discord.Embed(
             title="맵풀 생성 중",
-            color=discord.Colour(0x5aef6b)
+            color=discord.Colour(0xf5e1bf)
         )
         e.description = '\n'.join(desc)
         e.set_footer(text="맵풀 다운로드 서버는 라카#4749님께서 제공해주셨습니다. 감사합니다!")
@@ -1759,7 +1757,7 @@ async def bind(ctx, number: int):
     mid = ctx.author.id
     uids[mid] = number
     if ratings[number] == d():
-        ratings[number] = d('1500') - (await get_rank(number)) / d('100')
+        ratings[number] = elo_rating.ELO_MID_RATING - (await get_rank(number)) / d('100')
     await ctx.send(embed=discord.Embed(
         title=f'플레이어 \"{ctx.author.name}\"님을 UID {number}로 연결했습니다!',
         color=discord.Colour(0xfefefe)
