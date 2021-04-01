@@ -276,6 +276,7 @@ async def getusername(x: int) -> str:
 
 visibleinfo = ['artist', 'title', 'author', 'diff']
 modes = ['NM', 'HD', 'HR', 'DT', 'FM', 'TB']
+moder = re.compile(r"(NM|HD|HR|DT|FM|TB)")
 modetoint = {
     'None': 0,
     'Hidden': 1,
@@ -1101,14 +1102,20 @@ class Match:
                 self.diff_form = '[number] artist - title(diff)'
             mappool_link = mappool_link[1]
 
-            tbmaps = []
+            maps = dict([(i, []) for i in modes])
             for k in self.mappoolmaker.beatmap_objects.keys():
-                if re.match('TB', k):
-                    tbmaps.append(k)
-                else:
-                    self.map_order.append(k)
-            random.shuffle(self.map_order)
-            self.map_tb = random.choice(tbmaps)
+                m = moder.match(k)
+                if m:
+                    maps[m.group(1)] = k
+            for mm in maps:
+                random.shuffle(maps[mm])
+            mode_order = ['NM', 'HD', 'HR', 'DT']
+            random.shuffle(mode_order)
+            for mm in mode_order:
+                self.map_order.append(maps[mm].pop())
+            self.map_order.append(maps['FM'].pop())
+            self.map_order.append(maps['NM'].pop())
+            self.map_tb = maps['TB'].pop()
 
             await self.channel.send(f"{self.player.mention} {self.opponent.mention}", embed=discord.Embed(
                 title="맵풀이 완성되었습니다!",
@@ -1128,9 +1135,6 @@ class Match:
             self.elo_manager.update(score_diff / d('8') + d('.5'), True)
             ratings[uids[self.player.id]], ratings[uids[self.opponent.id]] = self.elo_manager.get_ratings()
             shutil.rmtree(self.mappoolmaker.save_folder_path)
-            if self.mappoolmaker.drive_file is not None:
-                self.mappoolmaker.drive_file.Delete()
-            del matches[self.player], matches[self.opponent]
             self.abort = True
         else:
             if self.round == self.bo and self.map_tb is not None:
@@ -1181,6 +1185,9 @@ class Match:
                         break
                     await asyncio.sleep(1)
         except BaseException as ex_:
+            if self.mappoolmaker.drive_file is not None:
+                self.mappoolmaker.drive_file.Delete()
+            del matches[self.player], matches[self.opponent]
             print(get_traceback_str(ex_))
             raise ex_
 
