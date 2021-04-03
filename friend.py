@@ -640,14 +640,14 @@ class Scrim:
         args = list()
         for k in rkind:
             findks = re.findall(k, formstr)
-            if len(findks):
-                args.append(k)
-            elif len(findks) > 1:
+            if len(findks) > 1:
                 await self.channel.send(embed=discord.Embed(
                     title="Each words should be entered only ONCE.",
                     color=discord.Colour.dark_red()
                 ))
                 return
+            elif len(findks):
+                args.append(k)
         for c in rmeta:
             formstr = formstr.replace(c, '\\' + c)
         for a in args:
