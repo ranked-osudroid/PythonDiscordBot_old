@@ -220,18 +220,18 @@ class Timer:
         if self.task.done():
             return
         await self.message.edit(embed=discord.Embed(
-                title="타이머 작동 시작!",
-                description=f"타이머 이름 : `{self.name}`\n"
-                            f"타이머 시간 : {self.seconds}\n"
-                            f"타이머 남은 시간 : {self.left_sec()}",
+                title="TIMER RUNNING...",
+                description=f"Timer Name : `{self.name}`\n"
+                            f"Time Limit : {self.seconds}\n"
+                            f"Time Left : {self.left_sec()}",
                 color=discord.Colour.dark_orange()
             ))
 
     async def timeover(self):
         await self.message.edit(embed=discord.Embed(
-            title="타임 오버!",
-            description=f"타이머 이름 : `{self.name}`\n"
-                        f"타이머 시간 : {self.seconds}",
+            title="TIME OVER!",
+            description=f"Timer Name : `{self.name}`\n"
+                        f"Time Limit : {self.seconds}",
             color=discord.Colour.dark_grey()
         ))
         await self.call_back()
@@ -241,9 +241,9 @@ class Timer:
             return
         self.task.cancel()
         await self.message.edit(embed=discord.Embed(
-            title="타이머 강제 중지됨!",
-            description=f"타이머 이름 : `{self.name}`\n"
-                        f"타이머 시간 : {self.seconds}",
+            title="TIMER STOPPED!",
+            description=f"Timer Name : `{self.name}`\n"
+                        f"Time Limit : {self.seconds}",
             color=discord.Colour.dark_red()
         ))
         await self.call_back()
@@ -361,8 +361,8 @@ class Scrim:
     async def maketeam(self, name: str, do_print: bool = True):
         if self.team.get(name) is not None:
             await self.channel.send(embed=discord.Embed(
-                title=f"\"{name}\" 팀은 이미 존재합니다!",
-                description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
+                title=f"Team {name} already exists!",
+                description=f"Now team list:\n{chr(10).join(self.team.keys())}",
                 color=discord.Colour.dark_blue()
             ))
         else:
@@ -370,16 +370,16 @@ class Scrim:
             self.setscore[name] = 0
             if do_print:
                 await self.channel.send(embed=discord.Embed(
-                    title=f"\"{name}\" 팀을 추가했습니다!",
-                    description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
+                    title=f"Added Team {name}.",
+                    description=f"Now team list:\n{chr(10).join(self.team.keys())}",
                     color=discord.Colour.blue()
                 ))
 
     async def removeteam(self, name: str, do_print: bool = True):
         if self.team.get(name) is None:
             await self.channel.send(embed=discord.Embed(
-                title=f"\"{name}\"이란 팀은 존재하지 않습니다!",
-                description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
+                title=f"There's no Team {name}.",
+                description=f"Now team list:\n{chr(10).join(self.team.keys())}",
                 color=discord.Colour.dark_blue()
             ))
         else:
@@ -388,8 +388,8 @@ class Scrim:
             del self.team[name], self.setscore[name]
             if do_print:
                 await self.channel.send(embed=discord.Embed(
-                    title=f"\"{name}\" 팀이 해산되었습니다!",
-                    description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
+                    title=f"Removed Team {name}.",
+                    description=f"Now team list:\n{chr(10).join(self.team.keys())}",
                     color=discord.Colour.blue()
                 ))
 
@@ -400,13 +400,13 @@ class Scrim:
         temp = self.findteam.get(mid)
         if temp:
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.name}\"님은 이미 \"{temp}\" 팀에 들어가 있습니다!",
-                description=f"`m;out`으로 현재 팀에서 나온 다음에 명령어를 다시 입력해주세요."
+                title=f"Player {member.name} is already in Team {temp}!",
+                description=f"Please leave your team first (`m;out`) and try again."
             ))
         elif self.team.get(name) is None:
             await self.channel.send(embed=discord.Embed(
-                title=f"\"{name}\"이란 팀은 존재하지 않습니다!",
-                description=f"현재 팀 리스트:\n{chr(10).join(self.team.keys())}",
+                title=f"There's no Team {name}.",
+                description=f"Now team list:\n{chr(10).join(self.team.keys())}",
                 color=discord.Colour.dark_blue()
             ))
         else:
@@ -416,8 +416,8 @@ class Scrim:
             self.score[mid] = (getd(0), getd(0), getd(0))
             if do_print:
                 await self.channel.send(embed=discord.Embed(
-                    title=f"플레이어 \"{member.name}\"님이 \"{name}\"팀에 참가합니다!",
-                    description=f"현재 \"{name}\"팀 플레이어 리스트:\n"
+                    title=f"Player {member.name} participates into Team {name}!",
+                    description=f"Now player list of Team {name}:\n"
                                 f"{chr(10).join([(await getusername(pl)) for pl in self.team[name]])}",
                     color=discord.Colour.blue()
                 ))
@@ -429,8 +429,8 @@ class Scrim:
         temp = self.findteam.get(mid)
         if mid not in self.players:
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.name}\"님은 어느 팀에도 속해있지 않습니다!",
-                description=f"일단 참가하고나서 해주시죠."
+                title=f"Player {member.name} is participating in NO team!",
+                description=f"You participate first."
             ))
         else:
             del self.findteam[mid], self.score[mid]
@@ -438,8 +438,8 @@ class Scrim:
             self.players.remove(mid)
             if do_print:
                 await self.channel.send(embed=discord.Embed(
-                    title=f"플레이어 \"{member.name}\"님이 \"{temp}\"팀을 떠납니다!",
-                    description=f"현재 \"{temp}\"팀 플레이어 리스트:\n"
+                    title=f"Player {member.name} is leaving Team {temp}.",
+                    description=f"Now player list of Team {temp}:\n"
                                 f"{chr(10).join([(await getusername(pl)) for pl in self.team[temp]])}",
                     color=discord.Colour.blue()
                 ))
@@ -450,14 +450,14 @@ class Scrim:
         mid = member.id
         if mid not in self.players:
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.name}\"님은 어느 팀에도 속해있지 않습니다!",
-                description=f"일단 참가하고나서 해주시죠."
+                title=f"Player {member.name} is participating in NO team!",
+                description=f"You participate first."
             ))
         else:
             self.score[mid] = (getd(score), getd(acc), getd(miss))
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.name}\"님의 점수를 추가(또는 수정)했습니다!",
-                description=f"\"{self.findteam[mid]}\"팀 <== {score}, {acc}%, {miss}xMISS",
+                title=f"Player {member.name}'(s) score is modified.",
+                description=f"Team {self.findteam[mid]} <== {score}, {acc}%, {miss}xMISS",
                 color=discord.Colour.blue()
             ))
 
@@ -467,32 +467,32 @@ class Scrim:
         mid = member.id
         if mid not in self.players:
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.name}\"님은 어느 팀에도 속해있지 않습니다!",
-                description=f"일단 참가하고나서 해주시죠."
+                title=f"Player {member.name} is participating in NO team!",
+                description=f"You participate first."
             ))
         else:
             self.score[mid] = (getd(0), getd(0), getd(0))
             await self.channel.send(embed=discord.Embed(
-                title=f"플레이어 \"{member.name}\"님의 점수를 삭제했습니다!",
+                title=f"Player {member.name}'(s) score is deleted.",
                 color=discord.Colour.blue()
             ))
 
     async def submit(self, calcmode: Optional[str]):
         if v2dict.get(calcmode) is None:
             await self.channel.send(embed=discord.Embed(
-                title="존재하지 않는 계산 방식입니다!",
-                description="(입력없음), nero2, jet2, osu2 중 하나여야 합니다."
+                title="Unknown Calculate Mode!",
+                description="It should be (Empty), `nero2`, `jet2`, or `osu2`"
             ))
             return
         elif calcmode and (self.getautoscore() == -1):
             await self.channel.send(embed=discord.Embed(
-                title="v2를 계산하기 위해서는 오토점수가 필요합니다!",
-                description="`m;mapscore`로 오토점수를 등록해주세요!"
+                title="Autoplay score is needed to calculate V2-kind score!",
+                description="Modify it by using `m;mapscore`."
             ))
             return
         calcf = v2dict[calcmode]
         resultmessage = await self.channel.send(embed=discord.Embed(
-            title="계산 중...",
+            title="Calculating...",
             color=discord.Colour.orange()
         ))
         calculatedscores = dict()
@@ -511,17 +511,17 @@ class Scrim:
             self.setscore[w] += 1
         desc = ', '.join('"'+t+'"' for t in winnerteam)
         sendtxt = discord.Embed(
-            title="========= !매치 종료! =========",
-            description=f"__**팀 {desc} 승리!**__",
+            title="========= ! ROUND END ! =========",
+            description=f"__**Team {desc} get(s) a point!**__",
             color=discord.Colour.red()
         )
         sendtxt.add_field(
-            name="맵 정보",
+            name="Map Info",
             value='`'+self.getmapfull()+'`',
             inline=False
         )
         sendtxt.add_field(
-            name="맵 번호",
+            name="Map Number",
             value=self.getnumber(),
             inline=False
         )
@@ -532,7 +532,7 @@ class Scrim:
         )
         for t in teamscore:
             sendtxt.add_field(
-                name=f"*\"{t}\"팀 결과 : {teamscore[t]}*",
+                name=f"*Team {t} total score : {teamscore[t]}*",
                 value='\n'.join(
                     [f"{await getusername(p)} : {' / '.join(str(x) for x in self.score[p])} = {calculatedscores[p]}"
                      for p in self.team[t]])+'\n',
@@ -544,7 +544,7 @@ class Scrim:
             inline=False
         )
         sendtxt.add_field(
-            name="__현재 점수:__",
+            name="__Now team score:__",
             value='\n'.join([f"**{t} : {self.setscore[t]}**" for t in teamscore]),
             inline=False
         )
@@ -644,7 +644,7 @@ class Scrim:
                 args.append(k)
             elif len(findks) > 1:
                 await self.channel.send(embed=discord.Embed(
-                    title="각 단어는 하나씩만 들어가야 합니다!",
+                    title="Each words should be entered only ONCE.",
                     color=discord.Colour.dark_red()
                 ))
                 return
@@ -654,8 +654,8 @@ class Scrim:
             formstr = formstr.replace(a, f'(?P<{a}>.*?)')
         self.form = [re.compile(formstr), args]
         await self.channel.send(embed=discord.Embed(
-            title="형식 지정 완료!",
-            description=f"RegEx 패턴 : `{self.form[0].pattern}`",
+            title="Form set!",
+            description=f"RegEx pattern : `{self.form[0].pattern}`",
             color=discord.Colour.blue()
         ))
 
@@ -682,9 +682,9 @@ class Scrim:
             self.availablemode['TB'] = tb
 
     async def onlineload(self, checkbit: Optional[int] = None):
-        desc = '====== < 계산 로그 > ======'
+        desc = '====== < Process LOG > ======'
         resultmessage: discord.Message = await self.channel.send(embed=discord.Embed(
-            title="계산 중...",
+            title="Processing...",
             description=desc,
             color=discord.Colour.orange()
         ))
@@ -692,18 +692,18 @@ class Scrim:
             for player in self.team[team]:
                 desc += '\n'
                 await resultmessage.edit(embed=discord.Embed(
-                    title="계산 중...",
+                    title="Processing...",
                     description=desc,
                     color=discord.Colour.orange()
                 ))
                 if uids.get(player) is None:
-                    desc += f"등록 실패 : " \
-                            f"{await getusername(player)}의 UID가 등록되어있지 않음"
+                    desc += f"Failed : " \
+                            f"{await getusername(player)}'s UID is not found."
                     continue
                 player_recent_info = await getrecent(uids[player])
                 if player_recent_info is None:
-                    desc += f"등록 실패 : " \
-                            f"{await getusername(player)}의 최근 플레이 정보가 기본 형식에 맞지 않음"
+                    desc += f"Failed : " \
+                            f"{await getusername(player)}'s recent play info can't be parsed."
                     continue
                 p = dict()
                 p['artist'], p['title'], p['author'], p['diff'] = player_recent_info[0]
@@ -716,9 +716,10 @@ class Scrim:
                     checkbit = 0
                     m = self.form[0].match(p['diff'])
                     if m is None:
-                        desc += f"등록 실패 : " \
-                                f"{await getusername(player)}의 최근 플레이 난이도명이 저장된 형식에 맞지 않음 " \
-                                f"(플레이어 난이도명 : {p['diff']})"
+                        desc += f"Failed : " \
+                                f"In {await getusername(player)}'s recent play info, " \
+                                f"its difficulty name does NOT fit to the format. " \
+                                f"(Its difficulty : {p['diff']})"
                         continue
                     for k in self.form[1]:
                         if k == 'number':
@@ -726,8 +727,9 @@ class Scrim:
                             pnum = m.group(k)
                             if mnum != pnum:
                                 flag = True
-                                desc += f"등록 실패 : " \
-                                        f"{await getusername(player)}의 맵 번호가 다름 (플레이어 맵 번호 : {pnum})"
+                                desc += f"Failed : " \
+                                        f"In {await getusername(player)}'s recent play info, " \
+                                        f"its number is wrong. (Its number : {pnum})"
                                 break
                             continue
                         p[k] = m.group(k)
@@ -743,10 +745,11 @@ class Scrim:
                         nowk_edited = multi_spaces_remover.sub(' ', nowk_edited)
                         if nowk_edited != p[k]:
                             flag = True
-                            desc += f"등록 실패 : " \
-                                    f"{await getusername(player)}의 {k}가 다름 " \
-                                    f"(현재 {k} : {nowk_edited} {'(`'+nowk+'`) ' if nowk!=nowk_edited else ''}/ " \
-                                    f"플레이어 {k} : {p[k]})"
+                            desc += f"Failed : " \
+                                    f"In {await getusername(player)}'s recent play info, " \
+                                    f"its {k} is wrong." \
+                                    f"(Now {k} : {nowk_edited} {'(`'+nowk+'`) ' if nowk!=nowk_edited else ''}/ " \
+                                    f"Its {k} : {p[k]})"
                 if flag:
                     continue
                 if self.map_mode is not None:
@@ -755,17 +758,18 @@ class Scrim:
                         if modetoint.get(md):
                             pmodeint |= modetoint[md]
                     if pmodeint not in self.availablemode[self.map_mode]:
-                        desc += f"등록 실패 : " \
-                                f"{await getusername(player)}의 모드가 조건에 맞지 않음 " \
-                                f"(현재 가능한 모드 숫자 : {self.availablemode[self.map_mode]} / " \
-                                f"플레이어 모드 숫자 : {pmodeint})"
+                        desc += f"Failed : " \
+                                f"In {await getusername(player)}'s recent play info, " \
+                                f"its mode is NOT allowed in now map mode. " \
+                                f"(Now mode numbers allowed to use : {self.availablemode[self.map_mode]} / " \
+                                f"Its mode number : {pmodeint})"
                         continue
                 self.score[player] = (getd(p['score']), getd(p['acc']), getd(p['miss']))
-                desc += f"등록 완료! : " \
-                        f"{await getusername(player)}의 점수 " \
+                desc += f"Success : " \
+                        f"Player {await getusername(player)}'s score = " \
                         f"{self.score[player][0]}, {self.score[player][1]}%, {self.score[player][2]}xMISS"
         await resultmessage.edit(embed=discord.Embed(
-            title="계산 완료!",
+            title="Calculation finished!",
             description=desc,
             color=discord.Colour.green()
         ))
@@ -776,8 +780,8 @@ class Scrim:
             self.setscore.keys()
         ))
         sendtxt = discord.Embed(
-            title="========= ! 매치 종료 ! =========",
-            description="팀 " + ', '.join(f"\"{w}\"" for w in winnerteam) + " 최종 우승!",
+            title="========= ! MATCH END ! =========",
+            description="Team " + ', '.join(f"\"{w}\"" for w in winnerteam) + " WON!",
             color=discord.Colour.magenta()
         )
         sendtxt.add_field(
@@ -786,7 +790,7 @@ class Scrim:
             inline=False
         )
         sendtxt.add_field(
-            name="최종 결과:",
+            name="THE RESULT:",
             value='\n'.join(f"{t} : {self.setscore[t]}" for t in self.setscore)
         )
         sendtxt.add_field(
@@ -795,9 +799,9 @@ class Scrim:
             inline=False
         )
         sendtxt.add_field(
-            name="수고하셨습니다!",
-            value='매치 정보가 자동으로 초기화됩니다.\n'
-                  '매치 기록은 아래 파일을 다운받아 텍스트 에디터로 열어보실 수 있습니다.',
+            name="GGWP! Thank you for the match!",
+            value='The match will be reset.\n'
+                  'You can download this file and see the match logs.',
             inline=False
         )
         filename = f'scrim{self.start_time}.log'
@@ -813,8 +817,8 @@ class Scrim:
             self.match_task = asyncio.create_task(self.match_start())
         else:
             await self.channel.send(embed=discord.Embed(
-                title="매치가 이미 진행 중입니다!",
-                description="매치가 끝난 후 다시 시도해주세요.",
+                title="Match is already processing!",
+                description="Try again after the match ends.",
                 color=discord.Colour.dark_red()
             ))
 
@@ -822,17 +826,17 @@ class Scrim:
         try:
             if self.map_time is None:
                 await self.channel.send(embed=discord.Embed(
-                    title="맵 타임이 설정되지 않았습니다!",
-                    description="`m;maptime`으로 맵 타임을 설정해주세요.",
+                    title="The length of the map is not modified!",
+                    description="Use `m;maptime` and try again.",
                     color=discord.Colour.dark_red()
                 ))
                 return
             try:
                 await self.channel.send(embed=discord.Embed(
-                    title="매치 시작!",
-                    description=f"맵 정보 : `{self.getmapfull()}`\n"
-                                f"맵 번호 : {self.getnumber()} / 모드 : {self.getmode()}\n"
-                                f"맵 SS 점수 : {self.getautoscore()} / 맵 시간(초) : {self.getmaptime()}",
+                    title="MATCH START!",
+                    description=f"Map Info : `{self.getmapfull()}`\n"
+                                f"Map Number : {self.getnumber()} / Map Mode : {self.getmode()}\n"
+                                f"Map SS Score : {self.getautoscore()} / Map Length : {self.getmaptime()} sec.",
                     color=discord.Colour.from_rgb(255, 255, 0)
                 ))
                 a = self.map_time
@@ -843,26 +847,26 @@ class Scrim:
                                    int(self.getmaptime() * extra_rate))
                 await self.timer.task
                 timermessage = await self.channel.send(embed=discord.Embed(
-                    title=f"매치 시간 종료!",
+                    title=f"MAP TIME OVER!",
                     color=discord.Colour.from_rgb(128, 128, 255)
                 ))
                 for i in range(30, -1, -1):
                     await timermessage.edit(embed=discord.Embed(
-                        title=f"매치 시간 종료!",
-                        description=f"추가 시간 {i}초 남았습니다...",
+                        title=f"MAP TIME OVER!",
+                        description=f"There's additional {i} second(s) left.",
                         color=discord.Colour.from_rgb(128, 128, 255)
                     ))
                     await asyncio.sleep(1)
                 await self.channel.send(embed=discord.Embed(
-                    title=f"매치 추가 시간 종료!",
-                    description="온라인 기록을 불러옵니다...",
+                    title=f"MAP EXTRA TIME OVER!",
+                    description="Online loading...",
                     color=discord.Colour.from_rgb(128, 128, 255)
                 ))
                 await self.onlineload()
                 await self.submit('nero2')
             except asyncio.CancelledError:
                 await self.channel.send(embed=discord.Embed(
-                    title="매치가 중단되었습니다!",
+                    title="Match Aborted!",
                     color=discord.Colour.dark_red()
                 ))
                 return
@@ -946,12 +950,12 @@ class Match:
             return
         if r_:
             await self.channel.send(embed=discord.Embed(
-                title=f"{subj} 준비됨!",
+                title=f"{subj} ready!",
                 color=discord.Colour.green()
             ))
         else:
             await self.channel.send(embed=discord.Embed(
-                title=f"{subj} 준비 해제됨!",
+                title=f"{subj} unready!",
                 color=discord.Colour.green()
             ))
 
@@ -967,8 +971,8 @@ class Match:
             if timer_cancelled:
                 self.round = 0
                 await self.channel.send(embed=discord.Embed(
-                    title="모두 참가가 완료되었습니다!",
-                    description="스크림 & 맵풀 생성 중입니다...",
+                    title="ALL READY!",
+                    description="Making match & mappool...",
                     color=discord.Colour.dark_red()
                 ))
 
@@ -978,8 +982,8 @@ class Match:
                 await self.scrim.addplayer(self.opponent.display_name, self.opponent, False)
             else:
                 await self.channel.send(embed=discord.Embed(
-                    title="상대가 참가하지 않았습니다.",
-                    description="매치를 취소합니다.",
+                    title="The Opponent didn't participate.",
+                    description="Match aborted.",
                     color=discord.Colour.dark_red()
                 ))
                 self.abort = True
@@ -987,43 +991,42 @@ class Match:
             if timer_cancelled:
                 self.round = 1
                 await self.channel.send(embed=discord.Embed(
-                    title="모두 준비되었습니다!",
-                    description="매치 시작 준비 중입니다...",
+                    title="ALL READY!",
+                    description="Preparing the round...",
                     color=discord.Colour.dark_red()
                 ))
                 await self.scrim.setform(self.diff_form)
             else:
                 await self.channel.send(embed=discord.Embed(
-                    title="상대가 준비되지 않았습니다.",
-                    description="인터넷 문제를 가지고 있을 수 있습니다.\n"
-                                "매치 진행에 어려움이 있을 수 있기 때문에 매치를 취소합니다.",
+                    title="The Opponent didn't ready.",
+                    description="Match aborted.",
                     color=discord.Colour.dark_red()
                 ))
                 self.abort = True
         else:
             if timer_cancelled:
                 message = await self.channel.send(embed=discord.Embed(
-                    title="모두 준비되었습니다!",
-                    description=f"10초 뒤 {self.round}라운드가 시작됩니다...",
+                    title="ALL READY!",
+                    description=f"Round #{self.round} starts in 10...",
                     color=discord.Colour.purple()
                 ))
                 for i in range(9, -1, -1):
                     await message.edit(embed=discord.Embed(
-                        title="모두 준비되었습니다!",
-                        description=f"**{i}**초 뒤 {self.round}라운드가 시작됩니다...",
+                        title="ALL READY!",
+                        description=f"Round #{self.round} starts in **{i}**...",
                         color=discord.Colour.purple()
                     ))
                     await asyncio.sleep(1)
             else:
                 message = await self.channel.send(embed=discord.Embed(
-                    title="준비 시간이 끝났습니다!",
-                    description=f"10초 뒤 {self.round}라운드를 **강제로 시작**합니다...",
+                    title="READY TIME OVER!",
+                    description=f"Force Round #{self.round} to start in 10...",
                     color=discord.Colour.purple()
                 ))
                 for i in range(9, -1, -1):
                     await message.edit(embed=discord.Embed(
                         title="준비 시간이 끝났습니다!",
-                        description=f"**{i}**초 뒤 {self.round}라운드를 **강제로 시작**합니다...",
+                        description=f"**Force** Round #{self.round} to start in **{i}**...",
                         color=discord.Colour.purple()
                     ))
                     await asyncio.sleep(1)
@@ -1039,8 +1042,8 @@ class Match:
             await self.channel.send(
                 f"{self.player.mention} {self.opponent.mention}",
                 embed=discord.Embed(
-                    title="매치가 생성되었습니다!",
-                    description="이 메세지가 올라온 후 2분 안에 `rdy`를 말해주세요!"
+                    title="Match initiated!",
+                    description="Chat `rdy` to participate in 2 minutes!"
                 )
             )
             self.timer = Timer(self.channel, f"Match_{self.made_time}_invite", 120, self.go_next_status)
@@ -1057,16 +1060,16 @@ class Match:
             selected_pool = random.choice(pool_pools)
             print('Selected pool :', selected_pool['name'])
             await self.channel.send(embed=discord.Embed(
-                title="맵풀이 결정됐습니다!",
-                description=f"맵풀 이름 : `{selected_pool['name']}`\n"
-                            f"맵풀 MMR (modified) : {(selected_pool['averageMMR'] - 1200) / d('2.1') + 1000}\n"
-                            f"맵풀 UUID : `{selected_pool['uuid']}`",
+                title="Mappool is selected!",
+                description=f"Mappool Name : `{selected_pool['name']}`\n"
+                            f"Mappool MMR (modified) : {(selected_pool['averageMMR'] - 1200) / d('2.1') + 1000}\n"
+                            f"Mappool UUID : `{selected_pool['uuid']}`",
                 color=discord.Colour(0x0ef37c)
             ))
 
             statusmessage = await self.channel.send(embed=discord.Embed(
-                title="맵풀 다운로드 상태 메세지입니다.",
-                description="이 문구가 5초 이상 바뀌지 않는다면 개발자를 불러주세요.",
+                title="This message is for showing mappool making process.",
+                description="If you see this message for more than 5 seconds, call the bot developer.",
                 color=discord.Colour.orange()
             ))
             self.mappoolmaker = MappoolMaker(statusmessage, ses, self.made_time)
@@ -1085,8 +1088,8 @@ class Match:
             if mappool_link[0] is False:
                 print(mappool_link[1])
                 await self.channel.send(embed=discord.Embed(
-                    title="에러 발생",
-                    description=mappool_link[1] + '\n잠시 후 개별 비트맵을 다운받아 다시 시도합니다...'
+                    title="Error occurred",
+                    description=mappool_link[1] + '\nRetry soon by downloading each beatmaps...'
                 ))
                 for bm in selected_pool['maps']:
                     self.mappoolmaker.add_map(bm['sheetId'], bm['mapSetId'], bm['mapId'])
@@ -1094,7 +1097,7 @@ class Match:
                 if mappool_link[0] is False:
                     print(mappool_link[1])
                     await self.channel.send(embed=discord.Embed(
-                        title="에러 발생",
+                        title="Error occurred",
                         description=mappool_link[1]
                     ))
                     return
@@ -1118,12 +1121,12 @@ class Match:
             self.map_tb = maps['TB'].pop()
 
             await self.channel.send(f"{self.player.mention} {self.opponent.mention}", embed=discord.Embed(
-                title="맵풀이 완성되었습니다!",
-                description=f"다음 링크에서 맵풀을 다운로드해주세요 : {mappool_link}\n"
-                            f"맵풀 다운로드 로그 중 다운로드에 실패한 맵풀이 있다면 "
-                            f"이 매치를 취소시키고 개발자를 불러주세요\n"
-                            f"다운로드가 완료되었고, 준비가 되었다면 `rdy`를 말해주세요!\n"
-                            f"다운로드 제한 시간은 5분입니다.",
+                title="Mappool is made!",
+                description=f"Please download from here : {mappool_link}\n"
+                            f"If any error occured during the process, "
+                            f"abort this match and call the bot developer.\n"
+                            f"If you finished downloading and got ready, chat `rdy`.\n"
+                            f"You have 5 minutes to download the mappool.",
                 color=discord.Colour.blue()
             ))
             self.timer = Timer(self.channel, f"Match_{self.made_time}_download", 300, self.go_next_status)
@@ -1153,15 +1156,15 @@ class Match:
                 self.mappoolmaker.save_folder_path, self.mappoolmaker.osufile_path[now_mapnum]))
             self.scrim.setautoscore(scorecalc.getAutoScore()[1])
             await self.channel.send(embed=discord.Embed(
-                title=f"설정 완료!",
-                description=f"맵 정보 : `{self.scrim.getmapfull()}`\n"
-                            f"맵 번호 : {self.scrim.getnumber()} / 모드 : {self.scrim.getmode()}\n"
-                            f"맵 SS 점수 : {self.scrim.getautoscore()} / 맵 시간(초) : {self.scrim.getmaptime()}",
+                title=f"Map infos Modified!",
+                description=f"Map Info : `{self.scrim.getmapfull()}`\n"
+                            f"Map Number : {self.scrim.getnumber()} / Map Mode : {self.scrim.getmode()}\n"
+                            f"Map SS Score : {self.scrim.getautoscore()} / Map Length : {self.scrim.getmaptime()} sec.",
                 color=discord.Colour.blue()
             ))
             await self.channel.send(embed=discord.Embed(
-                title=f"{self.round}라운드 준비!",
-                description="2분 안에 `rdy`를 말해주세요!",
+                title=f"Round #{self.round} ready!",
+                description="Chat `rdy` in 2 minutes.",
                 color=discord.Colour.orange()
             ))
             self.timer = Timer(self.channel, f"Match_{self.made_time}_{self.round}", 120, self.go_next_status)
@@ -1173,7 +1176,7 @@ class Match:
                 while True:
                     if self.abort:
                         await self.channel.send(embed=discord.Embed(
-                            title="매치가 정상적으로 종료됨"
+                            title="Match successfully finished"
                         ))
                         break
                     if self.is_all_ready():
@@ -1196,8 +1199,8 @@ class Match:
             self.match_task = asyncio.create_task(self.match_start())
         else:
             await self.channel.send(embed=discord.Embed(
-                title="매치가 이미 진행 중입니다!",
-                description="매치가 끝난 후 다시 시도해주세요.",
+                title="Match is already processing!",
+                description="Try again after the match ends.",
                 color=discord.Colour.dark_red()
             ))
 
@@ -1258,7 +1261,7 @@ class MappoolMaker:
         has_exception = dd(int)
         success = 0
         await self.message.edit(embed=discord.Embed(
-            title="맵풀 다운로드 중",
+            title="Mappool Downloading",
             color=discord.Colour.orange()
         ))
         try:
@@ -1266,20 +1269,20 @@ class MappoolMaker:
                 v = await self.queue.get()
                 if v is None:
                     await self.message.edit(embed=discord.Embed(
-                        title="맵풀 다운로드 완료",
+                        title="Mappool Download Finished",
                         description=desc,
                         color=discord.Colour.orange()
                     ))
                     break
                 if v[1]:
                     success += 1
-                    desc += f"{v[0]}번 다운로드 성공 ({success}/{len(self.maps)})\n"
+                    desc += f"Success to download mapId {v[0]} ({success}/{len(self.maps)})\n"
                 else:
                     has_exception[v[0]] += 1
                     if has_exception[v[0]] == 3:
-                        desc += f"{v[0]}번 다운로드 실패\n"
+                        desc += f"Failed to download mapId{v[0]}\n"
                 await self.message.edit(embed=discord.Embed(
-                    title="맵풀 다운로드 중",
+                    title="Mappool Downloading",
                     description=desc,
                     color=discord.Colour.orange()
                 ))
@@ -1312,7 +1315,7 @@ class MappoolMaker:
             pass
 
         await self.message.edit(embed=discord.Embed(
-            title="`.osu` 파일 추출 및 메타데이터 수정 중...",
+            title="Extracting `.osz` file and modifying `.osu` files...",
             color=discord.Colour.green()
         ))
 
@@ -1382,7 +1385,7 @@ class MappoolMaker:
             os.remove(zipfile_path)
 
         await self.message.edit(embed=discord.Embed(
-            title="맵풀 압축 중...",
+            title="Compressing Mappool to `.osz`...",
             color=discord.Colour.orange()
         ))
 
@@ -1394,8 +1397,8 @@ class MappoolMaker:
         self.drive_file = drive.CreateFile({'title': result_zipfile, 'parents': [{'id': drive_folder['id']}]})
         self.drive_file.SetContentFile(result_zipfile)
         await self.message.edit(embed=discord.Embed(
-            title="맵풀을 구글 드라이브에 업로드 중...",
-            description="꽤 시간이 걸립니다! 느긋하게 기다려 주세요... (약 3~5분 소요)",
+            title="Uploading Mappool file to Google Drive...",
+            description="It takes quite a while. (About 3~5 min.)",
             color=discord.Colour.greyple()
         ))
         try:
@@ -1404,7 +1407,7 @@ class MappoolMaker:
             self.drive_file.content.close()
         if self.drive_file.uploaded:
             await self.message.edit(embed=discord.Embed(
-                title="업로드 완료!",
+                title="Upload Complete!",
                 color=discord.Colour.green()
             ))
             self.drive_file.InsertPermission({
@@ -1429,13 +1432,14 @@ class MappoolMaker:
             "uuid": uuid,
             "matchid": self.match_made_time
         }
-        desc = ['맵풀 검색 중...']
+        desc = ['Searching Mappool...']
         e = discord.Embed(
-            title="맵풀 생성 중",
+            title="Creating Mappool...",
             color=discord.Colour(0xf5e1bf)
         )
         e.description = '\n'.join(desc)
-        e.set_footer(text="맵풀 다운로드 서버는 라카#4749님께서 제공해주셨습니다. 감사합니다!")
+        e.set_footer(text="라카#4749 provided his mappool download server and assisted to making mappool. "
+                          "Thanks to supporting!")
         await self.message.edit(embed=e)
 
         target_beatmap_info = list(filter(lambda po: po['uuid'] == uuid, maidbot_pools))
@@ -1445,8 +1449,8 @@ class MappoolMaker:
         for mn in target_beatmap_info['maps']:
             self.beatmap_objects[mn['sheetId']] = (await api.get_beatmaps(beatmap_id=mn['mapId']))[0]
 
-        desc[-1] += ' 완료'
-        desc.append('맵풀 다운로드 링크 불러오는 중...')
+        desc[-1] += ' done'
+        desc.append('Getting download link of mappool...')
         e.description = '\n'.join(desc)
         await self.message.edit(embed=e)
 
@@ -1458,8 +1462,8 @@ class MappoolMaker:
                 return False, 'Get info failed : FIXCUCKED'
             download_link = res_data['downlink']
 
-        desc[-1] += ' 완료'
-        desc.append('맵풀 로딩 및 필요 데이터 세팅 중...')
+        desc[-1] += ' done'
+        desc.append('Downloading mappool for setting...')
         e.description = '\n'.join(desc)
         await self.message.edit(embed=e)
 
@@ -1481,7 +1485,7 @@ class MappoolMaker:
             zf.close()
             os.remove(osz_file)
 
-        desc[-1] += ' 완료'
+        desc[-1] += ' done'
         e.description = '\n'.join(desc)
         await self.message.edit(embed=e)
 
@@ -1620,7 +1624,7 @@ async def on_command_exception(ctx, exception):
     print('================ ERROR ================')
     print(exceptiontxt)
     print('=======================================')
-    await ctx.send(f'에러 발생 :\n```{exceptiontxt}```')
+    await ctx.send(f'Error Occurred :\n```{exceptiontxt}```')
 
 
 @app.command(name="help")
@@ -1645,7 +1649,7 @@ async def roll(ctx, *dices: str):
         if not x:
             continue
         sendtxt.append(f"{_d}: **{' / '.join(x)}**")
-    await ctx.send(embed=discord.Embed(title="주사위 결과", description='\n'.join(sendtxt)))
+    await ctx.send(embed=discord.Embed(title="Dice result", description='\n'.join(sendtxt)))
 
 
 @app.command()
@@ -1667,14 +1671,14 @@ async def say(ctx, *, txt: str):
 @is_owner()
 async def sayresult(ctx, *, com: str):
     res = eval(com)
-    await ctx.send('결과값 : `' + str(res) + '`')
+    await ctx.send('Result : `' + str(res) + '`')
 
 
 @app.command()
 @is_owner()
 async def run(ctx, *, com: str):
     exec(com)
-    await ctx.send('실행됨')
+    await ctx.send('Done')
 
 @app.command()
 @is_owner()
@@ -1685,7 +1689,7 @@ async def asyncrun(ctx, *, com: str):
         {**globals(), **locals()}, locals()
     )
     await locals()['__ex']()
-    await ctx.send('실행됨')
+    await ctx.send('Done')
 
 
 ####################################################################################################################
@@ -1695,13 +1699,17 @@ async def asyncrun(ctx, *, com: str):
 async def make(ctx):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
-        await ctx.send("이미 스크림이 존재합니다.")
+        await ctx.send(embed=discord.Embed(
+            title="There's already scrim running.",
+            description=f"You can make scrim only one per channel.",
+            color=discord.Colour.dark_red()
+        ))
         return
     s['valid'] = 1
     s['scrim'] = Scrim(ctx.channel)
     await ctx.send(embed=discord.Embed(
-        title="스크림이 만들어졌습니다! | A scrim is made",
-        description=f"서버/Guild : {ctx.guild}\n채널/Channel : {ctx.channel}",
+        title="A SCRIM IS MADE.",
+        description=f"Guild : {ctx.guild}\nChannel : {ctx.channel}",
         color=discord.Colour.green()
     ))
 
@@ -1781,7 +1789,7 @@ async def bind(ctx, number: int):
     if ratings[number] == d():
         ratings[number] = elo_rating.ELO_MID_RATING - (await get_rank(number)) / d('100')
     await ctx.send(embed=discord.Embed(
-        title=f'플레이어 \"{ctx.author.name}\"님을 UID {number}로 연결했습니다!',
+        title=f'Player {ctx.author.name} binded to UID {number}.',
         color=discord.Colour(0xfefefe)
     ))
 
@@ -1791,7 +1799,7 @@ async def _map(ctx, *, name: str):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
         resultmessage = await ctx.send(embed=discord.Embed(
-            title="계산 중...",
+            title="Calculating...",
             color=discord.Colour.orange()
         ))
         scrim = s['scrim']
@@ -1801,15 +1809,15 @@ async def _map(ctx, *, name: str):
                 target = worksheet.find(name)
             except gspread.exceptions.CellNotFound:
                 await resultmessage.edit(embed=discord.Embed(
-                    title=f"{name}을 찾지 못했습니다!",
-                    description="오타가 있거나, 아직 봇 시트에 등록이 안 되어 있을 수 있습니다.",
+                    title=f"{name} not found!",
+                    description="Check typo(s), and if that name is on bot sheet.",
                     color=discord.Colour.dark_red()
                 ))
                 return
             except Exception as e:
                 await resultmessage.eddit(embed=discord.Embed(
-                    title="오류 발생!",
-                    description=f"오류 : `[{type(e)}] {e}`",
+                    title="Error occurred!",
+                    description=f"Error : `[{type(e)}] {e}`",
                     color=discord.Colour.dark_red()
                 ))
                 return
@@ -1827,10 +1835,10 @@ async def _map(ctx, *, name: str):
             scrim.setnumber(name)
             scrim.setmode(re.findall('|'.join(modes), name.split(';')[-1])[0])
         await resultmessage.edit(embed=discord.Embed(
-            title=f"설정 완료!",
-            description=f"맵 정보 : `{scrim.getmapfull()}`\n"
-                        f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
-                        f"맵 SS 점수 : {scrim.getautoscore()} / 맵 시간(초) : {scrim.getmaptime()}",
+            title=f"Map infos Modified!",
+            description=f"Map Info : `{scrim.getmapfull()}`\n"
+                        f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
+                        f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.",
             color=discord.Colour.blue()
         ))
 
@@ -1846,10 +1854,10 @@ async def mapmode(ctx, mode: str):
         scrim = s['scrim']
         scrim.setmode(mode)
         await resultmessage.edit(embed=discord.Embed(
-            title=f"설정 완료!",
-            description=f"맵 정보 : `{scrim.getmapfull()}`\n"
-                        f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
-                        f"맵 SS 점수 : {scrim.getautoscore()} / 맵 시간(초) : {scrim.getmaptime()}",
+            title=f"Map infos Modified!",
+            description=f"Map Info : `{scrim.getmapfull()}`\n"
+                        f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
+                        f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.",
             color=discord.Colour.blue()
         ))
 
@@ -1864,10 +1872,10 @@ async def maptime(ctx, _time: int):
         scrim = s['scrim']
         scrim.setmaptime(_time)
         await resultmessage.edit(embed=discord.Embed(
-            title=f"설정 완료!",
-            description=f"맵 정보 : `{scrim.getmapfull()}`\n"
-                        f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
-                        f"맵 SS 점수 : {scrim.getautoscore()} / 맵 시간(초) : {scrim.getmaptime()}",
+            title=f"Map infos Modified!",
+            description=f"Map Info : `{scrim.getmapfull()}`\n"
+                        f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
+                        f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.",
             color=discord.Colour.blue()
         ))
 
@@ -1876,7 +1884,7 @@ async def mapscore(ctx, sc_or_auto: Union[int, str], *, path: Optional[str] = No
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
         resultmessage = await ctx.send(embed=discord.Embed(
-            title="계산 중...",
+            title="Processing...",
             color=discord.Colour.orange()
         ))
         scrim = s['scrim']
@@ -1887,10 +1895,10 @@ async def mapscore(ctx, sc_or_auto: Union[int, str], *, path: Optional[str] = No
         else:
             scrim.setautoscore(sc_or_auto)
         await resultmessage.edit(embed=discord.Embed(
-            title=f"설정 완료!",
-            description=f"맵 정보 : `{scrim.getmapfull()}`\n"
-                        f"맵 번호 : {scrim.getnumber()} / 모드 : {scrim.getmode()}\n"
-                        f"맵 SS 점수 : {scrim.getautoscore()} / 맵 시간(초) : {scrim.getmaptime()}",
+            title=f"Map infos Modified!",
+            description=f"Map Info : `{scrim.getmapfull()}`\n"
+                        f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
+                        f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.",
             color=discord.Colour.blue()
         ))
 
@@ -1930,30 +1938,19 @@ async def timer(ctx, action: Union[float, str], name: Optional[str] = None):
     if action == 'now':
         if timers.get(name) is None:
             await ctx.send(embed=discord.Embed(
-                title=f"\"{name}\"이란 이름을 가진 타이머는 없습니다!",
-                color=discord.Colour.dark_red()
-            ))
-        else:
-            await ctx.send(embed=discord.Embed(
-                title=f"\"{name}\" 타이머 남은 시간 :",
-                description=f"{timers[name].left_sec()}초 남았습니다!"
-            ))
-    elif action == 'cancel':
-        if timers.get(name) is None:
-            await ctx.send(embed=discord.Embed(
-                title=f"\"{name}\"이란 이름을 가진 타이머는 없습니다!",
-                color=discord.Colour.dark_red()
-            ))
-        else:
-            await timers[name].cancel()
-    elif action == 'update':
-        if timers.get(name) is None:
-            await ctx.send(embed=discord.Embed(
-                title=f"\"{name}\"이란 이름을 가진 타이머는 없습니다!",
+                title=f"No timer named {name}!",
                 color=discord.Colour.dark_red()
             ))
         else:
             await timers[name].edit()
+    elif action == 'cancel':
+        if timers.get(name) is None:
+            await ctx.send(embed=discord.Embed(
+                title=f"No timer named {name}!",
+                color=discord.Colour.dark_red()
+            ))
+        else:
+            await timers[name].cancel()
     else:
         if name is None:
             global timer_count
@@ -1961,16 +1958,11 @@ async def timer(ctx, action: Union[float, str], name: Optional[str] = None):
             timer_count += 1
         if timers.get(name) is not None and not timers[name].done:
             await ctx.send(embed=discord.Embed(
-                title=f"\"{name}\"이란 이름을 가진 타이머는 이미 작동하고 있습니다!",
+                title=f"There's already running timer named {name}!",
                 color=discord.Colour.dark_red()
             ))
             return
         Timer(ctx.channel, name, action)
-        await ctx.send(embed=discord.Embed(
-            title=f"\"{name}\" 타이머 설정 완료!",
-            description=f"{timers[name].seconds}초로 설정되었습니다.",
-            color=discord.Colour.blue()
-        ))
 
 @app.command()
 async def calc(ctx, kind: str, maxscore: d, score: d, acc: d, miss: d):
@@ -1982,13 +1974,13 @@ async def calc(ctx, kind: str, maxscore: d, score: d, acc: d, miss: d):
         result = osuv2(maxscore, score, acc, miss)
     else:
         await ctx.send(embed=discord.Embed(
-            title=f"\"{kind}\"라는 계산 방식이 없습니다!",
-            description="nero2, jet2, osu2 중 하나를 입력해주세요.",
+            title="Unknown Calculate Mode!",
+            description="It should be (Empty), `nero2`, `jet2`, or `osu2`",
             color=discord.Colour.dark_red()
         ))
         return
     await ctx.send(embed=discord.Embed(
-        title=f"계산 결과 ({kind})",
+        title=f"Calculation result : ({kind})",
         description=f"maxscore = {maxscore}\n"
                     f"score = {score}\n"
                     f"acc = {acc}\n"
@@ -2002,10 +1994,10 @@ async def now(ctx):
     s = datas[ctx.guild.id][ctx.channel.id]
     if s['valid']:
         scrim = s['scrim']
-        e = discord.Embed(title="현재 스크림 정보", color=discord.Colour.orange())
+        e = discord.Embed(title="Now scrim info", color=discord.Colour.orange())
         for t in scrim.team:
             e.add_field(
-                name="팀 "+t,
+                name="Team "+t,
                 value='\n'.join([(await getusername(x)) for x in scrim.team[t]])
             )
         await ctx.send(embed=e)
@@ -2015,7 +2007,7 @@ async def now(ctx):
 @app.command(aliases=['pfme'])
 async def profileme(ctx):
     e = discord.Embed(
-        title=f"{ctx.author.display_name}님의 정보",
+        title=f"{ctx.author.display_name}'s profile",
         color=discord.Colour(0xdb6ee1)
     )
     e.add_field(
@@ -2032,21 +2024,21 @@ async def profileme(ctx):
 async def queue(ctx):
     if matches.get(ctx.author):
         await ctx.send(embed=discord.Embed(
-            title=f"매치 도중에 큐에 추가될 수 없습니다!",
+            title=f"You can't queue while playing match.",
             color=discord.Colour.dark_red()
         ))
         return
     elif uids[ctx.author.id] == 0:
         await ctx.send(embed=discord.Embed(
-            title=f"`m;bind UID`로 UID를 먼저 추가해 주세요!",
+            title=f"You should bind your UID first. Use `m;bind`",
             color=discord.Colour.dark_red()
         ))
         return
     matchmaker.add_player(ctx.author)
     await ctx.send(embed=discord.Embed(
-        title=f"{ctx.author.display_name}님을 매칭 큐에 추가하였습니다!",
-        description=f"이미 큐에 들어가있다면 무시됩니다.\n"
-                    f"현재 큐의 다른 플레이어 수 : {len(matchmaker.pool)}",
+        title=f"{ctx.author.display_name} queued.",
+        description=f"(If you already in queue, this will be ignored.)\n"
+                    f"Now the number of players in queue : {len(matchmaker.pool)}",
         color=discord.Colour(0x78f7fb)
     ))
 
@@ -2054,9 +2046,9 @@ async def queue(ctx):
 async def unqueue(ctx):
     matchmaker.remove_player(ctx.author)
     await ctx.send(embed=discord.Embed(
-        title=f"{ctx.author.display_name}님을 매칭 큐에 매치 취소 요청을 했습니다!",
-        description=f"**이 요청은 간혹 이루어지지 않을 수 있습니다.**\n"
-                    f"현재 큐의 다른 플레이어 수 : {len(matchmaker.pool)}",
+        title=f"{ctx.author.display_name} unqueued.",
+        description=f"**This request could be ignored.**\n"
+                    f"Now the number of players in queue : {len(matchmaker.pool)}",
         color=discord.Colour(0x78f7fb)
     ))
 
