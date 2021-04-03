@@ -203,9 +203,9 @@ class Timer:
     async def run(self):
         try:
             self.message = await self.channel.send(embed=discord.Embed(
-                title="타이머 작동 시작!",
-                description=f"타이머 이름 : `{self.name}`\n"
-                            f"타이머 시간 : {self.seconds}",
+                title="Timer start!",
+                description=f"Timer Name : `{self.name}`\n"
+                            f"Time Limit : {self.seconds}",
                 color=discord.Colour.dark_orange()
             ))
             await asyncio.sleep(self.seconds)
