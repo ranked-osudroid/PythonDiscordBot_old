@@ -243,7 +243,8 @@ class Timer:
         await self.message.edit(embed=discord.Embed(
             title="TIMER STOPPED!",
             description=f"Timer Name : `{self.name}`\n"
-                        f"Time Limit : {self.seconds}",
+                        f"Time Limit : {self.seconds}\n",
+                        f"Time Left : {self.left_sec()}",
             color=discord.Colour.dark_red()
         ))
         await self.call_back()
