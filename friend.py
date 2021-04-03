@@ -5,7 +5,7 @@ from typing import *
 from collections import defaultdict as dd
 from collections import deque
 
-from osuapi import OsuApi, AHConnector
+from osuapi import OsuApi, AHConnector, HTTPError
 
 from bs4 import BeautifulSoup
 from discord.ext import commands
@@ -2091,7 +2091,7 @@ async def _main():
             api = OsuApi(api_key, connector=AHConnector())
             res = await api.get_user("peppy")
             assert res[0].user_id == 2
-        except osuapi.exceptions.HTTPError:
+        except HTTPError:
             print("Invalid osu!API key")
             turnoff = True
         except AssertionError:
@@ -2099,7 +2099,7 @@ async def _main():
             turnoff = True
 
         try:
-            assert turnoff == False
+            assert turnoff is False
             await app.start(token)
         except BaseException as _ex:
             if isinstance(ex, (KeyboardInterrupt, asyncio.CancelledError)):
@@ -2107,12 +2107,12 @@ async def _main():
             else:
                 traceback.print_exception(type(_ex), _ex, _ex.__traceback__)
         finally:
-            with open('uids.txt', 'w') as f:
+            with open('uids.txt', 'w') as f__:
                 for u in uids:
-                    f.write(f"{u} {uids[u]}\n")
-            with open('ratings.txt', 'w') as f:
+                    f__.write(f"{u} {uids[u]}\n")
+            with open('ratings.txt', 'w') as f__:
                 for u in ratings:
-                    f.write(f"{u} {ratings[u]}\n")
+                    f__.write(f"{u} {ratings[u]}\n")
             api.close()
             await app.logout()
             await app.close()
