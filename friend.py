@@ -101,7 +101,7 @@ parse_fixca = re.compile(r"Various Artists - Ranked Osu!droid Match #\d+ \(Vario
 
 KST = datetime.timezone(datetime.timedelta(hours=9))
 
-shutdown_time = datetime.time(4, tzinfo=KST)
+shutdown_time = datetime.time(4, 0, tzinfo=KST)
 shutdown_datetime = datetime.datetime.now(tz=KST)
 if shutdown_datetime.timetz() > shutdown_time:
     shutdown_datetime += datetime.timedelta(days=1)
@@ -2142,11 +2142,10 @@ async def _main():
         bot_task = loop.create_task(app.start(token))
         try:
             await auto_off()
-        except BaseException as _ex:
-            if isinstance(ex, (KeyboardInterrupt, asyncio.CancelledError)):
-                print('Ctrl-C or Cancelled')
-            else:
-                traceback.print_exception(type(_ex), _ex, _ex.__traceback__)
+        except (KeyboardInterrupt, asyncio.CancelledError):
+            print('Ctrl-C or Cancelled')
+        except Exception as _ex:
+            traceback.print_exception(type(_ex), _ex, _ex.__traceback__)
         finally:
             with open('uids.txt', 'w') as f__:
                 for u in uids:
@@ -2155,6 +2154,7 @@ async def _main():
                 for u in ratings:
                     f__.write(f"{u} {ratings[u]}\n")
             api.close()
+            await app.change_presence(status=discord.Status.offline)
             await app.close()
             if not bot_task.done():
                 bot_task.cancel()
@@ -2162,16 +2162,14 @@ async def _main():
     await ses.close()
 
 if __name__ == '__main__':
-    running = loop.create_task(_main())
     try:
-        loop.run_forever()
+        loop.run_until_complete(_main())
     except BaseException as ex:
         if isinstance(ex, (KeyboardInterrupt, asyncio.CancelledError)):
             print('Ctrl-C or Cancelled')
         else:
             traceback.print_exception(type(ex), ex, ex.__traceback__)
     finally:
-        running.cancel()
         loop.run_until_complete(loop.shutdown_asyncgens())
         loop.run_until_complete(asyncio.sleep(1))
         loop.close()
