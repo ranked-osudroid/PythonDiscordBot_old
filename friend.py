@@ -211,7 +211,7 @@ class Timer:
         self.callback = async_callback
         self.args = args
 
-        self.task: asyncio.Task = loop.create_task(self.run())
+        self.task: asyncio.Task = self.loop.create_task(self.run())
 
     async def run(self):
         try:
@@ -828,7 +828,7 @@ class Scrim:
 
     async def do_match_start(self):
         if self.match_task is None or self.match_task.done():
-            self.match_task = asyncio.create_task(self.match_start())
+            self.match_task = self.loop.create_task(self.match_start())
         else:
             await self.channel.send(embed=discord.Embed(
                 title="Match is already processing!",
@@ -911,6 +911,7 @@ with open('ratings.txt', 'r') as f:
 
 class Match:
     def __init__(self, player: discord.Member, opponent: discord.Member, bo: int = 7):
+        self.loop = asyncio.get_event_loop()
         self.made_time = datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")
         self.channel: Optional[discord.TextChannel] = None
         self.player = player
@@ -1210,7 +1211,7 @@ class Match:
 
     async def do_match_start(self):
         if self.match_task is None or self.match_task.done():
-            self.match_task = asyncio.create_task(self.match_start())
+            self.match_task = self.loop.create_task(self.match_start())
         else:
             await self.channel.send(embed=discord.Embed(
                 title="Match is already processing!",
@@ -1225,6 +1226,7 @@ matches: Dict[discord.Member, Match] = dict()
 
 class MappoolMaker:
     def __init__(self, message, session, name):
+        self.loop = asyncio.get_event_loop()
         self.maps: Dict[str, Tuple[int, int]] = dict()  # MODE: (MAPSET ID, MAPDIFF ID)
         self.osufile_path: Dict[str, str] = dict()
         self.beatmap_objects: Dict[str, osuapi.osu.Beatmap] = dict()
@@ -1308,7 +1310,7 @@ class MappoolMaker:
     async def execute_osz(self) -> Tuple[bool, str]:
         if self.session.closed:
             return False, 'Session is closed'
-        t = asyncio.create_task(self.show_result())
+        t = self.loop.create_task(self.show_result())
         async with asyncpool.AsyncPool(loop, num_workers=4, name="DownloaderPool",
                                        logger=logging.getLogger("DownloaderPool"),
                                        worker_co=self.downloadBeatmap, max_task_time=300,
@@ -1509,12 +1511,13 @@ class MappoolMaker:
 
 class WaitingPlayer:
     def __init__(self, discord_member: discord.Member):
+        self.loop = asyncio.get_event_loop()
         self.player = discord_member
         self.player_rating = ratings[uids[discord_member.id]]
         self.target_rating_low = self.player_rating
         self.target_rating_high = self.player_rating
         self.dr = 10
-        self.task = asyncio.create_task(self.expanding())
+        self.task = self.loop.create_task(self.expanding())
 
     def __repr__(self):
         return self.player.display_name
@@ -1533,9 +1536,10 @@ class WaitingPlayer:
 
 class MatchMaker:
     def __init__(self):
+        self.loop = asyncio.get_event_loop()
         self.pool: deque[WaitingPlayer] = deque()
         self.players_in_pool: set[int] = set()
-        self.task = asyncio.create_task(self.check_match())
+        self.task = self.loop.create_task(self.check_match())
         self.querys = deque()
 
     def add_player(self, player: discord.Member):
@@ -2111,8 +2115,9 @@ class BotOff(Exception):
 
 async def auto_off():
     try:
-        life_time = shutdown_datetime - datetime.datetime.now(KST)
-        await asyncio.sleep(life_time.total_seconds())
+        life_time = (shutdown_datetime - datetime.datetime.now(KST)).total_seconds()
+        print(f'[@] Shutdown after {life_time} second(s).')
+        await asyncio.sleep(life_time)
         raise BotOff()
     except asyncio.CancelledError:
         return
@@ -2142,10 +2147,10 @@ async def _main():
         bot_task = loop.create_task(app.start(token))
         try:
             await auto_off()
-        except (KeyboardInterrupt, asyncio.CancelledError):
-            print('Ctrl-C or Cancelled')
+        except asyncio.CancelledError:
+            print('_main() : Cancelled')
         except Exception as _ex:
-            traceback.print_exception(type(_ex), _ex, _ex.__traceback__)
+            raise
         finally:
             with open('uids.txt', 'w') as f__:
                 for u in uids:
@@ -2158,18 +2163,22 @@ async def _main():
             await app.close()
             if not bot_task.done():
                 bot_task.cancel()
-            print('Program Close')
     await ses.close()
 
 if __name__ == '__main__':
+    main_run = loop.create_task(_main())
     try:
-        loop.run_until_complete(_main())
+        loop.run_until_complete(main_run)
     except BaseException as ex:
         if isinstance(ex, (KeyboardInterrupt, asyncio.CancelledError)):
             print('Ctrl-C or Cancelled')
         else:
             traceback.print_exception(type(ex), ex, ex.__traceback__)
     finally:
+        if not main_run.done():
+            main_run.cancel()
         loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.run_until_complete(app.loop.shutdown_asyncgens())
         loop.run_until_complete(asyncio.sleep(1))
         loop.close()
+        print('loop closed')
