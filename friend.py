@@ -2084,7 +2084,6 @@ async def _main():
     matchmaker = MatchMaker()
     got_login = await osu_login(ses)
     if got_login:
-        print('OSU LOGIN SUCCESS')
         turnoff = False
 
         try:
@@ -2114,11 +2113,8 @@ async def _main():
                 for u in ratings:
                     f__.write(f"{u} {ratings[u]}\n")
             api.close()
-            await app.logout()
             await app.close()
             print('Program Close')
-    else:
-        print('OSU LOGIN FAILED')
     await ses.close()
 
 if __name__ == '__main__':
