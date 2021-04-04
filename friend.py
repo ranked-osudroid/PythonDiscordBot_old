@@ -99,6 +99,19 @@ multi_spaces_remover = re.compile(r"[ ]+")
 parse_fixca = re.compile(r"Various Artists - Ranked Osu!droid Match #\d+ \(Various Mappers\) "
                          r"\[\[(.*?)] (.*) - (.*)\((.*)\)][.]osu")
 
+KST = datetime.timezone(datetime.timedelta(hours=9))
+
+shutdown_time = datetime.time(4, tzinfo=KST)
+shutdown_datetime = datetime.datetime.now(tz=KST)
+if shutdown_datetime.timetz() > shutdown_time:
+    shutdown_datetime += datetime.timedelta(days=1)
+shutdown_datetime = shutdown_datetime.replace(
+    hour=shutdown_time.hour,
+    minute=shutdown_time.minute,
+    second=shutdown_time.second,
+    microsecond=shutdown_time.microsecond
+)
+
 def getd(n: Union[int, float, str]):
     return d(str(n))
 
@@ -1713,6 +1726,12 @@ async def make(ctx):
         description=f"Guild : {ctx.guild}\nChannel : {ctx.channel}",
         color=discord.Colour.green()
     ))
+    if shutdown_datetime - datetime.datetime.now(tz=KST) <= datetime.timedelta(hours=1):
+        await ctx.send(embed=discord.Embed(
+            title=f"The bot is supposed to shutdown at {shutdown_datetime.strftime('%H:%M')} KST.",
+            description="If the bot shutdowns during the match, all datas of the match will be disappeared.",
+            color=discord.Colour.dark_red()
+        ))
 
 
 @app.command(aliases=['t'])
@@ -2035,6 +2054,14 @@ async def queue(ctx):
             color=discord.Colour.dark_red()
         ))
         return
+    elif shutdown_datetime - datetime.datetime.now(tz=KST) <= datetime.timedelta(minutes=30):
+        await ctx.send(embed=discord.Embed(
+            title=f"The bot is supposed to shutdown at {shutdown_datetime.strftime('%H:%M')} KST.",
+            description=f"You can join the queue until 30 minutes before shutdown "
+                        f"({(shutdown_datetime - datetime.timedelta(minutes=30)).strftime('%H:%M')} KST).",
+            color=discord.Colour.dark_red()
+        ))
+        return
     matchmaker.add_player(ctx.author)
     await ctx.send(embed=discord.Embed(
         title=f"{ctx.author.display_name} queued.",
@@ -2078,6 +2105,20 @@ loop = asyncio.get_event_loop()
 match_category_channel: Optional[discord.CategoryChannel] = None
 matchmaker: Optional[MatchMaker] = None
 
+class BotOff(Exception):
+    def __init__(self):
+        super().__init__("Shutdown is coming!")
+
+async def auto_off():
+    try:
+        life_time = shutdown_datetime - datetime.datetime.now(KST)
+        await asyncio.sleep(life_time.total_seconds())
+        raise BotOff()
+    except asyncio.CancelledError:
+        return
+    except BotOff:
+        raise
+
 async def _main():
     global ses, matchmaker, api
     ses = aiohttp.ClientSession(loop=loop)
@@ -2097,9 +2138,10 @@ async def _main():
             print("Something went wrong")
             turnoff = True
 
+        assert turnoff is False
+        bot_task = loop.create_task(app.start(token))
         try:
-            assert turnoff is False
-            await app.start(token)
+            await auto_off()
         except BaseException as _ex:
             if isinstance(ex, (KeyboardInterrupt, asyncio.CancelledError)):
                 print('Ctrl-C or Cancelled')
@@ -2114,6 +2156,8 @@ async def _main():
                     f__.write(f"{u} {ratings[u]}\n")
             api.close()
             await app.close()
+            if not bot_task.done():
+                bot_task.cancel()
             print('Program Close')
     await ses.close()
 
