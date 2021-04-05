@@ -8,7 +8,7 @@ class scoreCalc:
         self.file.close()
     
     def getAutoScore(self):
-        halfup = lambda d: d.quantize(decimal.Decimal('1.'), rounding=decimal.ROUND_HALF_UP)
+        halfup = lambda d_num: d_num.quantize(decimal.Decimal('1.'), rounding=decimal.ROUND_HALF_UP)
         dec = decimal.Decimal
         l = self.file.readline().rstrip()
         while l != "[Difficulty]":
@@ -99,7 +99,7 @@ class scoreCalc:
             score += totaladdscore
             combo += 1
             d = self.file.readline().rstrip()
-        return (combo-1, score)
+        return combo - 1, score
 
 if __name__ == '__main__':
     p = "songs/Various Artist - Practice Pool 10/" \
