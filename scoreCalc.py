@@ -1,4 +1,4 @@
-import re, math, decimal
+import re, decimal
 
 class scoreCalc:
     def __init__(self, path):
