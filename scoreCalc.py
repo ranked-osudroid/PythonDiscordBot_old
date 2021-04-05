@@ -104,4 +104,6 @@ class scoreCalc:
 if __name__ == '__main__':
     p = "songs/Various Artist - Practice Pool 10/" \
         "Various Artist - Practice Pool 10 (Various Mapper) [[HD1] SELF CONTROL!! (ktgster) [Special]].osu"
-    print(scoreCalc(p).getAutoScore())
+    s = scoreCalc(p)
+    print(s.getAutoScore())
+    s.close()
