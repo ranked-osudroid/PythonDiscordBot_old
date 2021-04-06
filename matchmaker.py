@@ -74,8 +74,10 @@ class MatchMaker:
                             self.pool.append(WaitingPlayer(self.bot, player))
                             self.players_in_pool.add(player.id)
                     else:
-                        if self.pool[-1].player == player:
-                            self.pool.pop()
+                        if self.pool[-1].player.id == player.id:
+                            p = self.pool.pop()
+                            p.task.cancel()
+                            self.players_in_pool.remove(p.player.id)
                         else:
                             for i in range(len(self.pool) - 1):
                                 p = self.pool.popleft()
