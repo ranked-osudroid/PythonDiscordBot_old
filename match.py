@@ -226,7 +226,7 @@ class Match_Scrim:
             for k in self.mappoolmaker.beatmap_objects.keys():
                 m = moder.match(k)
                 if m:
-                    maps[m.group(1)] = k
+                    maps[m.group(1)].append(k)
             for mm in maps:
                 random.shuffle(maps[mm])
             mode_order = ['NM', 'HD', 'HR', 'DT']
