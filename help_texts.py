@@ -2,7 +2,7 @@ import discord
 
 helptxt_title = "COMMAND DESCRIPTION"
 helptxt_desc = """
-**ver. 2.20201221**
+**ver. 2.20210406**
 <this parameter is necessary>
 (this parameter is optional)
 __choose|one|of|these|parameters__
