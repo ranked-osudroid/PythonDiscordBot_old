@@ -1,3 +1,5 @@
+import discord
+
 helptxt_title = "COMMAND DESCRIPTION"
 helptxt_desc = """
 **ver. 2.20201221**
@@ -173,6 +175,13 @@ m;say
 m;sayresult
 m;run
 """.strip()
+
+helptxt = discord.Embed(title=helptxt_title, description=helptxt_desc, color=discord.Colour(0xfefefe))
+helptxt.add_field(name=helptxt_forscrim_name, value=helptxt_forscrim_desc1, inline=False)
+helptxt.add_field(name='\u200b', value=helptxt_forscrim_desc2, inline=False)
+helptxt.add_field(name='\u200b', value=helptxt_forscrim_desc3, inline=False)
+helptxt.add_field(name='\u200b', value=helptxt_forscrim_desc4, inline=False)
+helptxt.add_field(name=helptxt_other_name, value=helptxt_other_desc, inline=False)
 
 if __name__ == '__main__':
     print(len(helptxt_forscrim_desc1))
