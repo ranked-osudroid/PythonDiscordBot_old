@@ -543,6 +543,7 @@ async def _main():
             app.osuapi.close()
             await app.change_presence(status=discord.Status.offline)
             await app.loop.shutdown_asyncgens()
+            app.loop.close()
             await app.close()
             if not bot_task.done():
                 bot_task.cancel()

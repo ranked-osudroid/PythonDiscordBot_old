@@ -397,8 +397,7 @@ class Scrim:
         desc = '====== < Process LOG > ======'
         resultmessage: discord.Message = await self.channel.send(embed=discord.Embed(
             title="Processing...",
-            description=desc,
-            color=discord.Colour.orange()
+            color=discord.Colour.red()
         ))
         for team in self.team:
             for player in self.team[team]:
@@ -581,6 +580,8 @@ class Scrim:
                     title="Match Aborted!",
                     color=discord.Colour.dark_red()
                 ))
+                raise
+            except GeneratorExit:
                 return
         except BaseException as ex_:
             print(get_traceback_str(ex_))

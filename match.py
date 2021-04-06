@@ -142,7 +142,7 @@ class Match_Scrim:
                 ))
                 for i in range(9, -1, -1):
                     await message.edit(embed=discord.Embed(
-                        title="준비 시간이 끝났습니다!",
+                        title="READY TIME OVER!",
                         description=f"**Force** Round #{self.round} to start in **{i}**...",
                         color=discord.Colour.purple()
                     ))

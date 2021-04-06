@@ -37,6 +37,8 @@ class Timer:
             await self.timeover()
         except asyncio.CancelledError:
             await self.cancel()
+        except GeneratorExit:
+            return
         except BaseException as ex_:
             print(get_traceback_str(ex_))
             raise ex_
