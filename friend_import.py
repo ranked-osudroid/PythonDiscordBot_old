@@ -153,31 +153,6 @@ def dice(s: str):
         return None
     return tuple(str(random.randint(1, int(s[2]))) for _ in range(int(s[0])))
 
-async def getrecent(_id: int) -> Optional[Tuple[Sequence[AnyStr], Sequence[AnyStr], Sequence[AnyStr]]]:
-    url = url_base + str(_id)
-    async with aiohttp.ClientSession() as s:
-        html = await s.get(url)
-    bs = BeautifulSoup(await html.text(), "html.parser")
-    recent = bs.select_one("#activity > ul > li:nth-child(1)")
-    recent_mapinfo = recent.select("a.clear > strong.block")[0].text
-    recent_playinfo = recent.select("a.clear > small")[0].text
-    recent_miss = recent.select("#statics")[0].text
-    rmimatch = mapr.match(recent_mapinfo)
-    if rmimatch is None:
-        return None
-    return (rmimatch.groups(),
-            playr.match(recent_playinfo).groups(),
-            missr.match(recent_miss).groups())
-
-async def get_rank(_id: int):
-    url = url_base + str(_id)
-    async with aiohttp.ClientSession() as s:
-        html = await s.get(url)
-        bs = BeautifulSoup(await html.text(), "html.parser")
-        rank = bs.select_one("#content > section > section > section > aside.aside-lg.bg-light.lter.b-r > "
-                             "section > section > div > div.panel.wrapper > div > div:nth-child(1) > a > span").text
-        return int(rank)
-
 def is_owner():
     async def predicate(ctx):
         return ctx.author.id == 327835849142173696

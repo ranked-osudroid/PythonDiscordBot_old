@@ -195,7 +195,7 @@ class MyCog(commands.Cog):
         mid = ctx.author.id
         self.bot.uids[mid] = number
         if self.bot.ratings[number] == d():
-            self.bot.ratings[number] = elo_rating.ELO_MID_RATING - (await get_rank(number)) / d('100')
+            self.bot.ratings[number] = elo_rating.ELO_MID_RATING - (await self.bot.get_rank(number)) / d('100')
         await ctx.send(embed=discord.Embed(
             title=f'Player {ctx.author.name} binded to UID {number}.',
             color=discord.Colour(0xfefefe)
@@ -507,6 +507,29 @@ class MyBot(commands.Bot):
                 user = await self.fetch_user(x)
             self.member_names[x] = user.name
         return self.member_names[x]
+
+    async def getrecent(self, _id: int) -> Optional[Tuple[Sequence[AnyStr], Sequence[AnyStr], Sequence[AnyStr]]]:
+        url = url_base + str(_id)
+        html = await self.session.get(url)
+        bs = BeautifulSoup(await html.text(), "html.parser")
+        recent = bs.select_one("#activity > ul > li:nth-child(1)")
+        recent_mapinfo = recent.select("a.clear > strong.block")[0].text
+        recent_playinfo = recent.select("a.clear > small")[0].text
+        recent_miss = recent.select("#statics")[0].text
+        rmimatch = mapr.match(recent_mapinfo)
+        if rmimatch is None:
+            return None
+        return (rmimatch.groups(),
+                playr.match(recent_playinfo).groups(),
+                missr.match(recent_miss).groups())
+
+    async def get_rank(self, _id: int):
+        url = url_base + str(_id)
+        html = await self.session.get(url)
+        bs = BeautifulSoup(await html.text(), "html.parser")
+        rank = bs.select_one("#content > section > section > section > aside.aside-lg.bg-light.lter.b-r > "
+                             "section > section > div > div.panel.wrapper > div > div:nth-child(1) > a > span").text
+        return int(rank)
 
 
 async def _main():

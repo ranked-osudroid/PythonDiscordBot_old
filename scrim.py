@@ -411,7 +411,7 @@ class Scrim:
                     desc += f"Failed : " \
                             f"{await self.bot.getusername(player)}'s UID is not found."
                     continue
-                player_recent_info = await getrecent(self.bot.uids[player])
+                player_recent_info = await self.bot.getrecent(self.bot.uids[player])
                 if player_recent_info is None:
                     desc += f"Failed : " \
                             f"{await self.bot.getusername(player)}'s recent play info can't be parsed."
