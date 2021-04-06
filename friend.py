@@ -343,7 +343,7 @@ class MyCog(commands.Cog):
         if action == 'now':
             if self.bot.timers.get(name) is None:
                 await ctx.send(embed=discord.Embed(
-                    title=f"No timer named {name}!",
+                    title=f"No timer named `{name}`!",
                     color=discord.Colour.dark_red()
                 ))
             else:
@@ -351,7 +351,7 @@ class MyCog(commands.Cog):
         elif action == 'cancel':
             if self.bot.timers.get(name) is None:
                 await ctx.send(embed=discord.Embed(
-                    title=f"No timer named {name}!",
+                    title=f"No timer named `{name}`!",
                     color=discord.Colour.dark_red()
                 ))
             else:
@@ -362,7 +362,13 @@ class MyCog(commands.Cog):
                 self.bot.timer_count += 1
             if self.bot.timers.get(name) is not None and not self.bot.timers[name].done:
                 await ctx.send(embed=discord.Embed(
-                    title=f"There's already running timer named {name}!",
+                    title=f"There's already running timer named `{name}`!",
+                    color=discord.Colour.dark_red()
+                ))
+                return
+            elif type(action) != int:
+                await ctx.send(embed=discord.Embed(
+                    title=f"You should enter number for time limit!",
                     color=discord.Colour.dark_red()
                 ))
                 return
