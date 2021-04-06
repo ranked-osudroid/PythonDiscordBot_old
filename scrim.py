@@ -363,7 +363,10 @@ class Scrim:
         for c in rmeta:
             formstr = formstr.replace(c, '\\' + c)
         for a in args:
-            formstr = formstr.replace(a, f'(?P<{a}>.*?)')
+            if a == 'title':
+                formstr = formstr.replace(a, f'(?P<{a}>.*)')
+            else:
+                formstr = formstr.replace(a, f'(?P<{a}>.*?)')
         self.form = [re.compile(formstr), args]
         await self.channel.send(embed=discord.Embed(
             title="Form set!",
