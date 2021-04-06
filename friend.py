@@ -366,13 +366,14 @@ class MyCog(commands.Cog):
                     color=discord.Colour.dark_red()
                 ))
                 return
-            elif type(action) != int:
+            try:
+                Timer(self.bot, ctx.channel, name, float(action))
+            except ValueError:
                 await ctx.send(embed=discord.Embed(
                     title=f"You should enter number for time limit!",
                     color=discord.Colour.dark_red()
                 ))
-                return
-            Timer(self.bot, ctx.channel, name, action)
+
 
     @commands.command()
     async def calc(self, ctx, kind: str, maxscore: d, score: d, acc: d, miss: d):
