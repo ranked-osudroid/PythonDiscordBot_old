@@ -305,12 +305,15 @@ class Match_Scrim:
                             await self.scrim.match_task
                         break
                     await asyncio.sleep(1)
+                if self.abort:
+                    break
         except BaseException as ex_:
+            print(get_traceback_str(ex_))
+            raise ex_
+        finally:
             if self.mappoolmaker.drive_file is not None:
                 self.mappoolmaker.drive_file.Delete()
             del self.bot.matches[self.player], self.bot.matches[self.opponent]
-            print(get_traceback_str(ex_))
-            raise ex_
 
     async def do_match_start(self):
         if self.match_task is None or self.match_task.done():
