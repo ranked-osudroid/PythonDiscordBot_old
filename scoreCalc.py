@@ -46,7 +46,8 @@ class scoreCalc:
             secPerbit = dec(t[1])
             speed = 1
             if secPerbit < 0:
-                secPerbit, speed = dec(timings[-1][1]), dec(-100) / secPerbit
+                secPerbit, speed = dec(timings[-1][1]), (dec(-100) / secPerbit).\
+                    quantize(dec('.0001'), rounding=decimal.ROUND_HALF_UP)
             timings.append((offset, secPerbit, speed))
             t = self.file.readline().rstrip()
         l = self.file.readline().rstrip()
@@ -74,8 +75,9 @@ class scoreCalc:
                 pass
             elif _type == 2 or _type == 6:
                 repeat = int(d[6])
-                length = dec(d[7])
-                beats = halfup(length / (sv * timings[tindex - 1][2] * 100) * st)
+                length = dec(d[7]).quantize(dec('.0001'), rounding=decimal.ROUND_HALF_UP)
+                beats = (length / (sv * timings[tindex - 1][2] * 100) * st). \
+                    quantize(dec('1'), rounding=decimal.ROUND_UP)
                 totaladdscore += 30 * repeat
                 totaladdscore += 10 * (beats - 1) * repeat
                 combo += beats * repeat
