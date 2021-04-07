@@ -318,6 +318,46 @@ class Match_Scrim:
                         # if self.scrim is not None and not self.scrim.match_task.done():
                         if self.round > 1:
                             await self.scrim.match_task
+                            r = self.scrim.match_task.result()
+                            if len(r['winner']) > 1:
+                                w = 'draw'
+                            else:
+                                if r['winner'][0] == self.player.name:
+                                    w = 'a'
+                                else:
+                                    w = 'b'
+                            data = {
+                                'key': fixca_key,
+                                'matchId': self.made_time,
+                                'mapId': self.mappoolmaker.maps[r['number']][0],
+                                'mapSetId': self.mappoolmaker.maps[r['number']][1],
+                                'mapName': r['map'],
+                                'mapMod': r['mode'],
+                                'mapSheet': r['number'],
+                                'winner': w,
+                                'aTeamScore': r['v2score'][self.player.id],
+                                'bTeamScore': r['v2score'][self.opponent.id],
+                                'aTeamAcc': float(r['score'][self.player.id][0][1]),
+                                'bTeamAcc': float(r['score'][self.opponent.id][0][1]),
+                                'aTeamMod': r['score'][self.player.id][2],
+                                'bTeamMod': r['score'][self.opponent.id][2],
+                                'startedTime': r['start_time']
+                            }
+                            if BOT_DEBUG:
+                                async with self.bot.session.post("http://ranked-osudroid.kro.kr/roundSubmit",
+                                                                 data=data) as submit_res:
+                                    if submit_res.status != 200:
+                                        await self.channel.send(embed=discord.Embed(
+                                            title=f'POST failed. ({submit_res.status})\n',
+                                            description=f'Try again.',
+                                            color=discord.Colour.dark_red()
+                                        ))
+                                    if (submit_res_json := await submit_res.json(encoding='utf-8'))['status'] == 'failed':
+                                        await self.channel.send(embed=discord.Embed(
+                                            title=f'POST failed. (FIXCUCKED)\n',
+                                            description=f'```{submit_res_json["error"]}```\n\nTry again.',
+                                            color=discord.Colour.dark_red()
+                                        ))
                         break
                     await asyncio.sleep(1)
                 if self.abort:

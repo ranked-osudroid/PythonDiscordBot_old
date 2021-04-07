@@ -13,6 +13,8 @@ class Scrim:
         self.channel: discord.TextChannel = channel
         self.start_time = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
 
+        self.round_start_time = None
+
         self.match_task: Optional[asyncio.Task] = None
 
         self.team: Dict[str, Set[int]] = dict()
@@ -39,11 +41,11 @@ class Scrim:
 
         self.availablemode: Dict[str, Iterable[int]] = {
             'NM': {0, 8},
-            'HR': {2, 10},
             'HD': {1, 9},
+            'HR': {2, 10},
             'DT': {4, 5, 12, 13},
-            'FM': {0, 1, 2, 3, 8, 9, 10, 11},
-            'TB': {0, 1, 2, 3, 8, 9, 10, 11},
+            'FM': {1, 2, 3, 9, 10, 11, 64, 65, 72, 73},
+            'TB': {0, 1, 2, 3, 8, 9, 10, 11, 64, 65, 72, 73},
         }
 
         self.setfuncs: Dict[str, Callable[[str], NoReturn]] = {
@@ -249,7 +251,7 @@ class Scrim:
                 name=f"*Team {t} total score : {teamscore[t]}*",
                 value='\n'.join(
                     [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p][1]]} ({self.score[p][2]}) : "
-                     f"{self.score[p][0][1]} / {self.score[p][0][1]}% / {self.score[p][0][1]} :x: "
+                     f"{self.score[p][0][0]} / {self.score[p][0][1]}% / {self.score[p][0][2]} :x: "
                      f"= {calculatedscores[p]}"
                      for p in self.team[t]])+'\n',
                 inline=False
@@ -273,7 +275,19 @@ class Scrim:
                 logtxt.append(f"Player {await self.bot.getusername(p)} = {calculatedscores[p]} "
                               f"({' / '.join(str(x) for x in self.score[p][0])} - {self.score[p][1]})")
         self.log.append('\n'.join(logtxt))
+        r = dict()
+        r['winners'] = winnerteam
+        r['score'] = dict()
+        r['v2score'] = dict()
+        r['start_time'] = self.round_start_time
+        r['map'] = self.getmapfull()
+        r['number'] = self.getnumber()
+        r['mode'] = self.getmode()
+        for p in self.score:
+            r['score'][p] = self.score[p]
+            r['v2score'][p] = calculatedscores[p]
         self.resetmap()
+        return r
 
     def resetmap(self):
         self.map_artist = None
@@ -286,6 +300,7 @@ class Scrim:
         self.map_time = None
         for p in self.score:
             self.score[p] = ((getd(0), getd(0), getd(0)), None, 'N/A')
+        self.round_start_time = None
 
     def setartist(self, artist: str):
         self.map_artist = artist
@@ -556,6 +571,7 @@ class Scrim:
                 ))
                 return
             try:
+                self.round_start_time = int(time.time())
                 await self.channel.send(embed=discord.Embed(
                     title="MATCH START!",
                     description=f"Map Info : `{self.getmapfull()}`\n"
@@ -589,7 +605,8 @@ class Scrim:
                     color=discord.Colour.from_rgb(128, 128, 255)
                 ))
                 await self.onlineload()
-                await self.submit('nero2')
+                r = await self.submit('nero2')
+                return r
             except asyncio.CancelledError:
                 await self.channel.send(embed=discord.Embed(
                     title="Match Aborted!",

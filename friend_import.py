@@ -1,6 +1,6 @@
 import asyncio, aiohttp, aiofiles, asyncpool, logging, yarl, \
     datetime, decimal, discord, gspread, random, re, time, \
-    traceback, scoreCalc, os, elo_rating, json, osuapi, zipfile, pydrive, shutil
+    traceback, scoreCalc, os, elo_rating, json, osuapi, zipfile, pydrive, shutil, bisect
 from typing import *
 from collections import defaultdict as dd
 from collections import deque
@@ -15,6 +15,8 @@ from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
 from help_texts import helptxt
+
+BOT_DEBUG = False
 
 scopes = [
     'https://www.googleapis.com/auth/spreadsheets',
@@ -173,13 +175,13 @@ modetoint = {
     'Precise': 128
 }
 modeabbrev = {
-    'Hidden': 'HD',
-    'HardRock': 'HR',
-    'DoubleTime': 'DT',
+    'Easy': 'EZ',
     'NoFail': 'NF',
     'HalfTime': 'HF',
+    'HardRock': 'HR',
+    'Hidden': 'HD',
+    'DoubleTime': 'DT',
     'NightCore': 'NC',
-    'Easy': 'EZ',
     'Precise': 'PR'
 }
 infotoint = {
@@ -197,13 +199,13 @@ def modetointfunc(_modes: Iterable[str]) -> int:
             r |= modetoint[md]
     return r
 
-def inttomode(i: Optional[int]) -> str:
+def inttomode(i: Optional[int], sep: str = '') -> str:
     if i:
-        r = ''
+        r = []
         for md in modeabbrev.keys():
             if i & modetoint[md]:
-                r += modeabbrev[md]
-        return r
+                r.append(modeabbrev[md])
+        return sep.join(r)
     elif i is None:
         return 'N/A'
     else:
@@ -256,3 +258,7 @@ RANK_EMOJI = {
 }
 
 rankFilenameR = re.compile('assets/images/ranking-(.+)-small[.]png')
+
+ELO_RANK_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master']
+ELO_RANK_SCORE_BOUNDARY = [1500, 2000, 2500, 3000, 3500]
+ELO_RANK_ENTRY_COST = [0, 15, 30, 45, 60, 80]  # 실제 elo 가감산 값에 따라

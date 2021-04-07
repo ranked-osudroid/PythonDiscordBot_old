@@ -33,14 +33,15 @@ class EloRating:
 
 
 if __name__ == '__main__':
-    p = d('1500')
-    q = d('1800')
+    p = d('3000')
+    q = d('3000')
 
     g = EloRating(p, q)
     res = g.get_ratings()
     print(f"초기값 (P1 vs P2) : {res[0]} vs {res[1]}\n")
-    for i in range(9):
-        s = 1 - d('.125') * i
+    N = 10
+    for i in range(N+1):
+        s = (1 - i / d(N)).quantize(d('.001'))
         g.update(s)
         res = g.get_ratings()
         print(f"승률 {s}일 때   : {res[0]} vs {res[1]}")
