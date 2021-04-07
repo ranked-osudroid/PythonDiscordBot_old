@@ -51,7 +51,7 @@ If you enter auto, you should enter *filepath*.
 *filepath* is the path of `.osu` file that we want to get autoplay score of.
 Built-in script will calculate autoplay score, and the score will (mostly) not same with in-game SS score.
 
-**m;__score|sc__ <*score*> (*acc*) (*miss*)**
+**m;__score|sc__ <*score*> (*acc*) (*miss*) (*rank*) (*mode*)**
 If you want to upload your score manually, use this.
 
 **m;__scoreremove|scr__**

@@ -198,7 +198,7 @@ class Match_Scrim:
                 description="If you see this message for more than 5 seconds, call the bot developer.",
                 color=discord.Colour.orange()
             ))
-            self.mappoolmaker = MappoolMaker(self.bot, statusmessage, self.made_time)
+            self.mappoolmaker = MappoolMaker(self, statusmessage, self.made_time)
 
             # 테스트 데이터 : 디코8토너 쿼터파이널
             # self.mappoolmaker.maps = {
