@@ -1,18 +1,19 @@
 from friend_import import *
 
 if TYPE_CHECKING:
-    from friend import MyBot
+    from match import Match_Scrim
     from pydrive import drive
 
 class MappoolMaker:
-    def __init__(self, bot: 'MyBot', message, name):
-        self.bot = bot
-        self.loop = bot.loop
+    def __init__(self, match: 'Match_Scrim', message, name):
+        self.match = match
+        self.bot = match.bot
+        self.loop = self.bot.loop
         self.maps: Dict[str, Tuple[int, int]] = dict()  # MODE: (MAPSET ID, MAPDIFF ID)
         self.osufile_path: Dict[str, str] = dict()
         self.beatmap_objects: Dict[str, osuapi.osu.Beatmap] = dict()
         self.queue = asyncio.Queue()
-        self.session: Optional[aiohttp.ClientSession] = bot.session
+        self.session: Optional[aiohttp.ClientSession] = self.bot.session
         self.message: Optional[discord.Message] = message
         self.drive_file: Optional[pydrive.drive.GoogleDriveFile] = None
 
@@ -258,11 +259,15 @@ class MappoolMaker:
             if res_data['status'] == 'failed':
                 return False, 'Get info failed : FIXCUCKED'
             download_link = res_data['downlink']
+            auto_scores = res_data['autoscore']
 
         desc[-1] += ' done'
         desc.append('Downloading mappool for setting...')
         e.description = '\n'.join(desc)
         await self.message.edit(embed=e)
+
+        for mm in auto_scores:
+            self.match.map_autoscores[mm] = auto_scores[mm]["score"]
 
         async with self.session.get(download_link) as resp:
             if resp.status != 200:

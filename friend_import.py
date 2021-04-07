@@ -172,6 +172,16 @@ modetoint = {
     'Easy': 64,
     'Precise': 128
 }
+modeabbrev = {
+    'Hidden': 'HD',
+    'HardRock': 'HR',
+    'DoubleTime': 'DT',
+    'NoFail': 'NF',
+    'HalfTime': 'HF',
+    'NightCore': 'NC',
+    'Easy': 'EZ',
+    'Precise': 'PR'
+}
 infotoint = {
     'artist': 1,
     'title': 2,
@@ -179,6 +189,18 @@ infotoint = {
     'diff': 8,
     'mode': 16
 }
+
+def inttomode(i: Optional[int]) -> str:
+    if i:
+        r = ''
+        for md in modeabbrev.keys():
+            if i & modetoint[md]:
+                r += modeabbrev[md]
+        return r
+    elif i is None:
+        return 'N/A'
+    else:
+        return 'NM'
 
 async def osu_login(session):
     async with session.get(OSU_HOME) as page:

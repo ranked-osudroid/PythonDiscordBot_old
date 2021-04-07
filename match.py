@@ -21,6 +21,7 @@ class Match_Scrim:
 
         self.mappoolmaker: Optional[MappoolMaker] = None
         self.map_order: List[str] = []
+        self.map_autoscores: Dict[str, int] = dict()
         self.map_tb: Optional[str] = None
 
         self.scrim: Optional[Scrim] = None
@@ -97,6 +98,14 @@ class Match_Scrim:
                 await self.scrim.maketeam(self.opponent.name, False)
                 await self.scrim.addplayer(self.player.name, self.player, False)
                 await self.scrim.addplayer(self.opponent.name, self.opponent, False)
+                self.scrim.setmoderule(
+                    {8, },
+                    {9, },
+                    {10, },
+                    {12, 13},
+                    {9, 10, 11, 72, 73},
+                    {8, 9, 10, 11, 72, 73}
+                )
             else:
                 await self.channel.send(embed=discord.Embed(
                     title="The Opponent didn't participate.",
@@ -270,14 +279,20 @@ class Match_Scrim:
             self.scrim.setdiff(now_beatmap.version)
             self.scrim.setmaptime(now_beatmap.total_length)
             self.scrim.setmode(now_mapnum[:2])
-            scorecalc = scoreCalc.scoreCalc(os.path.join(
-                self.mappoolmaker.save_folder_path, self.mappoolmaker.osufile_path[now_mapnum]))
-            self.scrim.setautoscore(scorecalc.getAutoScore()[1])
+            autosc = self.map_autoscores.get(now_mapnum)
+            if autosc is None:
+                scorecalc = scoreCalc.scoreCalc(os.path.join(
+                    self.mappoolmaker.save_folder_path, self.mappoolmaker.osufile_path[now_mapnum]))
+                autosc = scorecalc.getAutoScore()[1] // 2
+                scorecalc.close()
+            self.scrim.setautoscore(autosc)
             await self.channel.send(embed=discord.Embed(
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{self.scrim.getmapfull()}`\n"
                             f"Map Number : {self.scrim.getnumber()} / Map Mode : {self.scrim.getmode()}\n"
-                            f"Map SS Score : {self.scrim.getautoscore()} / Map Length : {self.scrim.getmaptime()} sec.",
+                            f"Map SS Score : {self.scrim.getautoscore()} / Map Length : {self.scrim.getmaptime()} sec\n"
+                            f"Allowed modes : "
+                            f"`{', '.join(map(inttomode, self.scrim.availablemode[self.scrim.getmode()]))}`",
                 color=discord.Colour.blue()
             ))
             await self.channel.send(embed=discord.Embed(

@@ -23,8 +23,8 @@ class Scrim:
         # member_id : teamname
         self.setscore: Dict[str, int] = dict()
         # teamname : int
-        self.score: Dict[int, Tuple[Tuple[d, d, d], Optional[str]]] = dict()
-        # member_id : ((score, acc, miss), grade)
+        self.score: Dict[int, Tuple[Tuple[d, d, d], Optional[str], str]] = dict()
+        # member_id : ((score, acc, miss), grade, mode)
 
         self.map_artist: Optional[str] = None
         self.map_author: Optional[str] = None
@@ -124,7 +124,7 @@ class Scrim:
             self.findteam[mid] = name
             self.team[name].add(mid)
             self.players.add(mid)
-            self.score[mid] = ((getd(0), getd(0), getd(0)), None)
+            self.score[mid] = ((getd(0), getd(0), getd(0)), None, 'N/A')
             if do_print:
                 await self.channel.send(embed=discord.Embed(
                     title=f"Player {member.name} participates into Team {name}!",
@@ -155,9 +155,12 @@ class Scrim:
                     color=discord.Colour.blue()
                 ))
 
-    async def addscore(self, member: Optional[discord.Member], score: int, acc: float, miss: int, grade: str = None):
+    async def addscore(self, member: Optional[discord.Member], score: int, acc: float, miss: int,
+                       grade: str = None, mode: Union[int, str] = 0):
         if not member:
             return
+        if type(mode) == int:
+            mode = inttomode(mode)
         mid = member.id
         if mid not in self.players:
             await self.channel.send(embed=discord.Embed(
@@ -165,7 +168,7 @@ class Scrim:
                 description=f"You participate first."
             ))
         else:
-            self.score[mid] = ((getd(score), getd(acc), getd(miss)), grade)
+            self.score[mid] = ((getd(score), getd(acc), getd(miss)), grade, mode)
             await self.channel.send(embed=discord.Embed(
                 title=f"Player {member.name}'(s) score is modified.",
                 description=f"Team {self.findteam[mid]} <== {score}, {acc}%, {miss}xMISS",
@@ -182,7 +185,7 @@ class Scrim:
                 description=f"You participate first."
             ))
         else:
-            self.score[mid] = ((getd(0), getd(0), getd(0)), None)
+            self.score[mid] = ((getd(0), getd(0), getd(0)), None, 'N/A')
             await self.channel.send(embed=discord.Embed(
                 title=f"Player {member.name}'(s) score is deleted.",
                 color=discord.Colour.blue()
@@ -245,7 +248,7 @@ class Scrim:
             sendtxt.add_field(
                 name=f"*Team {t} total score : {teamscore[t]}*",
                 value='\n'.join(
-                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p][1]]} : "
+                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p][1]]} ({self.score[p][2]}) : "
                      f"{self.score[p][0][1]} / {self.score[p][0][1]}% / {self.score[p][0][1]} :x: "
                      f"= {calculatedscores[p]}"
                      for p in self.team[t]])+'\n',
@@ -282,7 +285,7 @@ class Scrim:
         self.map_auto_score = None
         self.map_time = None
         for p in self.score:
-            self.score[p] = ((getd(0), getd(0), getd(0)), None)
+            self.score[p] = ((getd(0), getd(0), getd(0)), None, 'N/A')
 
     def setartist(self, artist: str):
         self.map_artist = artist
@@ -470,11 +473,11 @@ class Scrim:
                                     f"Its {k} : {p[k]})"
                 if flag:
                     continue
+                pmodeint = 0
+                for md in p['modes']:
+                    if modetoint.get(md):
+                        pmodeint |= modetoint[md]
                 if self.map_mode is not None:
-                    pmodeint = 0
-                    for md in p['modes']:
-                        if modetoint.get(md):
-                            pmodeint |= modetoint[md]
                     if pmodeint not in self.availablemode[self.map_mode]:
                         desc += f"Failed : " \
                                 f"In {await self.bot.getusername(player)}'s recent play info, " \
@@ -482,11 +485,16 @@ class Scrim:
                                 f"(Now mode numbers allowed to use : {self.availablemode[self.map_mode]} / " \
                                 f"Its mode number : {pmodeint})"
                         continue
-                self.score[player] = ((getd(p['score']), getd(p['acc']), getd(p['miss'])), p['rank'])
+                p['modes'] = inttomode(pmodeint)
+                extra_rate = d('1')
+                if self.getmode() == 'DT' and pmodeint & 5:
+                    extra_rate /= d('1.06')
+                self.score[player] = (((getd(p['score']) * extra_rate) // d('1'), getd(p['acc']), getd(p['miss'])),
+                                      p['rank'], p['modes'])
                 desc += f"Success : " \
                         f"Player {await self.bot.getusername(player)}'s score = " \
-                        f"{self.score[player][0][0]}, {self.score[player][0][1]}%, {self.score[player][0][2]}xMISS, " \
-                        f"{self.score[player][1]} rank"
+                        f"{self.score[player][0][0]}, {self.score[player][0][1]}%, {self.score[player][0][2]}xMISS / " \
+                        f"{self.score[player][2]} / {self.score[player][1]} rank"
         await resultmessage.edit(embed=discord.Embed(
             title="Calculation finished!",
             description=desc,
@@ -510,7 +518,7 @@ class Scrim:
         )
         sendtxt.add_field(
             name="THE RESULT:",
-            value='\n'.join(f"{t} : {self.setscore[t]}" for t in self.setscore)
+            value=blank + '\n'.join(f"{t} : {self.setscore[t]}" for t in self.setscore)
         )
         sendtxt.add_field(
             name=blank,
@@ -555,7 +563,9 @@ class Scrim:
                     title="MATCH START!",
                     description=f"Map Info : `{self.getmapfull()}`\n"
                                 f"Map Number : {self.getnumber()} / Map Mode : {self.getmode()}\n"
-                                f"Map SS Score : {self.getautoscore()} / Map Length : {self.getmaptime()} sec.",
+                                f"Map SS Score : {self.getautoscore()} / Map Length : {self.getmaptime()} sec\n"
+                                f"Allowed modes : "
+                                f"`{', '.join(map(inttomode, self.availablemode[self.getmode()]))}`",
                     color=discord.Colour.from_rgb(255, 255, 0)
                 ))
                 a = self.map_time
