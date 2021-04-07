@@ -452,7 +452,7 @@ class MyCog(commands.Cog):
     @commands.command(aliases=['pfme'])
     async def profileme(self, ctx):
         e = discord.Embed(
-            title=f"{ctx.author.display_name}'s profile",
+            title=f"{ctx.author.name}'s profile",
             color=discord.Colour(0xdb6ee1)
         )
         e.add_field(
@@ -479,7 +479,7 @@ class MyCog(commands.Cog):
         rd = dict()
         rd['artist'], rd['title'], rd['author'], rd['diff'] = recent_play_info[0]
         e = discord.Embed(
-            title=f"{ctx.author.display_name}'(s) recent play info",
+            title=f"{ctx.author.name}'(s) recent play info",
             color=discord.Colour(0x78a94c)
         )
         e.add_field(
@@ -494,7 +494,7 @@ class MyCog(commands.Cog):
         )
         e.add_field(
             name="Score / Accuracy / Miss",
-            value=f"{recent_play_info[1][1]} / {recent_play_info[1][3]}% / {recent_play_info[2][0]}:x:",
+            value=f"{recent_play_info[1][1]} / {recent_play_info[1][3]}% / {recent_play_info[2][0]} :x:",
             inline=False
         )
         e.add_field(
@@ -543,7 +543,7 @@ class MyCog(commands.Cog):
             return
         self.bot.matchmaker.add_player(ctx.author)
         await ctx.send(embed=discord.Embed(
-            title=f"{ctx.author.display_name} queued.",
+            title=f"{ctx.author.name} queued.",
             description=f"(If you already in queue, this will be ignored.)\n"
                         f"Now the number of players in queue : {len(self.bot.matchmaker.pool)}",
             color=discord.Colour(0x78f7fb)
@@ -553,7 +553,7 @@ class MyCog(commands.Cog):
     async def unqueue(self, ctx):
         self.bot.matchmaker.remove_player(ctx.author)
         await ctx.send(embed=discord.Embed(
-            title=f"{ctx.author.display_name} unqueued.",
+            title=f"{ctx.author.name} unqueued.",
             description=f"**This request could be ignored.**\n"
                         f"Now the number of players in queue : {len(self.bot.matchmaker.pool)}",
             color=discord.Colour(0x78f7fb)

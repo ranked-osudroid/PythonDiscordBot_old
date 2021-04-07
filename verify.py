@@ -12,7 +12,7 @@ class Verify:
         self.channel = ch
         self.member = member
         self.uid = uid
-        self.timer = Timer(bot, ch, f"{member.display_name}_verify", 300)
+        self.timer = Timer(bot, ch, f"{member.name}_verify", 300)
 
     async def do_verify(self):
         player_recent = await self.bot.getrecent(self.uid)

@@ -245,8 +245,9 @@ class Scrim:
             sendtxt.add_field(
                 name=f"*Team {t} total score : {teamscore[t]}*",
                 value='\n'.join(
-                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p][-1]]} : "
-                     f"{' / '.join(str(x) for x in self.score[p][0])} = {calculatedscores[p]}"
+                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p][1]]} : "
+                     f"{self.score[p][0][1]} / {self.score[p][0][1]}% / {self.score[p][0][1]} :x: "
+                     f"= {calculatedscores[p]}"
                      for p in self.team[t]])+'\n',
                 inline=False
             )

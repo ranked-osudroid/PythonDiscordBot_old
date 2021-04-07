@@ -16,7 +16,7 @@ class WaitingPlayer:
         self.task = self.loop.create_task(self.expanding())
 
     def __repr__(self):
-        return self.player.display_name
+        return self.player.name
 
     async def expanding(self):
         try:

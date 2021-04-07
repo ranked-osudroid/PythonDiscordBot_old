@@ -93,10 +93,10 @@ class Match_Scrim:
                     color=discord.Colour.dark_red()
                 ))
 
-                await self.scrim.maketeam(self.player.display_name, False)
-                await self.scrim.maketeam(self.opponent.display_name, False)
-                await self.scrim.addplayer(self.player.display_name, self.player, False)
-                await self.scrim.addplayer(self.opponent.display_name, self.opponent, False)
+                await self.scrim.maketeam(self.player.name, False)
+                await self.scrim.maketeam(self.opponent.name, False)
+                await self.scrim.addplayer(self.player.name, self.player, False)
+                await self.scrim.addplayer(self.opponent.name, self.opponent, False)
             else:
                 await self.channel.send(embed=discord.Embed(
                     title="The Opponent didn't participate.",
@@ -251,7 +251,7 @@ class Match_Scrim:
                 self.winfor in set(self.scrim.setscore.values()):
             winner = await self.scrim.end()
             score_diff = \
-                self.scrim.setscore[self.player.display_name] - self.scrim.setscore[self.opponent.display_name]
+                self.scrim.setscore[self.player.name] - self.scrim.setscore[self.opponent.name]
             self.elo_manager.update(score_diff / d('8') + d('.5'), True)
             self.bot.ratings[self.bot.uids[self.player.id]], self.bot.ratings[self.bot.uids[self.opponent.id]] = \
                 self.elo_manager.get_ratings()
