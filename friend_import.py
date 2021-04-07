@@ -190,6 +190,13 @@ infotoint = {
     'mode': 16
 }
 
+def modetointfunc(_modes: Iterable[str]) -> int:
+    r = 0
+    for md in _modes:
+        if modetoint.get(md):
+            r |= modetoint[md]
+    return r
+
 def inttomode(i: Optional[int]) -> str:
     if i:
         r = ''

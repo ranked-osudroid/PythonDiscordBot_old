@@ -499,7 +499,7 @@ class MyCog(commands.Cog):
         )
         e.add_field(
             name="Mod",
-            value=recent_play_info[1][2],
+            value=inttomode(modetointfunc(recent_play_info[1][2].split(', '))),
         )
         e.add_field(
             name="Combo",

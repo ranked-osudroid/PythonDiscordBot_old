@@ -473,10 +473,7 @@ class Scrim:
                                     f"Its {k} : {p[k]})"
                 if flag:
                     continue
-                pmodeint = 0
-                for md in p['modes']:
-                    if modetoint.get(md):
-                        pmodeint |= modetoint[md]
+                pmodeint = modetointfunc(p['modes'])
                 if self.map_mode is not None:
                     if pmodeint not in self.availablemode[self.map_mode]:
                         desc += f"Failed : " \
