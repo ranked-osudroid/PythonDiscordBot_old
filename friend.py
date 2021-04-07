@@ -3,9 +3,10 @@ from timer import Timer
 from scrim import Scrim
 from match import Match_Scrim
 from matchmaker import MatchMaker
+from verify import Verify
 
 class MyCog(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: 'MyBot'):
         self.bot = bot
 
     @commands.Cog.listener()
@@ -94,6 +95,12 @@ class MyCog(commands.Cog):
 
     @commands.command()
     @is_owner()
+    async def asyncsayresult(self, ctx, *, com: str):
+        res = await eval(com)
+        await ctx.send('Result : `' + str(res) + '`')
+
+    @commands.command()
+    @is_owner()
     async def asyncrun(self, ctx, *, com: str):
         exec(
             f'async def __ex(): ' +
@@ -153,10 +160,10 @@ class MyCog(commands.Cog):
             await s['scrim'].removeplayer(ctx.author)
 
     @commands.command(aliases=['score', 'sc'])
-    async def _score(self, ctx, sc: int, a: float = 0.0, m: int = 0):
+    async def _score(self, ctx, sc: int, a: float = 0.0, m: int = 0, gr: str = None):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
-            await s['scrim'].addscore(ctx.author, sc, a, m)
+            await s['scrim'].addscore(ctx.author, sc, a, m, gr)
 
     @commands.command(aliases=['scr'])
     async def scoreremove(self, ctx):
@@ -191,15 +198,45 @@ class MyCog(commands.Cog):
             del self.bot.datas[ctx.guild.id][ctx.channel.id]
 
     @commands.command()
-    async def bind(self, ctx, number: int):
+    async def verify(self, ctx, uid: Optional[int] = None):
         mid = ctx.author.id
-        self.bot.uids[mid] = number
-        if self.bot.ratings[number] == d():
-            self.bot.ratings[number] = elo_rating.ELO_MID_RATING - (await self.bot.get_rank(number)) / d('100')
-        await ctx.send(embed=discord.Embed(
-            title=f'Player {ctx.author.name} binded to UID {number}.',
-            color=discord.Colour(0xfefefe)
-        ))
+        if self.bot.uids[mid] > 0:
+            await ctx.send(embed=discord.Embed(
+                title=f'You already verified with UID {self.bot.uids[mid]}.',
+                color=discord.Colour.orange()
+            ))
+        else:
+            if v := self.bot.verifies.get(mid):
+                verified = await v.do_verify()
+                if verified:
+                    self.bot.ratings[v.uid] = elo_rating.ELO_MID_RATING - (await self.bot.get_rank(v.uid)) / d('100')
+                    await ctx.send(embed=discord.Embed(
+                        title=f'Player {ctx.author.name} binded to UID {v.uid}.\n',
+                        description=f'Your ELO value set to {self.bot.ratings[v.uid]}',
+                        color=discord.Colour(0xfefefe)
+                    ))
+                    del self.bot.verifies[mid]
+                else:
+                    await ctx.send(embed=discord.Embed(
+                        title=f'Failed to bind.\n',
+                        description=f'Try again.',
+                        color=discord.Colour.dark_red()
+                    ))
+            else:
+                if uid is None:
+                    await ctx.send(embed=discord.Embed(
+                        title=f'You should enter UID you want to bind with.',
+                        color=discord.Colour.orange()
+                    ))
+                    return
+                self.bot.verifies[mid] = Verify(self.bot, ctx.channel, ctx.author, uid)
+                await ctx.send(embed=discord.Embed(
+                    title="For verifying",
+                    description=f'Please play this map in 5 minutes.\n'
+                                f'http://ranked-osudroid.kro.kr/verification\n'
+                                f'And chat `m;verify` again.',
+                    color=discord.Colour.orange()
+                ))
 
     @commands.command(name="map")
     async def _map(self, ctx, *, name: str):
@@ -374,7 +411,6 @@ class MyCog(commands.Cog):
                     color=discord.Colour.dark_red()
                 ))
 
-
     @commands.command()
     async def calc(self, ctx, kind: str, maxscore: d, score: d, acc: d, miss: d):
         if kind == "nero2":
@@ -429,6 +465,60 @@ class MyCog(commands.Cog):
         )
         await ctx.send(embed=e)
 
+    @commands.command(aliases=['rs'])
+    async def recentme(self, ctx, uid: Optional[int] = None):
+        if uid is None:
+            uid = self.bot.uids.get(ctx.author.id)
+        if uid is None:
+            await ctx.send(embed=discord.Embed(
+                title=f"You should bind your UID first. Use `m;verify`",
+                color=discord.Colour.dark_red()
+            ))
+            return
+        recent_play_info = await self.bot.getrecent(uid)
+        rd = dict()
+        rd['artist'], rd['title'], rd['author'], rd['diff'] = recent_play_info[0]
+        e = discord.Embed(
+            title=f"{ctx.author.display_name}'(s) recent play info",
+            color=discord.Colour(0x78a94c)
+        )
+        e.add_field(
+            name="Map",
+            value=f"`{makefull(**rd)}`",
+            inline=False
+        )
+        e.add_field(
+            name="Played Time",
+            value=recent_play_info[1][0],
+            inline=False
+        )
+        e.add_field(
+            name="Score / Accuracy / Miss",
+            value=f"{recent_play_info[1][1]} / {recent_play_info[1][3]}% / {recent_play_info[2][0]}:x:",
+            inline=False
+        )
+        e.add_field(
+            name="Mod",
+            value=recent_play_info[1][2],
+        )
+        e.add_field(
+            name="Combo",
+            value=f"{recent_play_info[1][4]}x"
+        )
+        rk = rankFilenameR.match(recent_play_info[3])
+        if rk is not None:
+            rk = rk.group(1)
+        e.add_field(
+            name="Rank",
+            value=RANK_EMOJI[rk]
+        )
+        e.add_field(
+            name="Hash",
+            value=recent_play_info[2][1],
+            inline=False
+        )
+        await ctx.send(embed=e)
+
     @commands.command(aliases=['q'])
     async def queue(self, ctx):
         if self.bot.matches.get(ctx.author):
@@ -439,7 +529,7 @@ class MyCog(commands.Cog):
             return
         elif self.bot.uids[ctx.author.id] == 0:
             await ctx.send(embed=discord.Embed(
-                title=f"You should bind your UID first. Use `m;bind`",
+                title=f"You should bind your UID first. Use `m;verify`",
                 color=discord.Colour.dark_red()
             ))
             return
@@ -491,6 +581,8 @@ class MyBot(commands.Bot):
                 userid, r = data.split(' ')
                 self.ratings[int(userid)] = getd(r)
 
+        self.verifies: Dict[int, Verify] = dict()
+
         self.timers: dd[str, Optional['Timer']] = dd(lambda: None)
         self.timer_count = 0
 
@@ -508,7 +600,7 @@ class MyBot(commands.Bot):
             self.member_names[x] = user.name
         return self.member_names[x]
 
-    async def getrecent(self, _id: int) -> Optional[Tuple[Sequence[AnyStr], Sequence[AnyStr], Sequence[AnyStr]]]:
+    async def getrecent(self, _id: int) -> Optional[Tuple[Sequence[AnyStr], Sequence[AnyStr], Sequence[AnyStr], str]]:
         url = url_base + str(_id)
         html = await self.session.get(url)
         bs = BeautifulSoup(await html.text(), "html.parser")
@@ -516,12 +608,14 @@ class MyBot(commands.Bot):
         recent_mapinfo = recent.select("a.clear > strong.block")[0].text
         recent_playinfo = recent.select("a.clear > small")[0].text
         recent_miss = recent.select("#statics")[0].text
+        rank_img_filename = recent.select("a.thumb-sm.pull-left.m-r-sm > img")[0]['src']
         rmimatch = mapr.match(recent_mapinfo)
         if rmimatch is None:
             return None
         return (rmimatch.groups(),
                 playr.match(recent_playinfo).groups(),
-                missr.match(recent_miss).groups())
+                missr.match(recent_miss).groups(),
+                rank_img_filename)
 
     async def get_rank(self, _id: int):
         url = url_base + str(_id)
@@ -554,6 +648,7 @@ async def _main():
             await auto_off(app.shutdown_datetime)
         except asyncio.CancelledError:
             print('_main() : Cancelled')
+            raise
         except Exception as _ex:
             raise
         finally:

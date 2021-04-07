@@ -25,7 +25,7 @@ class WaitingPlayer:
                 self.target_rating_low -= self.dr
                 self.target_rating_high += self.dr
         except asyncio.CancelledError:
-            return
+            raise
         except BaseException as ex_:
             print(get_traceback_str(ex_))
             raise ex_
@@ -87,7 +87,7 @@ class MatchMaker:
                                     self.players_in_pool.remove(p.player.id)
                 await asyncio.sleep(2)
         except asyncio.CancelledError:
-            pass
+            raise
 
     def close(self):
         self.task.cancel()

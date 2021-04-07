@@ -72,7 +72,7 @@ def get_traceback_str(exception):
 url_base = "http://ops.dgsrz.com/profile.php?uid="
 mapr = re.compile(r"(.*?) [-] ([^\[]*) [(](.*?)[)] [\[](.*)[]]")
 playr = re.compile(r"(.*) / (.*) / (.*) / (.*)x / (.*)%")
-missr = re.compile(r"[{]\"miss\":(\d+), \"hash\":.*[}]")
+missr = re.compile(r"[{]\"miss\":(\d+), \"hash\":(.*)[}]")
 
 OSU_HOME = "https://osu.ppy.sh/home"
 OSU_SESSION = "https://osu.ppy.sh/session"
@@ -213,3 +213,17 @@ async def auto_off(shutdown_datetime):
         return
     except BotOff:
         raise
+
+RANK_EMOJI = {
+    'A': "<:rankingA:829276952649138186>",
+    'B': "<:rankingB:829276952728174612>",
+    'C': "<:rankingC:829276952229052488>",
+    'D': "<:rankingD:829276952778113044>",
+    'S': "<:rankingS:829276952748883998>",
+    'SH': "<:rankingSH:829276952622923786>",
+    'X': "<:rankingX:829276952841158656>",
+    'XH': "<:rankingXH:829276952430772255>",
+    None: "<:questionmark:665176979414188052>"
+}
+
+rankFilenameR = re.compile('assets/images/ranking-(.+)-small[.]png')

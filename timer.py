@@ -37,6 +37,7 @@ class Timer:
             await self.timeover()
         except asyncio.CancelledError:
             await self.cancel()
+            raise
         except GeneratorExit:
             return
         except BaseException as ex_:
@@ -61,7 +62,7 @@ class Timer:
                         f"Time Limit : {self.seconds}",
             color=discord.Colour.dark_grey()
         ))
-        await self.call_back()
+        await self.call_back(False)
 
     async def cancel(self):
         if self.task.done() or self.task.cancelled():
@@ -74,17 +75,17 @@ class Timer:
                         f"Time Left : {self.left_sec()}",
             color=discord.Colour.dark_red()
         ))
-        await self.call_back()
+        await self.call_back(True)
 
-    async def call_back(self):
+    async def call_back(self, cancelled):
         self.done = True
         del self.ownedBot.timers[self.name]
         if self.callback is None:
             return
         if self.args:
-            await self.callback(self.task.cancelled(), *self.args)
+            await self.callback(cancelled, *self.args)
         else:
-            await self.callback(self.task.cancelled())
+            await self.callback(cancelled)
 
     def left_sec(self) -> float:
         return self.seconds - ((datetime.datetime.utcnow() - self.start_time).total_seconds())

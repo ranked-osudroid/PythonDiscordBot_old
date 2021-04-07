@@ -109,8 +109,8 @@ For example, if one of difficulty names of maps is `[FM1] Everybody Falls [Neli'
 
 Check if there's some typos, or mis-spacing. (like `[number]title [diff]` or `[number] title (diff)`)
 
-**m;bind <*uid*>**
-Enter your UID to *uid*.
+**m;verify <*uid*>**
+Used for binding you with *uid*.
 
 **m;submit __(nero2|jet2|osu2)__**
 Calculate scores and show result.
