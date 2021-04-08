@@ -55,7 +55,7 @@ class scoreCalc:
             l = self.file.readline().rstrip()
         score = 0
         combo = 0
-        tindex = 0
+        tindex = 1
         tL = len(timings)
         mapdiff = 1 + hp / 10 + od / 10 + (cs - 3) / 4
         rps = 2 + od / 5
