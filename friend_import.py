@@ -1,6 +1,6 @@
 import asyncio, aiohttp, aiofiles, asyncpool, logging, yarl, \
     datetime, decimal, discord, gspread, random, re, time, \
-    traceback, scoreCalc, os, elo_rating, json, osuapi, zipfile, pydrive, shutil, bisect
+    traceback, scoreCalc, os, json, osuapi, zipfile, pydrive, shutil, bisect
 from typing import *
 from collections import defaultdict as dd
 from collections import deque
@@ -261,4 +261,27 @@ rankFilenameR = re.compile('assets/images/ranking-(.+)-small[.]png')
 
 ELO_RANK_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master']
 ELO_RANK_SCORE_BOUNDARY = [1500, 2000, 2500, 3000, 3500]
-ELO_RANK_ENTRY_COST = [0, 15, 30, 45, 60, 80]  # 실제 elo 가감산 값에 따라
+ELO_INITIAL_RANK_BOUNDARY = [0, 100, 300, 700, 1500, 6500]
+ELO_INITIAL_RANK_RATE = [d('2'), d('1'), d('.5'), d('.25'), d('.04')]
+
+def get_elo_rank(elov: Union[d, int]):
+    return ELO_RANK_NAMES[bisect.bisect(ELO_RANK_SCORE_BOUNDARY, elov)]
+
+def get_initial_elo(rank: Union[d, int]):
+    idx = bisect.bisect_left(ELO_INITIAL_RANK_BOUNDARY, rank) - 1
+    if idx == 5:
+        return d('1000')
+    else:
+        rate = ELO_INITIAL_RANK_RATE[idx]
+        return d('2000') - d('200') * idx - rate * (rank - ELO_INITIAL_RANK_BOUNDARY[idx])
+
+ELO_K = 50
+ELO_STDV = 2500
+
+ELO_RANK_ENTRY_COST = [-10, -5, 0, 5, 10, 15]
+
+def get_elo_rank_entry_cost(elov: Union[d, int]):
+    return ELO_RANK_ENTRY_COST[bisect.bisect(ELO_RANK_SCORE_BOUNDARY, elov)]
+
+ELO_MID_RATING = d('1500')
+

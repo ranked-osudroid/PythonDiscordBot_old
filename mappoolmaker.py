@@ -35,23 +35,23 @@ class MappoolMaker:
                 print(f'{number}번 비트맵셋 다운로드 완료 (chimu.moe)')
             else:
                 print(f'{number}번 비트맵셋 다운로드 실패 (chimu.moe) ({res_chimu.status})')
-                async with self.session.get(BEATCONNECT + str(number)) as res_beat:
-                    if res_beat.status == 200:
+                # async with self.session.get(BEATCONNECT + str(number)) as res_beat:
+                #     if res_beat.status == 200:
+                #         async with aiofiles.open(downloadpath % number, 'wb') as f_:
+                #             await f_.write(await res_beat.read())
+                #         print(f'{number}번 비트맵셋 다운로드 완료 (beatconnect.io)')
+                #     else:
+                #         print(f'{number}번 비트맵셋 다운로드 실패 (beatconnect.io) ({res_beat.status})')
+                downloadurl = OSU_BEATMAP_BASEURL + str(number)
+                async with self.session.get(downloadurl + '/download', headers={"referer": downloadurl}) as res:
+                    if res.status < 400:
                         async with aiofiles.open(downloadpath % number, 'wb') as f_:
-                            await f_.write(await res_beat.read())
-                        print(f'{number}번 비트맵셋 다운로드 완료 (beatconnect.io)')
+                            await f_.write(await res.read())
+                        print(f'{number}번 비트맵셋 다운로드 완료 (osu.ppy.sh)')
                     else:
-                        print(f'{number}번 비트맵셋 다운로드 실패 (beatconnect.io) ({res_beat.status})')
-                        downloadurl = OSU_BEATMAP_BASEURL + str(number)
-                        async with self.session.get(downloadurl + '/download', headers={"referer": downloadurl}) as res:
-                            if res.status < 400:
-                                async with aiofiles.open(downloadpath % number, 'wb') as f_:
-                                    await f_.write(await res.read())
-                                print(f'{number}번 비트맵셋 다운로드 완료 (osu.ppy.sh)')
-                            else:
-                                print(f'{number}번 비트맵셋 다운로드 실패 (osu.ppy.sh) ({res.status})')
-                                await self.queue.put((number, False))
-                                return
+                        print(f'{number}번 비트맵셋 다운로드 실패 (osu.ppy.sh) ({res.status})')
+                        await self.queue.put((number, False))
+                        return
         await self.queue.put((number, True))
 
     async def show_result(self):
@@ -257,7 +257,7 @@ class MappoolMaker:
                 return False, f'Get info failed : {resp.status}'
             res_data = await resp.json(encoding='utf-8')
             if res_data['status'] == 'failed':
-                return False, 'Get info failed : FIXCUCKED'
+                return False, f'Get info failed : FIXCUCKED\n```{res_data["error"]}```'
             download_link = res_data['downlink']
             auto_scores = res_data['autoscore']
 

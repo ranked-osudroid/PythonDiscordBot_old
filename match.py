@@ -2,6 +2,7 @@ from friend_import import *
 from scrim import Scrim
 from timer import Timer
 from mappoolmaker import MappoolMaker
+from elo_rating import EloRating
 
 if TYPE_CHECKING:
     from friend import MyBot
@@ -39,7 +40,7 @@ class Match_Scrim:
 
         self.player_ELO = self.bot.ratings[self.bot.uids[self.player.id]]
         self.opponent_ELO = self.bot.ratings[self.bot.uids[self.opponent.id]]
-        self.elo_manager = elo_rating.EloRating(self.player_ELO, self.opponent_ELO)
+        self.elo_manager = EloRating(self.player_ELO, self.opponent_ELO, ELO_K, ELO_STDV)
 
         self.player_ready: bool = False
         self.opponent_ready: bool = False
@@ -261,7 +262,13 @@ class Match_Scrim:
             winner = await self.scrim.end()
             score_diff = \
                 self.scrim.setscore[self.player.name] - self.scrim.setscore[self.opponent.name]
-            self.elo_manager.update(score_diff / d('8') + d('.5'), True)
+            if score_diff > 0:
+                rate = d('1') - score_diff / d('16')
+            elif score_diff < 0:
+                rate = score_diff / d('16')
+            else:
+                rate = d('.5')
+            self.elo_manager.update(rate, True)
             self.bot.ratings[self.bot.uids[self.player.id]], self.bot.ratings[self.bot.uids[self.opponent.id]] = \
                 self.elo_manager.get_ratings()
             shutil.rmtree(self.mappoolmaker.save_folder_path)

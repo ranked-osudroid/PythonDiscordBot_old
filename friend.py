@@ -209,7 +209,7 @@ class MyCog(commands.Cog):
             if v := self.bot.verifies.get(mid):
                 verified = await v.do_verify()
                 if verified:
-                    self.bot.ratings[v.uid] = elo_rating.ELO_MID_RATING - (await self.bot.get_rank(v.uid)) / d('100')
+                    self.bot.ratings[v.uid] = get_initial_elo(await self.bot.get_rank(v.uid))
                     if BOT_DEBUG:
                         async with self.bot.session.post(
                                 "http://ranked-osudroid.kro.kr/userAdd",
@@ -257,7 +257,7 @@ class MyCog(commands.Cog):
                     return
                 self.bot.verifies[mid] = Verify(self.bot, ctx.channel, ctx.author, uid)
                 await ctx.send(embed=discord.Embed(
-                    title="For verifying",
+                    title="For verifying...",
                     description=f'Please play this map in 5 minutes.\n'
                                 f'http://ranked-osudroid.kro.kr/verification\n'
                                 f'And chat `m;verify` again.',
@@ -481,13 +481,20 @@ class MyCog(commands.Cog):
             title=f"{ctx.author.name}'s profile",
             color=discord.Colour(0xdb6ee1)
         )
+        uid = self.bot.uids[ctx.author.id]
         e.add_field(
             name="UID",
-            value=str(self.bot.uids[ctx.author.id])
+            value=str(uid)
         )
+        if self.bot.ratings.get(uid) is None:
+            self.bot.ratings[uid] = get_initial_elo(await self.bot.get_rank(uid))
         e.add_field(
             name="Elo",
-            value=str(self.bot.ratings[self.bot.uids[ctx.author.id]])
+            value=str(self.bot.ratings[uid])
+        )
+        e.add_field(
+            name="Tier",
+            value=get_elo_rank(self.bot.ratings[uid])
         )
         await ctx.send(embed=e)
 
