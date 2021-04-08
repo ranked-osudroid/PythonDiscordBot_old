@@ -24,10 +24,11 @@ class Verify:
             return True
         return False
 
-    async def timeover(self):
-        del self.bot.verifies[self.member.id]
-        await self.channel.send(embed=discord.Embed(
-            title=f'Failed to bind. (Time over)\n',
-            description=f'Try again.',
-            color=discord.Colour.dark_red()
-        ))
+    async def timeover(self, cancelled):
+        if not cancelled:
+            del self.bot.verifies[self.member.id]
+            await self.channel.send(embed=discord.Embed(
+                title=f'Failed to bind. (Time over)\n',
+                description=f'Try again.',
+                color=discord.Colour.dark_red()
+            ))
