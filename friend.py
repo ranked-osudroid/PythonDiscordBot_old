@@ -476,12 +476,19 @@ class MyCog(commands.Cog):
             await ctx.send(embed=e)
 
     @commands.command(aliases=['pfme'])
-    async def profileme(self, ctx):
+    async def profileme(self, ctx, uid: Optional[int] = None):
         e = discord.Embed(
             title=f"{ctx.author.name}'s profile",
             color=discord.Colour(0xdb6ee1)
         )
-        uid = self.bot.uids[ctx.author.id]
+        if uid is None:
+            uid = self.bot.uids[ctx.author.id]
+        if uid == 0:
+            await ctx.send(embed=discord.Embed(
+                title=f"You should bind your UID first. Use `m;verify`",
+                color=discord.Colour.dark_red()
+            ))
+            return
         e.add_field(
             name="UID",
             value=str(uid)
@@ -502,7 +509,7 @@ class MyCog(commands.Cog):
     async def recentme(self, ctx, uid: Optional[int] = None):
         if uid is None:
             uid = self.bot.uids.get(ctx.author.id)
-        if uid is None:
+        if uid == 0:
             await ctx.send(embed=discord.Embed(
                 title=f"You should bind your UID first. Use `m;verify`",
                 color=discord.Colour.dark_red()
