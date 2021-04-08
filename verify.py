@@ -12,7 +12,7 @@ class Verify:
         self.channel = ch
         self.member = member
         self.uid = uid
-        self.timer = Timer(bot, ch, f"{member.name}_verify", 300)
+        self.timer = Timer(bot, ch, f"{member.name}_verify", 300, self.timeover)
 
     async def do_verify(self):
         player_recent = await self.bot.getrecent(self.uid)
@@ -23,3 +23,11 @@ class Verify:
             await self.timer.cancel()
             return True
         return False
+
+    async def timeover(self):
+        del self.bot.verifies[self.member.id]
+        await self.channel.send(embed=discord.Embed(
+            title=f'Failed to bind. (Time over)\n',
+            description=f'Try again.',
+            color=discord.Colour.dark_red()
+        ))
