@@ -259,7 +259,7 @@ class MappoolMaker:
             if res_data['status'] == 'failed':
                 return False, f'Get info failed : FIXCUCKED\n```{res_data["error"]}```'
             download_link = res_data['downlink']
-            auto_scores = res_data['autoscore']
+            auto_scores = res_data['mapInfo']
 
         desc[-1] += ' done'
         desc.append('Downloading mappool for setting...')
