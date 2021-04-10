@@ -508,13 +508,14 @@ class MyCog(commands.Cog):
             await ctx.send(embed=e)
 
     @commands.command(aliases=['pfme'])
-    async def profileme(self, ctx, uid: Optional[int] = None):
+    async def profileme(self, ctx, did: Optional[int] = None):
+        if did is None:
+            did = ctx.author.id
         e = discord.Embed(
-            title=f"{ctx.author.name}'s profile",
+            title=f"{await self.bot.getusername(did)}'s profile",
             color=discord.Colour(0xdb6ee1)
         )
-        if uid is None:
-            uid = self.bot.uids[ctx.author.id]
+        uid = self.bot.uids.get(did)
         if uid == 0:
             await ctx.send(embed=discord.Embed(
                 title=f"You should bind your UID first. Use `m;verify`",
