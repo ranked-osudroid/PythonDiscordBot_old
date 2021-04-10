@@ -123,6 +123,7 @@ class Match_Scrim:
                     color=discord.Colour.dark_red()
                 ))
                 await self.scrim.setform(self.diff_form)
+                # send POST match init
             else:
                 await self.channel.send(embed=discord.Embed(
                     title="The Opponent didn't ready.",
@@ -294,6 +295,7 @@ class Match_Scrim:
                 autosc = scorecalc.getAutoScore()[1] // 2
                 scorecalc.close()
             self.scrim.setautoscore(autosc)
+            self.scrim.setmaphash(self.mappoolmaker.get_map_hash(now_mapnum))
             await self.channel.send(embed=discord.Embed(
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{self.scrim.getmapfull()}`\n"

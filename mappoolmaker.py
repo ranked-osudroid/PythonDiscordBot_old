@@ -292,3 +292,9 @@ class MappoolMaker:
         await self.message.edit(embed=e)
 
         return True, download_link
+
+    def get_map_hash(self, map_sheet_id: str):
+        osuf = open(os.path.join(self.save_folder_path, self.osufile_path[map_sheet_id]), 'rb')
+        fd = osuf.read()
+        osuf.close()
+        return hashlib.md5(fd).hexdigest()

@@ -317,7 +317,7 @@ class MyCog(commands.Cog):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             resultmessage = await ctx.send(embed=discord.Embed(
-                title="계산 중...",
+                title="Calculating...",
                 color=discord.Colour.orange()
             ))
             scrim = s['scrim']
@@ -335,7 +335,7 @@ class MyCog(commands.Cog):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             resultmessage = await ctx.send(embed=discord.Embed(
-                title="계산 중...",
+                title="Calculating...",
                 color=discord.Colour.orange()
             ))
             scrim = s['scrim']
@@ -396,10 +396,42 @@ class MyCog(commands.Cog):
     ):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
+            resultmessage = await ctx.send(embed=discord.Embed(
+                title="Calculating...",
+                color=discord.Colour.orange()
+            ))
+
             def temp(x: Optional[str]):
                 return set(map(int, x.split(',')))
 
-            s['scrim'].setmoderule(temp(nm), temp(hd), temp(hr), temp(dt), temp(fm), temp(tb))
+            scrim = s['scrim']
+            scrim.setmoderule(temp(nm), temp(hd), temp(hr), temp(dt), temp(fm), temp(tb))
+            desc = '\n'.join(f"Allowed modes for {i} = `{', '.join(inttomode(j) for j in scrim.availablemode[i])}`"
+                             for i in modes)
+            await resultmessage.edit(embed=discord.Embed(
+                title=f"Map mode rules Modified!",
+                description=desc,
+                color=discord.Colour.blue()
+            ))
+
+    @commands.command()
+    async def hash(self, ctx, h: str):
+        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
+        if s['valid']:
+            resultmessage = await ctx.send(embed=discord.Embed(
+                title="Calculating...",
+                color=discord.Colour.orange()
+            ))
+            scrim = s['scrim']
+            scrim.setmaphash(h)
+            await resultmessage.edit(embed=discord.Embed(
+                title=f"Map infos Modified!",
+                description=f"Map Info : `{scrim.getmapfull()}`\n"
+                            f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
+                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.\n"
+                            f"Map Hash : {scrim.getmaphash()}",
+                color=discord.Colour.blue()
+            ))
 
     @commands.command()
     async def timer(self, ctx, action: Union[float, str], name: Optional[str] = None):

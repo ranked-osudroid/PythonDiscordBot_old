@@ -39,6 +39,8 @@ class Scrim:
         self.map_auto_score: Optional[int, dd] = None
         self.form: Optional[List[Union[re.Pattern, List[str]]]] = None
 
+        self.map_hash: Optional[str] = None
+
         self.availablemode: Dict[str, Iterable[int]] = {
             'NM': {0, 8},
             'HD': {1, 9},
@@ -297,6 +299,7 @@ class Scrim:
         self.map_mode = None
         self.map_auto_score = None
         self.map_time = None
+        self.map_hash = None
         for p in self.score:
             self.score[p] = ((getd(0), getd(0), getd(0)), None, 'N/A')
         self.round_start_time = None
@@ -305,49 +308,49 @@ class Scrim:
         self.map_artist = artist
 
     def getartist(self) -> str:
-        return self.map_artist if self.map_artist else ''
+        return self.map_artist if self.map_artist is not None else ''
 
     def settitle(self, title: str):
         self.map_title = title
 
     def gettitle(self) -> str:
-        return self.map_title if self.map_title else ''
+        return self.map_title if self.map_title is not None else ''
 
     def setauthor(self, author: str):
         self.map_author = author
 
     def getauthor(self) -> str:
-        return self.map_author if self.map_author else ''
+        return self.map_author if self.map_author is not None else ''
 
     def setdiff(self, diff: str):
         self.map_diff = diff
 
     def getdiff(self) -> str:
-        return self.map_diff if self.map_diff else ''
+        return self.map_diff if self.map_diff is not None else ''
 
     def setnumber(self, number: str):
         self.map_number = number
 
     def getnumber(self) -> str:
-        return self.map_number if self.map_number else '-'
+        return self.map_number if self.map_number is not None else '-'
 
     def setmode(self, mode: str):
         self.map_mode = mode
 
     def getmode(self) -> str:
-        return self.map_mode if self.map_mode else '-'
+        return self.map_mode if self.map_mode is not None else '-'
 
     def setautoscore(self, score: Union[int, d]):
         self.map_auto_score = score
 
     def getautoscore(self) -> Union[int, d]:
-        return self.map_auto_score if self.map_auto_score else -1
+        return self.map_auto_score if self.map_auto_score is not None else -1
 
     def setmaptime(self, t: Union[int, d]):
         self.map_time = t
 
     def getmaptime(self) -> Union[int, d]:
-        return self.map_time if self.map_time else -1
+        return self.map_time if self.map_time is not None else -1
 
     def setmapinfo(self, infostr: str):
         m = analyze.match(infostr)
@@ -365,6 +368,12 @@ class Scrim:
 
     def getmapfull(self):
         return makefull(**self.getmapinfo())
+
+    def setmaphash(self, h: str):
+        self.map_hash = h
+
+    def getmaphash(self) -> str:
+        return self.map_hash if self.map_hash is not None else 'Undefined'
 
     async def setform(self, formstr: str):
         args = list()
@@ -442,51 +451,60 @@ class Scrim:
                 p['score'] = int(player_recent_info[1][1].replace(',', ''))
                 p['acc'] = float(player_recent_info[1][4])
                 p['miss'] = int(float(player_recent_info[2][0]))
+                p['hash'] = player_recent_info[2][1].strip()
                 p['rank'] = rankFilenameR.match(player_recent_info[3])
                 if p['rank'] is not None:
                     p['rank'] = p['rank'].group(1)
                 p['modes'] = set(player_recent_info[1][2].split(', '))
                 flag = False
-                if self.form is not None:
-                    checkbit = 0
-                    m = self.form[0].match(p['diff'])
-                    if m is None:
-                        desc += f"Failed : " \
-                                f"In {await self.bot.getusername(player)}'s recent play info, " \
-                                f"its difficulty name does NOT fit to the format. " \
-                                f"(Its difficulty : {p['diff']})"
-                        continue
-                    for k in self.form[1]:
-                        if k == 'number':
-                            mnum = self.map_number.split(';')[-1]
-                            pnum = m.group(k)
-                            if mnum != pnum:
+                if self.map_hash is None:
+                    if self.form is not None:
+                        checkbit = 0
+                        m = self.form[0].match(p['diff'])
+                        if m is None:
+                            desc += f"Failed : " \
+                                    f"In {await self.bot.getusername(player)}'s recent play info, " \
+                                    f"its difficulty name does NOT fit to the format. " \
+                                    f"(Its difficulty : {p['diff']})"
+                            continue
+                        for k in self.form[1]:
+                            if k == 'number':
+                                mnum = self.map_number.split(';')[-1]
+                                pnum = m.group(k)
+                                if mnum != pnum:
+                                    flag = True
+                                    desc += f"Failed : " \
+                                            f"In {await self.bot.getusername(player)}'s recent play info, " \
+                                            f"its number is wrong. (Its number : {pnum})"
+                                    break
+                                continue
+                            p[k] = m.group(k)
+                            checkbit |= infotoint[k]
+                    if checkbit is None:
+                        checkbit = 31
+                    for k in ['artist', 'title', 'author', 'diff']:
+                        if flag:
+                            break
+                        if checkbit & infotoint[k]:
+                            nowk = self.getfuncs[k]()
+                            nowk_edited = prohibitted.sub('', nowk).replace('\'', ' ').replace('_', ' ')
+                            nowk_edited = multi_spaces_remover.sub(' ', nowk_edited)
+                            if nowk_edited != p[k]:
                                 flag = True
                                 desc += f"Failed : " \
                                         f"In {await self.bot.getusername(player)}'s recent play info, " \
-                                        f"its number is wrong. (Its number : {pnum})"
-                                break
-                            continue
-                        p[k] = m.group(k)
-                        checkbit |= infotoint[k]
-                if checkbit is None:
-                    checkbit = 31
-                for k in ['artist', 'title', 'author', 'diff']:
+                                        f"its {k} is wrong." \
+                                        f"(Now {k} : {nowk_edited} {'(`'+nowk+'`) ' if nowk!=nowk_edited else ''}/ " \
+                                        f"Its {k} : {p[k]})"
                     if flag:
-                        break
-                    if checkbit & infotoint[k]:
-                        nowk = self.getfuncs[k]()
-                        nowk_edited = prohibitted.sub('', nowk).replace('\'', ' ').replace('_', ' ')
-                        nowk_edited = multi_spaces_remover.sub(' ', nowk_edited)
-                        if nowk_edited != p[k]:
-                            flag = True
-                            desc += f"Failed : " \
-                                    f"In {await self.bot.getusername(player)}'s recent play info, " \
-                                    f"its {k} is wrong." \
-                                    f"(Now {k} : {nowk_edited} {'(`'+nowk+'`) ' if nowk!=nowk_edited else ''}/ " \
-                                    f"Its {k} : {p[k]})"
-                if flag:
-                    continue
+                        continue
+                else:
+                    if p['hash'] != self.map_hash:
+                        desc += f"Failed : " \
+                                f"In {await self.bot.getusername(player)}'s recent play info, " \
+                                f"its hash is wrong. " \
+                                f"(Now hash : {self.map_hash} / Its mode number : {p['hash']})"
+                        continue
                 pmodeint = modetointfunc(p['modes'])
                 if self.map_mode is not None:
                     if pmodeint not in self.availablemode[self.map_mode]:
