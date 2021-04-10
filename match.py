@@ -23,6 +23,7 @@ class Match_Scrim:
         self.mappoolmaker: Optional[MappoolMaker] = None
         self.map_order: List[str] = []
         self.map_autoscores: Dict[str, int] = dict()
+        self.map_hashes: Dict[str, str] = dict()
         self.map_tb: Optional[str] = None
 
         self.scrim: Optional[Scrim] = None
@@ -280,6 +281,11 @@ class Match_Scrim:
                 now_mapnum = self.map_tb
             else:
                 now_mapnum = self.map_order[self.round - 1]
+            maphash = self.map_hashes.get(now_mapnum)
+            if maphash is None:
+                maphash = self.mappoolmaker.get_map_hash(now_mapnum)
+            if not isinstance(maphash, Exception):
+                self.scrim.setmaphash(maphash)
             now_beatmap: osuapi.osu.Beatmap = self.mappoolmaker.beatmap_objects[now_mapnum]
             self.scrim.setnumber(now_mapnum)
             self.scrim.setartist(now_beatmap.artist)
@@ -295,12 +301,12 @@ class Match_Scrim:
                 autosc = scorecalc.getAutoScore()[1] // 2
                 scorecalc.close()
             self.scrim.setautoscore(autosc)
-            self.scrim.setmaphash(self.mappoolmaker.get_map_hash(now_mapnum))
             await self.channel.send(embed=discord.Embed(
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{self.scrim.getmapfull()}`\n"
                             f"Map Number : {self.scrim.getnumber()} / Map Mode : {self.scrim.getmode()}\n"
                             f"Map SS Score : {self.scrim.getautoscore()} / Map Length : {self.scrim.getmaptime()} sec\n"
+                            f"Map Hash : {self.scrim.getmaphash()}\n"
                             f"Allowed modes : "
                             f"`{', '.join(map(inttomode, self.scrim.availablemode[self.scrim.getmode()]))}`",
                 color=discord.Colour.blue()

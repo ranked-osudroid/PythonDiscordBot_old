@@ -268,6 +268,7 @@ class MappoolMaker:
 
         for mm in auto_scores:
             self.match.map_autoscores[mm] = auto_scores[mm]["score"]
+            self.match.map_hashes = auto_scores[mm]["hash"]
 
         async with self.session.get(download_link) as resp:
             if resp.status != 200:
@@ -294,7 +295,10 @@ class MappoolMaker:
         return True, download_link
 
     def get_map_hash(self, map_sheet_id: str):
-        osuf = open(os.path.join(self.save_folder_path, self.osufile_path[map_sheet_id]), 'rb')
-        fd = osuf.read()
-        osuf.close()
-        return hashlib.md5(fd).hexdigest()
+        try:
+            osuf = open(os.path.join(self.save_folder_path, self.osufile_path[map_sheet_id]), 'rb')
+            fd = osuf.read()
+            osuf.close()
+            return hashlib.md5(fd).hexdigest()
+        except Exception as ex:
+            return ex
