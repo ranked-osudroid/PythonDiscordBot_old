@@ -285,3 +285,9 @@ def get_elo_rank_entry_cost(elov: Union[d, int]):
 
 ELO_MID_RATING = d('1500')
 
+def elo_convert(x):
+    return (x - 1000) * d('2.1') + 1200
+
+def elo_convert_rev(x):
+    return (x - 1200) / d('2.1') + 1000
+

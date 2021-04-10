@@ -276,7 +276,6 @@ class Scrim:
                               f"({' / '.join(str(x) for x in self.score[p][0])} - {self.score[p][1]})")
         self.log.append('\n'.join(logtxt))
         r = dict()
-        r['winners'] = winnerteam
         r['score'] = dict()
         r['v2score'] = dict()
         r['start_time'] = self.round_start_time

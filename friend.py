@@ -215,9 +215,9 @@ class MyCog(commands.Cog):
                                 "http://ranked-osudroid.kro.kr/userAdd",
                                 body={
                                     'key': fixca_key,
-                                    'discord_id': ctx.author.id,
+                                    'discord_id': str(ctx.author.id),
                                     'elo': str(self.bot.ratings[v.uid]),
-                                    'uid': v.uid
+                                    'uid': str(v.uid)
                                 }
                         ) as useradd_res:
                             if useradd_res.status != 200:
@@ -497,7 +497,7 @@ class MyCog(commands.Cog):
             self.bot.ratings[uid] = get_initial_elo(await self.bot.get_rank(uid))
         e.add_field(
             name="Elo",
-            value=str(self.bot.ratings[uid])
+            value=str(self.bot.ratings[uid].to_integral(rounding=decimal.ROUND_FLOOR))
         )
         e.add_field(
             name="Tier",

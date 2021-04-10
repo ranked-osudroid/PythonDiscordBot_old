@@ -175,13 +175,14 @@ class Match_Scrim:
             )
             self.timer = Timer(self.bot, self.channel, f"Match_{self.made_time}_invite", 120, self.go_next_status)
         elif self.round == 0:
-            select_pool_mmr_range = sum(self.elo_manager.get_ratings()) / d('2')
-            print('Before select_pool_mmr_range :', select_pool_mmr_range)
+            rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
+            print('Before select_pool_mmr_range :', rate_lower, rate_highter)
             # 1000 ~ 2000 => 1200 ~ 3300
-            select_pool_mmr_range = (select_pool_mmr_range - 1000) * d('2.1') + 1200
-            print('After  select_pool_mmr_range :', select_pool_mmr_range)
+            rate_lower = elo_convert(rate_lower)
+            rate_highter = elo_convert(rate_highter)
+            print('After  select_pool_mmr_range :', rate_lower, rate_highter)
             pool_pools = list(filter(
-                lambda po: abs(select_pool_mmr_range - po['averageMMR']) <= d('50'),
+                lambda po: rate_lower - 50 <= po <= rate_highter + 50,
                 maidbot_pools
             ))
             selected_pool = random.choice(pool_pools)
@@ -189,7 +190,7 @@ class Match_Scrim:
             await self.channel.send(embed=discord.Embed(
                 title="Mappool is selected!",
                 description=f"Mappool Name : `{selected_pool['name']}`\n"
-                            f"Mappool MMR (modified) : {(selected_pool['averageMMR'] - 1200) / d('2.1') + 1000}\n"
+                            f"Mappool MMR (modified) : {elo_convert_rev(selected_pool['averageMMR'])}\n"
                             f"Mappool UUID : `{selected_pool['uuid']}`",
                 color=discord.Colour(0x0ef37c)
             ))
@@ -326,13 +327,6 @@ class Match_Scrim:
                         if self.round > 1:
                             await self.scrim.match_task
                             r = self.scrim.match_task.result()
-                            if len(r['winner']) > 1:
-                                w = 'draw'
-                            else:
-                                if r['winner'][0] == self.player.name:
-                                    w = 'a'
-                                else:
-                                    w = 'b'
                             data = {
                                 'key': fixca_key,
                                 'matchId': self.made_time,
@@ -341,13 +335,12 @@ class Match_Scrim:
                                 'mapName': r['map'],
                                 'mapMod': r['mode'],
                                 'mapSheet': r['number'],
-                                'winner': w,
-                                'aTeamScore': r['v2score'][self.player.id],
-                                'bTeamScore': r['v2score'][self.opponent.id],
-                                'aTeamAcc': float(r['score'][self.player.id][0][1]),
-                                'bTeamAcc': float(r['score'][self.opponent.id][0][1]),
-                                'aTeamMod': r['score'][self.player.id][2],
-                                'bTeamMod': r['score'][self.opponent.id][2],
+                                'playerScore': r['v2score'][self.player.id],
+                                'opponentScore': r['v2score'][self.opponent.id],
+                                'playerAcc': float(r['score'][self.player.id][0][1]),
+                                'opponentAcc': float(r['score'][self.opponent.id][0][1]),
+                                'playerMod': r['score'][self.player.id][2],
+                                'opponentMod': r['score'][self.opponent.id][2],
                                 'startedTime': r['start_time']
                             }
                             if BOT_DEBUG:
