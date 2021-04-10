@@ -414,8 +414,8 @@ class MyCog(commands.Cog):
                 color=discord.Colour.blue()
             ))
 
-    @commands.command()
-    async def hash(self, ctx, h: str):
+    @commands.command(aliases=['mh'])
+    async def maphash(self, ctx, h: str):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             resultmessage = await ctx.send(embed=discord.Embed(
@@ -752,9 +752,8 @@ if __name__ == '__main__':
         print(get_traceback_str(ex))
     finally:
         main_run.cancel()
-        loop.run_until_complete(asyncio.sleep(1))
         loop.run_until_complete(loop.shutdown_asyncgens())
-        print('Shutdown asyncgens done / close after 1 sec.')
-        loop.run_until_complete(asyncio.sleep(1))
+        print('Shutdown asyncgens done / close after 3 sec.')
+        loop.run_until_complete(asyncio.sleep(3))
         loop.close()
         print('loop closed')
