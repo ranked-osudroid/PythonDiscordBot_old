@@ -618,7 +618,7 @@ class MyCog(commands.Cog):
         await ctx.send(embed=discord.Embed(
             title=f"{ctx.author.name} queued.",
             description=f"(If you already in queue, this will be ignored.)\n"
-                        f"Now the number of players in queue : {len(self.bot.matchmaker.pool)}",
+                        f"Now the number of players in queue (except you) : {len(self.bot.matchmaker.pool)}",
             color=discord.Colour(0x78f7fb)
         ))
 
@@ -628,7 +628,7 @@ class MyCog(commands.Cog):
         await ctx.send(embed=discord.Embed(
             title=f"{ctx.author.name} unqueued.",
             description=f"**This request could be ignored.**\n"
-                        f"Now the number of players in queue : {len(self.bot.matchmaker.pool)}",
+                        f"Now the number of players in queue (including you) : {len(self.bot.matchmaker.pool)}",
             color=discord.Colour(0x78f7fb)
         ))
 
