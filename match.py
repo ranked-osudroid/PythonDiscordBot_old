@@ -96,10 +96,10 @@ class Match_Scrim:
                     color=discord.Colour.dark_red()
                 ))
 
-                await self.scrim.maketeam(self.player.name, False)
-                await self.scrim.maketeam(self.opponent.name, False)
-                await self.scrim.addplayer(self.player.name, self.player, False)
-                await self.scrim.addplayer(self.opponent.name, self.opponent, False)
+                await self.scrim.maketeam("RED", False)
+                await self.scrim.maketeam("BLUE", False)
+                await self.scrim.addplayer("RED", self.player, False)
+                await self.scrim.addplayer("BLUE", self.opponent, False)
                 self.scrim.setmoderule(
                     {8, },
                     {9, },
@@ -264,7 +264,7 @@ class Match_Scrim:
                 self.winfor in set(self.scrim.setscore.values()):
             winner = await self.scrim.end()
             score_diff = \
-                self.scrim.setscore[self.player.name] - self.scrim.setscore[self.opponent.name]
+                self.scrim.setscore["RED"] - self.scrim.setscore["BLUE"]
             if score_diff > 0:
                 rate = d('1') - score_diff / d('16')
             elif score_diff < 0:
