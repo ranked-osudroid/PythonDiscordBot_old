@@ -8,6 +8,8 @@ helptxt_desc = """
 __choose|one|of|these|parameters__
 """.strip()
 
+blank = '\u200b'
+
 helptxt_page1 = discord.Embed(title=helptxt_title + "(1/5)", description=helptxt_desc, color=discord.Colour(0xfefefe))
 helptxt_page2 = discord.Embed(title=helptxt_title + "(2/5)", description=helptxt_desc, color=discord.Colour(0xfefefe))
 helptxt_page3 = discord.Embed(title=helptxt_title + "(3/5)", description=helptxt_desc, color=discord.Colour(0xfefefe))
@@ -29,6 +31,12 @@ helptxt_page1.add_field(
     name="m;__teamremove|tr__ <*name*>",
     value="""Remove Team *name*.
 (Players in the team will be left.)"""
+)
+
+helptxt_page1.add_field(
+    name=blank,
+    value=blank,
+    inline=False
 )
 
 helptxt_page1.add_field(
@@ -189,12 +197,17 @@ helptxt_page4.add_field(
 helptxt_page5.add_field(
     name="m;verify <*UID*>",
     value="Used for binding you with *UID*.",
-    inline=False
 )
 
 helptxt_page5.add_field(
     name="m;__profileme|pfme__ (*discordID*)",
     value="See user's UID, ELO, and TIER."
+)
+
+helptxt_page5.add_field(
+    name=blank,
+    value=blank,
+    inline=False
 )
 
 helptxt_page5.add_field(
