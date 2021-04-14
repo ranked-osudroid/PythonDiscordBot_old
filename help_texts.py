@@ -95,7 +95,8 @@ For example, if you want to allow only None and NF when mode is NM, you enter `0
 If you want to allow NFDT and NFHDDT when mode is DT, you enter `12,13` at *number4*.
 
 Default value is here.
-`m;mapmoderule 0,8 2,10 1,9 4,5,12,13 0,1,2,3,8,9,10,11 0,1,2,3,8,9,10,11`"""
+`m;mapmoderule 0,8 2,10 1,9 4,5,12,13 0,1,2,3,8,9,10,11 0,1,2,3,8,9,10,11`""",
+    inline=False
 )
 
 helptxt_page2.add_field(
@@ -104,7 +105,8 @@ helptxt_page2.add_field(
 ```python
 with open("target.osu", 'rb') as f:
     hashOfMap = hashlib.md5(f.read()).hexdigest()
-```"""
+```""",
+    inline=False
 )
 
 helptxt_page2.add_field(
@@ -151,7 +153,8 @@ jet2 = made by 제토넷#8729.
 `V2Score = RoundHalfUp( (score/auto_score) x 500,000 + (Max(acc-80, 0)/20)^2 x 500,000 )`
 
 osu2 = used in osu!
-`V2Score = RoundHalfUp( (score/auto_score) x 700,000 + (acc/100)^10 x 300,000 )`"""
+`V2Score = RoundHalfUp( (score/auto_score) x 700,000 + (acc/100)^10 x 300,000 )`""",
+    inline=False
 )
 
 helptxt_page3.add_field(
@@ -169,7 +172,8 @@ helptxt_page4.add_field(
     value="""If map datas fully set (infos, autoplay score, length etc.), execute these sequentially
 1. wait for map length.
 2. wait additional 30 seconds.
-3. `m;onlineload` then `m;submit nero2`"""
+3. `m;onlineload` then `m;submit nero2`""",
+    inline=False
 )
 
 helptxt_page4.add_field(
@@ -205,7 +209,8 @@ helptxt_page5.add_field(
 
 helptxt_page5.add_field(
     name="m;ping",
-    value="Pong!"
+    value="Pong!",
+    inline=False
 )
 
 helptxt_page5.add_field(
