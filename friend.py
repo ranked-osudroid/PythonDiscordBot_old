@@ -62,6 +62,9 @@ class MyCog(commands.Cog):
         pageEND = len(helptxt_pages) - 1
         recent_react = None
 
+        def check(react, usr):
+            return usr != self.bot.user
+
         while True:
             if str(recent_react) == '⏮':
                 i = 0
