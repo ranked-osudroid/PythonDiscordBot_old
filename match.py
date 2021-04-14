@@ -247,7 +247,7 @@ class Match_Scrim:
                 print(mappool_link[1])
                 await self.channel.send(embed=discord.Embed(
                     title="Error occurred",
-                    description=mappool_link[1] + '\nRetry soon by downloading each beatmaps...'
+                    description=f'```{mappool_link[1]}```\nRetry soon by downloading each beatmaps...'
                 ))
                 for bm in selected_pool['maps']:
                     self.mappoolmaker.add_map(bm['sheetId'], bm['mapSetId'], bm['mapId'])

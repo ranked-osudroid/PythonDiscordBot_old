@@ -223,76 +223,79 @@ class MappoolMaker:
             return False, 'Failed'
 
     async def execute_osz_from_fixca(self, uuid: str):
-        if self.session is None:
-            return False, 'Session is closed'
-        headers = {
-            "key": fixca_key,  # INPUT KEY HERE
-            "uuid": uuid,
-            "matchid": self.match_made_time
-        }
-        desc = ['Searching Mappool...']
-        e = discord.Embed(
-            title="Creating Mappool...",
-            color=discord.Colour(0xf5e1bf)
-        )
-        e.description = '\n'.join(desc)
-        e.set_footer(text="라카#4749 provided his mappool download server and assisted to making mappool. "
-                          "Thanks to supporting!")
-        await self.message.edit(embed=e)
+        try:
+            if self.session is None:
+                return False, 'Session is closed'
+            headers = {
+                "key": fixca_key,  # INPUT KEY HERE
+                "uuid": uuid,
+                "matchid": self.match_made_time
+            }
+            desc = ['Searching Mappool...']
+            e = discord.Embed(
+                title="Creating Mappool...",
+                color=discord.Colour(0xf5e1bf)
+            )
+            e.description = '\n'.join(desc)
+            e.set_footer(text="라카#4749 provided his mappool download server and assisted to making mappool. "
+                              "Thanks to supporting!")
+            await self.message.edit(embed=e)
 
-        target_beatmap_info = list(filter(lambda po: po['uuid'] == uuid, maidbot_pools))
-        if len(target_beatmap_info) == 0:
-            return False, 'Not pool found'
-        target_beatmap_info = target_beatmap_info[0]
-        for mn in target_beatmap_info['maps']:
-            self.beatmap_objects[mn['sheetId']] = (await self.bot.osuapi.get_beatmaps(beatmap_id=mn['mapId']))[0]
+            target_beatmap_info = list(filter(lambda po: po['uuid'] == uuid, maidbot_pools))
+            if len(target_beatmap_info) == 0:
+                return False, 'Not pool found'
+            target_beatmap_info = target_beatmap_info[0]
+            for mn in target_beatmap_info['maps']:
+                self.beatmap_objects[mn['sheetId']] = (await self.bot.osuapi.get_beatmaps(beatmap_id=mn['mapId']))[0]
 
-        desc[-1] += ' done'
-        desc.append('Getting download link of mappool...')
-        e.description = '\n'.join(desc)
-        await self.message.edit(embed=e)
+            desc[-1] += ' done'
+            desc.append('Getting download link of mappool...')
+            e.description = '\n'.join(desc)
+            await self.message.edit(embed=e)
 
-        async with self.session.post("http://ranked-osudroid.kro.kr/createPack", data=headers) as resp:
-            if resp.status != 200:
-                return False, f'Get info failed : {resp.status}'
-            res_data = await resp.json(encoding='utf-8')
-            if res_data['status'] == 'failed':
-                return False, f'Get info failed : FIXCUCKED\n```{res_data["error"]}```'
-            download_link = res_data['downlink']
-            auto_scores = res_data['mapInfo']
+            async with self.session.post("http://ranked-osudroid.kro.kr/createPack", data=headers) as resp:
+                if resp.status != 200:
+                    return False, f'Get info failed : {resp.status}'
+                res_data = await resp.json(encoding='utf-8')
+                if res_data['status'] == 'failed':
+                    return False, f'Get info failed : FIXCUCKED\n```{res_data["error"]}```'
+                download_link = res_data['downlink']
+                auto_scores = res_data['mapInfo']
 
-        desc[-1] += ' done'
-        desc.append('Downloading mappool for setting...')
-        e.description = '\n'.join(desc)
-        await self.message.edit(embed=e)
+            desc[-1] += ' done'
+            desc.append('Downloading mappool for setting...')
+            e.description = '\n'.join(desc)
+            await self.message.edit(embed=e)
 
-        for mm in auto_scores:
-            self.match.map_autoscores[mm] = auto_scores[mm]["score"]
-            self.match.map_hashes = auto_scores[mm]["hash"]
+            for mm in auto_scores:
+                self.match.map_autoscores[mm] = auto_scores[mm]["score"]
+                self.match.map_hashes = auto_scores[mm]["hash"]
 
-        async with self.session.get(download_link) as resp:
-            if resp.status != 200:
-                return False, f'Download failed : {resp.status}'
-            osz_file = self.save_folder_path + '.osz'
-            async with aiofiles.open(osz_file, 'wb') as df:
-                await df.write(await resp.content.read())
-            zf = zipfile.ZipFile(osz_file)
-            zf.extractall(self.save_folder_path)
-            for fn in os.listdir(self.save_folder_path):
-                if fn.endswith(".osu"):
-                    m = parse_fixca.match(fn)
-                    if m is None:
-                        return False, f'Matching failed : {fn}'
-                    mapnum = m.group(1)
-                    self.osufile_path[mapnum] = fn
-            zf.close()
-            os.remove(osz_file)
+            async with self.session.get(download_link) as resp:
+                if resp.status != 200:
+                    return False, f'Download failed : {resp.status}'
+                osz_file = self.save_folder_path + '.osz'
+                async with aiofiles.open(osz_file, 'wb') as df:
+                    await df.write(await resp.content.read())
+                zf = zipfile.ZipFile(osz_file)
+                zf.extractall(self.save_folder_path)
+                for fn in os.listdir(self.save_folder_path):
+                    if fn.endswith(".osu"):
+                        m = parse_fixca.match(fn)
+                        if m is None:
+                            return False, f'Matching failed : {fn}'
+                        mapnum = m.group(1)
+                        self.osufile_path[mapnum] = fn
+                zf.close()
+                os.remove(osz_file)
 
-        desc[-1] += ' done'
-        e.description = '\n'.join(desc)
-        await self.message.edit(embed=e)
+            desc[-1] += ' done'
+            e.description = '\n'.join(desc)
+            await self.message.edit(embed=e)
 
-        return True, download_link
+            return True, download_link
+        except BaseException as exception:
+            return False, get_traceback_str(exception)
 
     def get_map_hash(self, map_sheet_id: str):
         try:
