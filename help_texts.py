@@ -46,16 +46,11 @@ helptxt_page1.add_field(
     value="""Set a map.
 
 *info* should have format `artist - title (author) [diff]`.
-예 : `TUYU - Doro no Bunzai de Watashi dake no Taisetsu o Ubaouda Nante (SnowNiNo_) [Estrangement]`
+Ex) `TUYU - Doro no Bunzai de Watashi dake no Taisetsu o Ubaouda Nante (SnowNiNo_) [Estrangement]`
 
 *nickname* should be a specific string in my private spreadsheet. (Check sheet data by using `m;sheetslink`)
-예 : `practice24;NM1`"""
-)
-
-helptxt_page1.add_field(
-    name="m;__mapmode|mm__ <*mode*>",
-    value="""Set a mode. *mode* should be one of below.
-`'NM', 'HD', 'HR', 'DT', 'FM', 'TB'`"""
+Ex) `practice24;NM1`""",
+    inline=False
 )
 
 helptxt_page1.add_field(

@@ -86,8 +86,7 @@ class MyCog(commands.Cog):
                 await help_msg.remove_reaction(recent_react, react_user)
             except asyncio.CancelledError:
                 raise
-            except BaseException as e_x:
-                print(get_traceback_str(e_x))
+            except asyncio.TimeoutError:
                 break
 
         await help_msg.clear_reactions()
