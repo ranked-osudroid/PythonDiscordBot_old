@@ -211,7 +211,7 @@ class Match_Scrim:
             rate_highter = elo_convert(rate_highter)
             print('After  select_pool_mmr_range :', rate_lower, rate_highter)
             pool_pools = list(filter(
-                lambda po: rate_lower - 50 <= po <= rate_highter + 50,
+                lambda po: rate_lower - 50 <= po['averageMMR'] <= rate_highter + 50,
                 maidbot_pools
             ))
             selected_pool = random.choice(pool_pools)
