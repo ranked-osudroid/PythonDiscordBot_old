@@ -50,6 +50,12 @@ helptxt_page1.add_field(
 )
 
 helptxt_page1.add_field(
+    name=blank,
+    value=blank,
+    inline=False
+)
+
+helptxt_page1.add_field(
     name="m;map __<*info*|*nickname*>__",
     value="""Set a map.
 
@@ -57,7 +63,12 @@ helptxt_page1.add_field(
 Ex) `TUYU - Doro no Bunzai de Watashi dake no Taisetsu o Ubaouda Nante (SnowNiNo_) [Estrangement]`
 
 *nickname* should be a specific string in my private spreadsheet. (Check sheet data by using `m;sheetslink`)
-Ex) `practice24;NM1`""",
+Ex) `practice24;NM1`"""
+)
+
+helptxt_page1.add_field(
+    name=blank,
+    value=blank,
     inline=False
 )
 
@@ -84,6 +95,12 @@ Built-in script will calculate autoplay score, and the score will (mostly) not s
 )
 
 helptxt_page2.add_field(
+    name=blank,
+    value=blank,
+    inline=False
+)
+
+helptxt_page2.add_field(
     name="m;__mapmoderule|mr__ <*numbers1*> <*numbers2*> <*numbers3*> <*numbers4*> <*numbers5*> <*numbers6*>",
     value="""Set available modes.
 *numbers1* ~ *numbers6* should be numbers seperated with `,`(comma).
@@ -103,7 +120,12 @@ For example, if you want to allow only None and NF when mode is NM, you enter `0
 If you want to allow NFDT and NFHDDT when mode is DT, you enter `12,13` at *number4*.
 
 Default value is here.
-`m;mapmoderule 0,8 2,10 1,9 4,5,12,13 0,1,2,3,8,9,10,11 0,1,2,3,8,9,10,11`""",
+`m;mapmoderule 0,8 2,10 1,9 4,5,12,13 0,1,2,3,8,9,10,11 0,1,2,3,8,9,10,11`"""
+)
+
+helptxt_page2.add_field(
+    name=blank,
+    value=blank,
     inline=False
 )
 
@@ -113,7 +135,12 @@ helptxt_page2.add_field(
 ```python
 with open("target.osu", 'rb') as f:
     hashOfMap = hashlib.md5(f.read()).hexdigest()
-```""",
+```"""
+)
+
+helptxt_page2.add_field(
+    name=blank,
+    value=blank,
     inline=False
 )
 
@@ -148,6 +175,12 @@ If `m;maphash` is used once, ignore the form and *number*, and use only mode rul
 )
 
 helptxt_page3.add_field(
+    name=blank,
+    value=blank,
+    inline=False
+)
+
+helptxt_page3.add_field(
     name="m;submit __(nero2|jet2|osu2)__",
     value="""Calculate scores and show result.
 `nero2`, `jet2`, and `osu2` are kinds of calculating V2 score.
@@ -161,7 +194,12 @@ jet2 = made by 제토넷#8729.
 `V2Score = RoundHalfUp( (score/auto_score) x 500,000 + (Max(acc-80, 0)/20)^2 x 500,000 )`
 
 osu2 = used in osu!
-`V2Score = RoundHalfUp( (score/auto_score) x 700,000 + (acc/100)^10 x 300,000 )`""",
+`V2Score = RoundHalfUp( (score/auto_score) x 700,000 + (acc/100)^10 x 300,000 )`"""
+)
+
+helptxt_page3.add_field(
+    name=blank,
+    value=blank,
     inline=False
 )
 
@@ -180,7 +218,12 @@ helptxt_page4.add_field(
     value="""If map datas fully set (infos, autoplay score, length etc.), execute these sequentially
 1. wait for map length.
 2. wait additional 30 seconds.
-3. `m;onlineload` then `m;submit nero2`""",
+3. `m;onlineload` then `m;submit nero2`"""
+)
+
+helptxt_page4.add_field(
+    name=blank,
+    value=blank,
     inline=False
 )
 
@@ -218,6 +261,12 @@ helptxt_page5.add_field(
 helptxt_page5.add_field(
     name="m;__unqueue|uq__",
     value="Leave the rank queue."
+)
+
+helptxt_page5.add_field(
+    name=blank,
+    value=blank,
+    inline=False
 )
 
 helptxt_page5.add_field(
