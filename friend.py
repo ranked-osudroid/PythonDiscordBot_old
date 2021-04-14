@@ -248,19 +248,19 @@ class MyCog(commands.Cog):
                 verified = await v.do_verify()
                 if verified:
                     self.bot.ratings[v.uid] = get_initial_elo(await self.bot.get_rank(v.uid))
+                    add_data = {
+                        'key': fixca_key,
+                        'discord_id': str(ctx.author.id),
+                        'elo': str(self.bot.ratings[v.uid]),
+                        'uid': str(v.uid)
+                    }
+                    print(add_data)
                     if BOT_DEBUG:
-                        async with self.bot.session.post(
-                                "http://ranked-osudroid.kro.kr/userAdd",
-                                body={
-                                    'key': fixca_key,
-                                    'discord_id': str(ctx.author.id),
-                                    'elo': str(self.bot.ratings[v.uid]),
-                                    'uid': str(v.uid)
-                                }
-                        ) as useradd_res:
+                        async with self.bot.session.post("http://ranked-osudroid.kro.kr/userAdd", body=add_data) \
+                                as useradd_res:
                             if useradd_res.status != 200:
                                 await ctx.send(embed=discord.Embed(
-                                    title=f'POST failed. ({useradd_res.status})\n',
+                                    title=f'POST failed. ({useradd_res.status})',
                                     description=f'Try again.',
                                     color=discord.Colour.dark_red()
                                 ))
@@ -268,14 +268,14 @@ class MyCog(commands.Cog):
                                 return
                             if (useradd_res_json := await useradd_res.json(encoding='utf-8'))['status'] == 'failed':
                                 await ctx.send(embed=discord.Embed(
-                                    title=f'POST failed. (FIXCUCKED)\n',
+                                    title=f'POST failed. (FIXCUCKED)',
                                     description=f'```{useradd_res_json["error"]}```\n\nTry again.',
                                     color=discord.Colour.dark_red()
                                 ))
                                 del self.bot.ratings[v.uid]
                                 return
                     await ctx.send(embed=discord.Embed(
-                        title=f'Player {ctx.author.name} binded to UID {v.uid}.\n',
+                        title=f'Player {ctx.author.name} binded to UID {v.uid}.',
                         description=f'Your ELO value set to {self.bot.ratings[v.uid]}',
                         color=discord.Colour(0xfefefe)
                     ))

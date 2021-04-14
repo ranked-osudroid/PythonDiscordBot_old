@@ -25,7 +25,7 @@ class Scrim:
         # member_id : teamname
         self.setscore: Dict[str, int] = dict()
         # teamname : int
-        self.score: Dict[int, Tuple[Tuple[d, d, d], Optional[str], str]] = dict()
+        self.score: Dict[int, Tuple[Tuple[d, d, d], Optional[str], Optional[int]]] = dict()
         # member_id : ((score, acc, miss), grade, mode)
 
         self.map_artist: Optional[str] = None
@@ -128,7 +128,7 @@ class Scrim:
             self.findteam[mid] = name
             self.team[name].add(mid)
             self.players.add(mid)
-            self.score[mid] = ((getd(0), getd(0), getd(0)), None, 'N/A')
+            self.score[mid] = ((getd(0), getd(0), getd(0)), None, None)
             if do_print:
                 await self.channel.send(embed=discord.Embed(
                     title=f"Player {member.name} participates into Team {name}!",
@@ -163,8 +163,8 @@ class Scrim:
                        grade: str = None, mode: Union[int, str] = 0):
         if not member:
             return
-        if type(mode) == int:
-            mode = inttomode(mode)
+        if type(mode) == str:
+            mode = modetointfunc(re.findall(r'.{1,2}', mode, re.DOTALL))
         mid = member.id
         if mid not in self.players:
             await self.channel.send(embed=discord.Embed(
@@ -189,7 +189,7 @@ class Scrim:
                 description=f"You participate first."
             ))
         else:
-            self.score[mid] = ((getd(0), getd(0), getd(0)), None, 'N/A')
+            self.score[mid] = ((getd(0), getd(0), getd(0)), None, None)
             await self.channel.send(embed=discord.Embed(
                 title=f"Player {member.name}'(s) score is deleted.",
                 color=discord.Colour.blue()
@@ -252,7 +252,8 @@ class Scrim:
             sendtxt.add_field(
                 name=f"*Team {t} total score : {teamscore[t]}*",
                 value='\n'.join(
-                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p][1]]} ({self.score[p][2]}) : "
+                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p][1]]} "
+                     f"({inttomode(self.score[p][2])}) : "
                      f"{self.score[p][0][0]} / {self.score[p][0][1]}% / {self.score[p][0][2]} :x: "
                      f"= {calculatedscores[p]}"
                      for p in self.team[t]])+'\n',
@@ -275,7 +276,8 @@ class Scrim:
             logtxt.append(f'\nTeam {t} = {teamscore[t]}')
             for p in self.team[t]:
                 logtxt.append(f"Player {await self.bot.getusername(p)} = {calculatedscores[p]} "
-                              f"({' / '.join(str(x) for x in self.score[p][0])} - {self.score[p][1]})")
+                              f"({' / '.join(str(x) for x in self.score[p][0])} - {self.score[p][1]} - "
+                              f"{inttomode(self.score[p][2])})")
         self.log.append('\n'.join(logtxt))
         r = dict()
         r['score'] = dict()
@@ -301,7 +303,7 @@ class Scrim:
         self.map_time = None
         self.map_hash = None
         for p in self.score:
-            self.score[p] = ((getd(0), getd(0), getd(0)), None, 'N/A')
+            self.score[p] = ((getd(0), getd(0), getd(0)), None, None)
         self.round_start_time = None
 
     def setartist(self, artist: str):
@@ -514,7 +516,7 @@ class Scrim:
                                 f"(Now mode numbers allowed to use : {self.availablemode[self.map_mode]} / " \
                                 f"Its mode number : {pmodeint})"
                         continue
-                p['modes'] = inttomode(pmodeint)
+                p['modes'] = pmodeint
                 extra_rate = d('1')
                 if self.getmode() == 'DT' and pmodeint & 5:
                     extra_rate /= d('1.06')
@@ -523,7 +525,7 @@ class Scrim:
                 desc += f"Success : " \
                         f"Player {await self.bot.getusername(player)}'s score = " \
                         f"{self.score[player][0][0]}, {self.score[player][0][1]}%, {self.score[player][0][2]}xMISS / " \
-                        f"{self.score[player][2]} / {self.score[player][1]} rank"
+                        f"{inttomode(self.score[player][2])} / {self.score[player][1]} rank"
         await resultmessage.edit(embed=discord.Embed(
             title="Calculation finished!",
             description=desc,

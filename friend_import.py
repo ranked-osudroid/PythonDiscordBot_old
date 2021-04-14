@@ -162,17 +162,18 @@ visibleinfo = ['artist', 'title', 'author', 'diff']
 modes = ['NM', 'HD', 'HR', 'DT', 'FM', 'TB']
 moder = re.compile(r"(NM|HD|HR|DT|FM|TB)")
 modetoint = {
-    'None': 0,
-    'Hidden': 1,
-    'HardRock': 2,
-    'DoubleTime': 4,
-    'NoFail': 8,
-    'HalfTime': 16,
-    'NightCore': 32,
-    'Easy': 64,
-    'Precise': 128
+    'NM': 0,
+    'EZ': 1,
+    'NF': 2,
+    'HF': 4,
+    'HR': 8,
+    'HD': 16,
+    'DT': 32,
+    'NC': 64,
+    'PR': 128
 }
 modeabbrev = {
+    'None': 'NM',
     'Easy': 'EZ',
     'NoFail': 'NF',
     'HalfTime': 'HF',
@@ -180,7 +181,7 @@ modeabbrev = {
     'Hidden': 'HD',
     'DoubleTime': 'DT',
     'NightCore': 'NC',
-    'Precise': 'PR'
+    'Precise': 'PR',
 }
 infotoint = {
     'artist': 1,
@@ -193,6 +194,8 @@ infotoint = {
 def modetointfunc(_modes: Iterable[str]) -> int:
     r = 0
     for md in _modes:
+        if modeabbrev.get(md):
+            md = modeabbrev[md]
         if modetoint.get(md):
             r |= modetoint[md]
     return r

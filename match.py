@@ -21,6 +21,7 @@ class Match_Scrim:
         self.opponent = opponent
 
         self.mappoolmaker: Optional[MappoolMaker] = None
+        self.mappool_uuid: Optional[str] = None
         self.map_order: List[str] = []
         self.map_autoscores: Dict[str, int] = dict()
         self.map_hashes: Dict[str, str] = dict()
@@ -38,6 +39,7 @@ class Match_Scrim:
         self.bo = bo
         self.winfor = (bo / d('2')).to_integral(rounding=decimal.ROUND_HALF_UP)
         self.abort = False
+        self.error = False
 
         self.player_ELO = self.bot.ratings[self.bot.uids[self.player.id]]
         self.opponent_ELO = self.bot.ratings[self.bot.uids[self.opponent.id]]
@@ -124,7 +126,32 @@ class Match_Scrim:
                     color=discord.Colour.dark_red()
                 ))
                 await self.scrim.setform(self.diff_form)
-                # send POST match init
+                mc_data = {
+                    "key": fixca_key,
+                    "matchId": self.made_time,
+                    "mappoolId": self.mappool_uuid,
+                    "playerDiscordId": str(self.player.id),
+                    "opponentDiscordId": str(self.opponent.id)
+                }
+                print(mc_data)
+                if BOT_DEBUG:
+                    async with self.bot.session.post("http://ranked-osudroid.kro.kr/matchCreate", data=mc_data) \
+                            as mcres:
+                        if mcres.status != 200:
+                            await self.channel.send(embed=discord.Embed(
+                                title=f'POST failed. ({mcres.status})',
+                                color=discord.Colour.dark_red()
+                            ))
+                            self.abort = True
+                            self.error = True
+                        if (res_data := await mcres.json(encoding='utf-8'))['status'] == 'failed':
+                            await self.channel.send(embed=discord.Embed(
+                                title=f'POST failed. (FIXCUCKED)',
+                                description=f'Error : \n```{res_data["error"]}```',
+                                color=discord.Colour.dark_red()
+                            ))
+                            self.abort = True
+                            self.error = True
             else:
                 await self.channel.send(embed=discord.Embed(
                     title="The Opponent didn't ready.",
@@ -188,12 +215,13 @@ class Match_Scrim:
                 maidbot_pools
             ))
             selected_pool = random.choice(pool_pools)
+            self.mappool_uuid = selected_pool['uuid']
             print('Selected pool :', selected_pool['name'])
             await self.channel.send(embed=discord.Embed(
                 title="Mappool is selected!",
                 description=f"Mappool Name : `{selected_pool['name']}`\n"
                             f"Mappool MMR (modified) : {elo_convert_rev(selected_pool['averageMMR'])}\n"
-                            f"Mappool UUID : `{selected_pool['uuid']}`",
+                            f"Mappool UUID : `{self.mappool_uuid}`",
                 color=discord.Colour(0x0ef37c)
             ))
 
@@ -214,7 +242,7 @@ class Match_Scrim:
             #     'TB': (1009680, 2248906)
             # }
 
-            mappool_link = await self.mappoolmaker.execute_osz_from_fixca(selected_pool['uuid'])
+            mappool_link = await self.mappoolmaker.execute_osz_from_fixca(self.mappool_uuid)
             if mappool_link[0] is False:
                 print(mappool_link[1])
                 await self.channel.send(embed=discord.Embed(
@@ -347,10 +375,11 @@ class Match_Scrim:
                                 'opponentScore': r['v2score'][self.opponent.id],
                                 'playerAcc': float(r['score'][self.player.id][0][1]),
                                 'opponentAcc': float(r['score'][self.opponent.id][0][1]),
-                                'playerMod': r['score'][self.player.id][2],
-                                'opponentMod': r['score'][self.opponent.id][2],
+                                'playerMod': inttomode(r['score'][self.player.id][2], ','),
+                                'opponentMod': inttomode(r['score'][self.opponent.id][2], ','),
                                 'startedTime': r['start_time']
                             }
+                            print(data)
                             if BOT_DEBUG:
                                 async with self.bot.session.post("http://ranked-osudroid.kro.kr/roundSubmit",
                                                                  data=data) as submit_res:
@@ -369,6 +398,39 @@ class Match_Scrim:
                         break
                     await asyncio.sleep(1)
                 if self.abort:
+                    if self.round > 0:
+                        reds = self.scrim.setscore["RED"]
+                        blues = self.scrim.setscore["BLUE"]
+                        if reds > blues:
+                            winner = "player"
+                        elif reds == blues:
+                            winner = "draw"
+                        else:
+                            winner = "opponent"
+                        end_data = {
+                            "key": fixca_key,
+                            "matchId": self.made_time,
+                            "winner": winner,
+                            "playerScore": reds,
+                            "opponentScore": blues,
+                            "aborted": self.error
+                        }
+                        print(end_data)
+                        if BOT_DEBUG:
+                            async with self.bot.session.post("http://ranked-osudroid.kro.kr/roundSubmit",
+                                                             data=end_data) as end_res:
+                                if end_res.status != 200:
+                                    await self.channel.send(embed=discord.Embed(
+                                        title=f'POST failed. ({end_res.status})\n',
+                                        description=f'Try again.',
+                                        color=discord.Colour.dark_red()
+                                    ))
+                                if (end_res_json := await end_res.json(encoding='utf-8'))['status'] == 'failed':
+                                    await self.channel.send(embed=discord.Embed(
+                                        title=f'POST failed. (FIXCUCKED)\n',
+                                        description=f'```{end_res_json["error"]}```\n\nTry again.',
+                                        color=discord.Colour.dark_red()
+                                    ))
                     break
         except BaseException as ex_:
             print(get_traceback_str(ex_))

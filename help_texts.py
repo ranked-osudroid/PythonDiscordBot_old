@@ -205,7 +205,8 @@ helptxt_page3.add_field(
 
 helptxt_page3.add_field(
     name="m;__score|sc__ <*score*> (*acc*) (*miss*) (*rank*) (*mode*)",
-    value="If you want to upload your score manually, use this.."
+    value="""If you want to upload your score manually, use this.
+Ex) `m;score 12345678 99.1 0 SH NFHRHD"""
 )
 
 helptxt_page3.add_field(
