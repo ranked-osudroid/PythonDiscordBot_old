@@ -14,8 +14,6 @@ from google.oauth2.service_account import Credentials
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
-from help_texts import helptxt
-
 BOT_DEBUG = False
 
 scopes = [

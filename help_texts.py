@@ -1,69 +1,88 @@
 import discord
 
-helptxt_title = "COMMAND DESCRIPTION"
+helptxt_title = "COMMAND DESCRIPTION "
 helptxt_desc = """
-**ver. 2.20210406**
+**ver. 20210414**
 <this parameter is necessary>
 (this parameter is optional)
 __choose|one|of|these|parameters__
 """.strip()
 
-helptxt_forscrim_name = "\u200b\n\n*스크림 관련 | For scrim*"
-helptxt_forscrim_desc1 = """
-**m;make**
-Make a match. You can use commands below after using this command.
+helptxt_page1 = discord.Embed(title=helptxt_title + "(1/5)", description=helptxt_desc, color=discord.Colour(0xfefefe))
+helptxt_page2 = discord.Embed(title=helptxt_title + "(2/5)", description=helptxt_desc, color=discord.Colour(0xfefefe))
+helptxt_page3 = discord.Embed(title=helptxt_title + "(3/5)", description=helptxt_desc, color=discord.Colour(0xfefefe))
+helptxt_page4 = discord.Embed(title=helptxt_title + "(4/5)", description=helptxt_desc, color=discord.Colour(0xfefefe))
+helptxt_page5 = discord.Embed(title=helptxt_title + "(5/5)", description=helptxt_desc, color=discord.Colour(0xfefefe))
 
-**m;__teamadd|t__ <*name*>**
-Create Team *name*
+helptxt_page1.add_field(
+    name="m;make",
+    value="Make a scrim. You can use commands below after using this command.",
+    inline=False
+)
 
-**m;__teamremove|tr__ <*name*>**
-Remove Team *name*
-(Players in the team will be left.)
+helptxt_page1.add_field(
+    name="m;__teamadd|t__ <*name*>",
+    value="Create Team *name*."
+)
 
-**m;in <*name*>**
-Participate in Team *name*
+helptxt_page1.add_field(
+    name="m;__teamremove|tr__ <*name*>",
+    value="""Remove Team *name*.
+(Players in the team will be left.)"""
+)
 
-**m;out**
-Leave Team *name*
+helptxt_page1.add_field(
+    name="m;in <*name*>",
+    value="Participate in Team *name*."
+)
 
-**m;map __<*info*|*nickname*>__**
-Set a map.
+helptxt_page1.add_field(
+    name="m;out",
+    value="Leave your team."
+)
+
+helptxt_page1.add_field(
+    name="m;map __<*info*|*nickname*>__",
+    value="""Set a map.
 
 *info* should have format `artist - title (author) [diff]`.
 예 : `TUYU - Doro no Bunzai de Watashi dake no Taisetsu o Ubaouda Nante (SnowNiNo_) [Estrangement]`
 
 *nickname* should be a specific string in my private spreadsheet. (Check sheet data by using `m;sheetslink`)
-예 : `practice24;NM1`
+예 : `practice24;NM1`"""
+)
 
-**m;__mapmode|mm__ <*mode*>**
-Set a mode. *mode* should be one of below.
-`'NM', 'HD', 'HR', 'DT', 'FM', 'TB'`
+helptxt_page1.add_field(
+    name="m;__mapmode|mm__ <*mode*>",
+    value="""Set a mode. *mode* should be one of below.
+`'NM', 'HD', 'HR', 'DT', 'FM', 'TB'`"""
+)
 
-**m;__maptime|mt__ <*seconds*>**
-Set a map length.
+helptxt_page1.add_field(
+    name="m;__mapmode|mm__ <*mode*>",
+    value="""Set a mode. *mode* should be one of below.
+`'NM', 'HD', 'HR', 'DT', 'FM', 'TB'`"""
+)
 
-**m;__mapscore|ms__ __<*int*|auto>__ (*filepath*)**
-Set autoplay score. This score is used at calculating V2-kind score.
+helptxt_page1.add_field(
+    name="m;__maptime|mt__ <*seconds*>",
+    value="Set a map length."
+)
+
+helptxt_page2.add_field(
+    name="m;__mapscore|ms__ __<*int*|auto>__ (*filepath*)",
+    value="""Set autoplay score. This score is used at calculating V2-kind score.
 
 If you enter *int*, the score is set to *int*. *int* should be integer. You don't have to enter *filepath*
 
 If you enter auto, you should enter *filepath*.
-*filepath* is the path of `.osu` file that we want to get autoplay score of.
-Built-in script will calculate autoplay score, and the score will (mostly) not same with in-game SS score.
+*filepath* is the path of `.osu` file that we want to get autoplay score of. (recommended not to use this)
+Built-in script will calculate autoplay score, and the score will (mostly) not same with in-game SS score."""
+)
 
-**m;__score|sc__ <*score*> (*acc*) (*miss*) (*rank*) (*mode*)**
-If you want to upload your score manually, use this.
-
-**m;__scoreremove|scr__**
-If you want to remove your score manually, use this.
-
-**m;end**
-End the scrim and reset it.
-""".strip()
-
-helptxt_forscrim_desc2 = """
-**m;__mapmoderule|mr__ <*numbers1*> <*numbers2*> <*numbers3*> <*numbers4*> <*numbers5*> <*numbers6*>**
-Set available modes.
+helptxt_page2.add_field(
+    name="m;__mapmoderule|mr__ <*numbers1*> <*numbers2*> <*numbers3*> <*numbers4*> <*numbers5*> <*numbers6*>",
+    value="""Set available modes.
 *numbers1* ~ *numbers6* should be numbers seperated with `,`(comma).
 Each *numbers* means modes that is allowed when the mode is NM, HD, HR, DT, FM or TB.
 Referring to below, convert mode combination into number.
@@ -81,10 +100,33 @@ For example, if you want to allow only None and NF when mode is NM, you enter `0
 If you want to allow NFDT and NFHDDT when mode is DT, you enter `12,13` at *number4*.
 
 Default value is here.
-`m;mapmoderule 0,8 2,10 1,9 4,5,12,13 0,1,2,3,8,9,10,11 0,1,2,3,8,9,10,11`
+`m;mapmoderule 0,8 2,10 1,9 4,5,12,13 0,1,2,3,8,9,10,11 0,1,2,3,8,9,10,11`"""
+)
 
-**m;__onlineload|l__ (*number*)**
-Get player's recent plays online. (http://ops.dgsrz.com/)
+helptxt_page2.add_field(
+    name="m;__maphash|mh__ <*hash*>",
+    value="""Set hash of map. *hash* is MD5 value of `.osu` file of map.
+```python
+with open("target.osu", 'rb') as f:
+    hashOfMap = hashlib.md5(f.read()).hexdigest()
+```"""
+)
+
+helptxt_page2.add_field(
+    name="m;form <*format*>",
+    value="""Set a format of difficulty name.
+If map infos are in map's difficulty name (like in tournament, using its own pool), you should use this.
+Enter *format* using these words: `artist`, `title`, `author`, `diff`, `number`
+
+For example, if one of difficulty names of maps is `[FM1] Everybody Falls [Neli's Eliminated]`,
+*form* should be `[number] title [diff]`.
+
+Check if there's some typos, or mis-spacing. (like `[number]title [diff]` or `[number] title (diff)`)"""
+)
+
+helptxt_page3.add_field(
+    name="m;__onlineload|l__ (*number*)",
+    value="""Get player's recent plays online. (http://ops.dgsrz.com/)
 If you didn't bind with your UID, your play will not be loaded.
 If you have wrong title or difficulty name etc, your play will not be loaded too.
 If there's mode set by `m;map` or `m;mapmode`, only plays that fit with rules modified by `m;mapmoderule` will be loaded.
@@ -96,24 +138,13 @@ Default value is 31.
 
 If `m;form` is used, check if play's difficulty name matches with the format, and check their elements.
 In this case, *number* is ignored.
-""".strip()
 
-helptxt_forscrim_desc3 = """
-**m;form <*format*>**
-Set a format of difficulty name.
-If map infos are in map's difficulty name (like in tournament, using its own pool), you should use this.
-Enter *format* using these words: `artist`, `title`, `author`, `diff`, `number`
+If `m;maphash` is used once, ignore the form and *number*, and use only mode rule."""
+)
 
-For example, if one of difficulty names of maps is `[FM1] Everybody Falls [Neli's Eliminated]`,
-*form* should be `[number] title [diff]`.
-
-Check if there's some typos, or mis-spacing. (like `[number]title [diff]` or `[number] title (diff)`)
-
-**m;verify <*uid*>**
-Used for binding you with *uid*.
-
-**m;submit __(nero2|jet2|osu2)__**
-Calculate scores and show result.
+helptxt_page3.add_field(
+    name="m;submit __(nero2|jet2|osu2)__",
+    value="""Calculate scores and show result.
 `nero2`, `jet2`, and `osu2` are kinds of calculating V2 score.
 If you enter one of them, the autoplay score should be set.
 If you only chat `m;submit`, the score will be calculated by V1.
@@ -125,66 +156,80 @@ jet2 = made by 제토넷#8729.
 `V2Score = RoundHalfUp( (score/auto_score) x 500,000 + (Max(acc-80, 0)/20)^2 x 500,000 )`
 
 osu2 = used in osu!
-`V2Score = RoundHalfUp( (score/auto_score) x 700,000 + (acc/100)^10 x 300,000 )`
-\u200b
-"""
-helptxt_forscrim_desc4 = """
-**m;start**
-If map datas fully set (infos, autoplay score, length etc.), execute these sequentially
+`V2Score = RoundHalfUp( (score/auto_score) x 700,000 + (acc/100)^10 x 300,000 )`"""
+)
+
+helptxt_page3.add_field(
+    name="m;__score|sc__ <*score*> (*acc*) (*miss*) (*rank*) (*mode*)",
+    value="If you want to upload your score manually, use this.."
+)
+
+helptxt_page3.add_field(
+    name="m;__scoreremove|scr__",
+    value="If you want to remove your score manually, use this."
+)
+
+helptxt_page4.add_field(
+    name="m;start",
+    value="""If map datas fully set (infos, autoplay score, length etc.), execute these sequentially
 1. wait for map length.
 2. wait additional 30 seconds.
-3. `m;onlineload` then `m;submit nero2`
+3. `m;onlineload` then `m;submit nero2`"""
+)
 
-**m;abort**
-Abort this scrim.
+helptxt_page4.add_field(
+    name="m;abort",
+    value="Abort now running match (by `m;start`)."
+)
 
-**m;__queue|q__**
-Join the match queue.
+helptxt_page4.add_field(
+    name="m;end",
+    value="End the scrim and reset it."
+)
 
-**m;__unqueue|uq__**
-Leave the match queue.
+helptxt_page5.add_field(
+    name="m;verify <*UID*>",
+    value="Used for binding you with *UID*.",
+    inline=False
+)
 
-**m;profileme|pfme**
-See my UID and ELO.
+helptxt_page5.add_field(
+    name="m;__profileme|pfme__ (*discordID*)",
+    value="See user's UID, ELO, and TIER."
+)
 
-\u200b
-""".strip()
+helptxt_page5.add_field(
+    name="m;__queue|q__",
+    value="Join the rank queue."
+)
 
-helptxt_other_name = "\u200b\n\nOthers"
-helptxt_other_desc = """
-**m;ping**
-Pong!
+helptxt_page5.add_field(
+    name="m;__unqueue|uq__",
+    value="Leave the rank queue."
+)
 
-**m;timer __<*seconds*|now|cancel>__ (*name*)**
-Set timer. Enter time limit at *seconds*. If you didn't enter *name*, then an integer will be its name.
+helptxt_page5.add_field(
+    name="m;ping",
+    value="Pong!"
+)
+
+helptxt_page5.add_field(
+    name="m;timer __<*seconds*|now|cancel>__ (*name*)",
+    value="""Set timer. Enter time limit at *seconds*. If you didn't enter *name*, then an integer will be its name.
 It starts countdown as soon as it's made.
 
 If you enter now, it displays timer *name*'s time left.
-If you enter cancel, it stops timer *name*.
+If you enter cancel, it stops timer *name*."""
+)
 
-**m;roll <*dice*>**
-Roll a dice.
-*dice* should have this format: (number)d(number). (Yeah what you know.)
-You can enter multiple *dice*es.
-""".strip()
+helptxt_page5.add_field(
+    name="m;roll <*dice*>",
+    value="""Roll a dice.
+*dice* should have this format: (number)d(number). (Ye it's what you know.)
+You can enter multiple *dice*es."""
+)
 
-helptxt_admin = """
-m;teamforceadd (tf) <not yet>
-m;teamforceremove (tfr) <not yet>
-m;say
-m;sayresult
-m;run
-""".strip()
-
-helptxt = discord.Embed(title=helptxt_title, description=helptxt_desc, color=discord.Colour(0xfefefe))
-helptxt.add_field(name=helptxt_forscrim_name, value=helptxt_forscrim_desc1, inline=False)
-helptxt.add_field(name='\u200b', value=helptxt_forscrim_desc2, inline=False)
-helptxt.add_field(name='\u200b', value=helptxt_forscrim_desc3, inline=False)
-helptxt.add_field(name='\u200b', value=helptxt_forscrim_desc4, inline=False)
-helptxt.add_field(name=helptxt_other_name, value=helptxt_other_desc, inline=False)
+helptxt_pages = [helptxt_page1, helptxt_page2, helptxt_page3, helptxt_page4, helptxt_page5]
 
 if __name__ == '__main__':
-    print(len(helptxt_forscrim_desc1))
-    print(len(helptxt_forscrim_desc2))
-    print(len(helptxt_forscrim_desc3))
-    print(len(helptxt_forscrim_desc4))
+    pass

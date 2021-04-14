@@ -1,4 +1,5 @@
 from friend_import import *
+from help_texts import helptxt_pages
 from timer import Timer
 from scrim import Scrim
 from match import Match_Scrim
@@ -51,7 +52,42 @@ class MyCog(commands.Cog):
 
     @commands.command(name="help")
     async def _help(self, ctx):
-        await ctx.send(embed=helptxt)
+        help_msg: discord.Message = await ctx.send(embed=helptxt_pages[0])
+        await help_msg.add_reaction('⏮')
+        await help_msg.add_reaction('◀')
+        await help_msg.add_reaction('▶')
+        await help_msg.add_reaction('⏭')
+
+        i = 0
+        pageEND = len(helptxt_pages) - 1
+        recent_react = None
+
+        while True:
+            if str(recent_react) == '⏮':
+                i = 0
+                await help_msg.edit(embed=helptxt_pages[i])
+            elif str(recent_react) == '◀':
+                if i > 0:
+                    i -= 1
+                    await help_msg.edit(embed=helptxt_pages[i])
+            elif str(recent_react) == '▶':
+                if i < pageEND:
+                    i += 1
+                    await help_msg.edit(embed=helptxt_pages[i])
+            elif str(recent_react) == '⏭':
+                i = pageEND
+                await help_msg.edit(embed=helptxt_pages[i])
+
+            try:
+                recent_react, react_user = await self.bot.wait_for('reaction_add', timeout=30)
+                await help_msg.remove_reaction(recent_react, react_user)
+            except asyncio.CancelledError:
+                raise
+            except BaseException as e_x:
+                print(get_traceback_str(e_x))
+                break
+
+        await help_msg.clear_reactions()
 
     @commands.command()
     async def ping(self, ctx):
