@@ -82,7 +82,7 @@ class MyCog(commands.Cog):
                 await help_msg.edit(embed=helptxt_pages[i])
 
             try:
-                recent_react, react_user = await self.bot.wait_for('reaction_add', timeout=30)
+                recent_react, react_user = await self.bot.wait_for('reaction_add', timeout=30, check=check)
                 await help_msg.remove_reaction(recent_react, react_user)
             except asyncio.CancelledError:
                 raise
