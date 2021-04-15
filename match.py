@@ -147,9 +147,9 @@ class Match_Scrim:
                         if (res_data := await mcres.json(encoding='utf-8'))['status'] == 'failed':
                             await self.channel.send(embed=discord.Embed(
                                 title=f'POST failed. (FIXCUCKED)',
-                                description=f'Error : \n```{res_data["error"]}```',
                                 color=discord.Colour.dark_red()
                             ))
+                            print(f'matchCreate error : \n{res_data["error"]}')
                             self.abort = True
                             self.error = True
             else:
