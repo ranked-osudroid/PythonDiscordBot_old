@@ -14,7 +14,7 @@ from google.oauth2.service_account import Credentials
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 
-BOT_DEBUG = False
+BOT_DEBUG = True
 
 scopes = [
     'https://www.googleapis.com/auth/spreadsheets',

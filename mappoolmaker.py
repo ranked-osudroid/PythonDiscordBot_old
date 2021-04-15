@@ -263,31 +263,31 @@ class MappoolMaker:
                 auto_scores = res_data['mapInfo']
 
             desc[-1] += ' done'
-            desc.append('Downloading mappool for setting...')
+            desc.append('Loading info of maps...')
             e.description = '\n'.join(desc)
             await self.message.edit(embed=e)
 
             for mm in auto_scores:
-                self.match.map_autoscores[mm] = auto_scores[mm]["score"]
+                self.match.map_autoscores[mm] = int(auto_scores[mm]["score"])
                 self.match.map_hashes[mm] = auto_scores[mm]["hash"]
 
-            async with self.session.get(download_link) as resp:
-                if resp.status != 200:
-                    return False, f'Download failed : {resp.status}'
-                osz_file = self.save_folder_path + '.osz'
-                async with aiofiles.open(osz_file, 'wb') as df:
-                    await df.write(await resp.content.read())
-                zf = zipfile.ZipFile(osz_file)
-                zf.extractall(self.save_folder_path)
-                for fn in os.listdir(self.save_folder_path):
-                    if fn.endswith(".osu"):
-                        m = parse_fixca.match(fn)
-                        if m is None:
-                            return False, f'Matching failed : {fn}'
-                        mapnum = m.group(1)
-                        self.osufile_path[mapnum] = fn
-                zf.close()
-                os.remove(osz_file)
+            # async with self.session.get(download_link) as resp:
+            #     if resp.status != 200:
+            #         return False, f'Download failed : {resp.status}'
+            #     osz_file = self.save_folder_path + '.osz'
+            #     async with aiofiles.open(osz_file, 'wb') as df:
+            #         await df.write(await resp.content.read())
+            #     zf = zipfile.ZipFile(osz_file)
+            #     zf.extractall(self.save_folder_path)
+            #     for fn in os.listdir(self.save_folder_path):
+            #         if fn.endswith(".osu"):
+            #             m = parse_fixca.match(fn)
+            #             if m is None:
+            #                 return False, f'Matching failed : {fn}'
+            #             mapnum = m.group(1)
+            #             self.osufile_path[mapnum] = fn
+            #     zf.close()
+            #     os.remove(osz_file)
 
             desc[-1] += ' done'
             e.description = '\n'.join(desc)
