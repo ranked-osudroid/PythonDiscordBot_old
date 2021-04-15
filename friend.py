@@ -1,3 +1,5 @@
+import discord
+
 from friend_import import *
 from help_texts import helptxt_pages
 from timer import Timer
@@ -44,6 +46,12 @@ class MyCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, exception):
+        if isinstance(exception, commands.errors.CheckFailure):
+            await ctx.send(embed=discord.Embed(
+                title="**YOU DON'T HAVE PERMISSION TO USE THIS.**",
+                color=discord.Colour.dark_gray()
+            ))
+            return
         exceptiontxt = get_traceback_str(exception)
         print('================ ERROR ================')
         print(exceptiontxt)
