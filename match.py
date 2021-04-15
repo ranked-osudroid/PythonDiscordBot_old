@@ -38,12 +38,10 @@ class Match_Scrim:
         # n = n라운드 준비 대기
         self.bo = bo
         self.winfor = (bo / d('2')).to_integral(rounding=decimal.ROUND_HALF_UP)
-        self.abort = False
-        self.error = False
+        self.match_end = False
+        self.aborted = False
 
-        self.player_ELO = self.bot.ratings[self.bot.uids[self.player.id]]
-        self.opponent_ELO = self.bot.ratings[self.bot.uids[self.opponent.id]]
-        self.elo_manager = EloRating(self.player_ELO, self.opponent_ELO, ELO_K, ELO_STDV)
+        self.elo_manager = EloRating(k=ELO_K, stdv=ELO_STDV)
 
         self.player_ready: bool = False
         self.opponent_ready: bool = False
@@ -116,7 +114,7 @@ class Match_Scrim:
                     description="Match aborted.",
                     color=discord.Colour.dark_red()
                 ))
-                self.abort = True
+                self.aborted = True
         elif self.round == 0:
             if timer_cancelled:
                 self.round = 1
@@ -126,39 +124,13 @@ class Match_Scrim:
                     color=discord.Colour.dark_red()
                 ))
                 await self.scrim.setform(self.diff_form)
-                mc_data = {
-                    "key": fixca_key,
-                    "matchId": self.made_time,
-                    "mappoolId": self.mappool_uuid,
-                    "playerDiscordId": str(self.player.id),
-                    "opponentDiscordId": str(self.opponent.id)
-                }
-                print(mc_data)
-                if BOT_DEBUG:
-                    async with self.bot.session.post("http://ranked-osudroid.kro.kr/matchCreate", data=mc_data) \
-                            as mcres:
-                        if mcres.status != 200:
-                            await self.channel.send(embed=discord.Embed(
-                                title=f'POST failed. ({mcres.status})',
-                                color=discord.Colour.dark_red()
-                            ))
-                            self.abort = True
-                            self.error = True
-                        if (res_data := await mcres.json(encoding='utf-8'))['status'] == 'failed':
-                            await self.channel.send(embed=discord.Embed(
-                                title=f'POST failed. (FIXCUCKED)',
-                                color=discord.Colour.dark_red()
-                            ))
-                            print(f'matchCreate error : \n{res_data["error"]}')
-                            self.abort = True
-                            self.error = True
             else:
                 await self.channel.send(embed=discord.Embed(
                     title="The Opponent didn't ready.",
                     description="Match aborted.",
                     color=discord.Colour.dark_red()
                 ))
-                self.abort = True
+                self.aborted = True
         else:
             if timer_cancelled:
                 message = await self.channel.send(embed=discord.Embed(
@@ -190,11 +162,39 @@ class Match_Scrim:
             await self.scrim.do_match_start()
 
     async def do_progress(self):
-        if self.abort:
+        if self.match_end or self.aborted:
             return
         elif self.round == -1:
             self.channel = await self.bot.match_category_channel.create_text_channel(f"Match_{self.made_time}")
             self.scrim = Scrim(self.bot, self.channel)
+            mc_data = {
+                "key": fixca_key,
+                "matchId": self.made_time,
+                "mappoolId": self.mappool_uuid,
+                "playerDiscordId": str(self.player.id),
+                "opponentDiscordId": str(self.opponent.id)
+            }
+            print(mc_data)
+            if BOT_DEBUG:
+                async with self.bot.session.post("http://ranked-osudroid.kro.kr/matchCreate", data=mc_data) \
+                        as mcres:
+                    if mcres.status != 200:
+                        await self.channel.send(embed=discord.Embed(
+                            title=f'POST matchCreate failed. ({mcres.status})',
+                            color=discord.Colour.dark_red()
+                        ))
+                        self.aborted = True
+                        return
+                    if (res_data := await mcres.json(encoding='utf-8'))['status'] == 'failed':
+                        await self.channel.send(embed=discord.Embed(
+                            title=f'POST matchCreate failed. (FIXCUCKED)',
+                            color=discord.Colour.dark_red()
+                        ))
+                        print(f'matchCreate error : \n{res_data["error"]}')
+                        self.aborted = True
+                        return
+                    self.elo_manager.set_player_rating(d(res_data["playerStat"]["playerElo"]))
+                    self.elo_manager.set_opponent_rating(d(res_data["playerStat"]["opponentElo"]))
             await self.channel.send(
                 f"{self.player.mention} {self.opponent.mention}",
                 embed=discord.Embed(
@@ -220,7 +220,8 @@ class Match_Scrim:
             await self.channel.send(embed=discord.Embed(
                 title="Mappool is selected!",
                 description=f"Mappool Name : `{selected_pool['name']}`\n"
-                            f"Mappool MMR (modified) : {elo_convert_rev(selected_pool['averageMMR'])}\n"
+                            f"Mappool MMR (modified) : "
+                            f"{elo_convert_rev(selected_pool['averageMMR']).quantize(d('.0001'))}\n"
                             f"Mappool UUID : `{self.mappool_uuid}`",
                 color=discord.Colour(0x0ef37c)
             ))
@@ -303,7 +304,7 @@ class Match_Scrim:
             self.bot.ratings[self.bot.uids[self.player.id]], self.bot.ratings[self.bot.uids[self.opponent.id]] = \
                 self.elo_manager.get_ratings()
             shutil.rmtree(self.mappoolmaker.save_folder_path)
-            self.abort = True
+            self.match_end = True
         else:
             if self.round == self.bo and self.map_tb is not None:
                 now_mapnum = self.map_tb
@@ -348,10 +349,10 @@ class Match_Scrim:
 
     async def match_start(self):
         try:
-            while not self.abort:
+            while not self.match_end or self.aborted:
                 await self.do_progress()
                 while True:
-                    if self.abort:
+                    if self.match_end:
                         await self.channel.send(embed=discord.Embed(
                             title="Match successfully finished"
                         ))
@@ -396,39 +397,44 @@ class Match_Scrim:
                                         print(f'roundSubmit error : \n{submit_res_json["error"]}')
                         break
                     await asyncio.sleep(1)
-                if self.abort:
+                if self.match_end or self.aborted:
+                    player_updated_elo, opponent_updated_elo = self.elo_manager.get_ratings()
                     if self.round > 0:
                         reds = self.scrim.setscore["RED"]
                         blues = self.scrim.setscore["BLUE"]
-                        if reds > blues:
-                            winner = "player"
-                        elif reds == blues:
-                            winner = "draw"
-                        else:
-                            winner = "opponent"
-                        end_data = {
-                            "key": fixca_key,
-                            "matchId": self.made_time,
-                            "winner": winner,
-                            "playerScore": reds,
-                            "opponentScore": blues,
-                            "aborted": self.error
-                        }
-                        print(end_data)
-                        if BOT_DEBUG:
-                            async with self.bot.session.post("http://ranked-osudroid.kro.kr/matchEnd",
-                                                             data=end_data) as end_res:
-                                if end_res.status != 200:
-                                    await self.channel.send(embed=discord.Embed(
-                                        title=f'POST matchEnd failed. ({end_res.status})\n',
-                                        color=discord.Colour.dark_red()
-                                    ))
-                                if (end_res_json := await end_res.json(encoding='utf-8'))['status'] == 'failed':
-                                    await self.channel.send(embed=discord.Embed(
-                                        title=f'POST matchEnd failed. (FIXCUCKED)\n',
-                                        color=discord.Colour.dark_red()
-                                    ))
-                                    print(f'matchEnd error : \n{end_res_json["error"]}')
+                    else:
+                        reds, blues = 0, 0
+                    if reds > blues:
+                        winner = "player"
+                    elif reds == blues:
+                        winner = "draw"
+                    else:
+                        winner = "opponent"
+                    end_data = {
+                        "key": fixca_key,
+                        "matchId": self.made_time,
+                        "winner": winner,
+                        "playerScore": reds,
+                        "opponentScore": blues,
+                        "playerChangedElo": str(player_updated_elo),
+                        "opponentChangedElo": str(opponent_updated_elo),
+                        "aborted": self.aborted
+                    }
+                    print(end_data)
+                    if BOT_DEBUG:
+                        async with self.bot.session.post("http://ranked-osudroid.kro.kr/matchEnd",
+                                                         data=end_data) as end_res:
+                            if end_res.status != 200:
+                                await self.channel.send(embed=discord.Embed(
+                                    title=f'POST matchEnd failed. ({end_res.status})\n',
+                                    color=discord.Colour.dark_red()
+                                ))
+                            if (end_res_json := await end_res.json(encoding='utf-8'))['status'] == 'failed':
+                                await self.channel.send(embed=discord.Embed(
+                                    title=f'POST matchEnd failed. (FIXCUCKED)\n',
+                                    color=discord.Colour.dark_red()
+                                ))
+                                print(f'matchEnd error : \n{end_res_json["error"]}')
                     break
         except BaseException as ex_:
             print(get_traceback_str(ex_))

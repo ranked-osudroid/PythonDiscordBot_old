@@ -1,4 +1,4 @@
-from friend_import import *
+from friend_import import decimal, d, ELO_MID_RATING, get_elo_rank_entry_cost
 
 class EloRating:
     def __init__(self, player_rating: d = ELO_MID_RATING, opponent_rating: d = ELO_MID_RATING, k=40, stdv=400):
