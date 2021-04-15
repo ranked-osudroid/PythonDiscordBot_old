@@ -43,7 +43,7 @@ class MyCog(commands.Cog):
             await pm.switch_ready(p)
 
     @commands.Cog.listener()
-    async def on_command_exception(self, ctx, exception):
+    async def on_command_error(self, ctx, exception):
         exceptiontxt = get_traceback_str(exception)
         print('================ ERROR ================')
         print(exceptiontxt)
