@@ -203,7 +203,7 @@ def modetointfunc(_modes: Iterable[str]) -> int:
 def inttomode(i: Optional[int], sep: str = '') -> str:
     if i:
         r = []
-        for md in modeabbrev.keys():
+        for md in modeabbrev.values():
             if i & modetoint[md]:
                 r.append(modeabbrev[md])
         return sep.join(r)

@@ -256,7 +256,7 @@ class MyCog(commands.Cog):
                     }
                     print(add_data)
                     if BOT_DEBUG:
-                        async with self.bot.session.post("http://ranked-osudroid.kro.kr/userAdd", body=add_data) \
+                        async with self.bot.session.post("http://ranked-osudroid.kro.kr/userAdd", data=add_data) \
                                 as useradd_res:
                             if useradd_res.status != 200:
                                 await ctx.send(embed=discord.Embed(
