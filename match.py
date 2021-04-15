@@ -247,7 +247,7 @@ class Match_Scrim:
                 print(mappool_link[1])
                 await self.channel.send(embed=discord.Embed(
                     title="Error occurred",
-                    description=f'```{mappool_link[1]}```\nRetry soon by downloading each beatmaps...'
+                    description=f'{mappool_link[1]}\nRetry soon by downloading each beatmaps...'
                 ))
                 for bm in selected_pool['maps']:
                     self.mappoolmaker.add_map(bm['sheetId'], bm['mapSetId'], bm['mapId'])
@@ -385,16 +385,15 @@ class Match_Scrim:
                                                                  data=data) as submit_res:
                                     if submit_res.status != 200:
                                         await self.channel.send(embed=discord.Embed(
-                                            title=f'POST failed. ({submit_res.status})\n',
-                                            description=f'Try again.',
+                                            title=f'POST roundSubmit failed. ({submit_res.status})',
                                             color=discord.Colour.dark_red()
                                         ))
                                     if (submit_res_json := await submit_res.json(encoding='utf-8'))['status'] == 'failed':
                                         await self.channel.send(embed=discord.Embed(
-                                            title=f'POST failed. (FIXCUCKED)\n',
-                                            description=f'```{submit_res_json["error"]}```\n\nTry again.',
+                                            title=f'POST roundSubmit failed. (FIXCUCKED)',
                                             color=discord.Colour.dark_red()
                                         ))
+                                        print(f'roundSubmit error : \n{submit_res_json["error"]}')
                         break
                     await asyncio.sleep(1)
                 if self.abort:
@@ -417,20 +416,19 @@ class Match_Scrim:
                         }
                         print(end_data)
                         if BOT_DEBUG:
-                            async with self.bot.session.post("http://ranked-osudroid.kro.kr/roundSubmit",
+                            async with self.bot.session.post("http://ranked-osudroid.kro.kr/matchEnd",
                                                              data=end_data) as end_res:
                                 if end_res.status != 200:
                                     await self.channel.send(embed=discord.Embed(
-                                        title=f'POST failed. ({end_res.status})\n',
-                                        description=f'Try again.',
+                                        title=f'POST matchEnd failed. ({end_res.status})\n',
                                         color=discord.Colour.dark_red()
                                     ))
                                 if (end_res_json := await end_res.json(encoding='utf-8'))['status'] == 'failed':
                                     await self.channel.send(embed=discord.Embed(
-                                        title=f'POST failed. (FIXCUCKED)\n',
-                                        description=f'```{end_res_json["error"]}```\n\nTry again.',
+                                        title=f'POST matchEnd failed. (FIXCUCKED)\n',
                                         color=discord.Colour.dark_red()
                                     ))
+                                    print(f'matchEnd error : \n{end_res_json["error"]}')
                     break
         except BaseException as ex_:
             print(get_traceback_str(ex_))

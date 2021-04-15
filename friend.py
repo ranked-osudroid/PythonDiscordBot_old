@@ -260,18 +260,17 @@ class MyCog(commands.Cog):
                                 as useradd_res:
                             if useradd_res.status != 200:
                                 await ctx.send(embed=discord.Embed(
-                                    title=f'POST failed. ({useradd_res.status})',
-                                    description=f'Try again.',
+                                    title=f'POST userAdd failed. ({useradd_res.status})',
                                     color=discord.Colour.dark_red()
                                 ))
                                 del self.bot.ratings[v.uid]
                                 return
                             if (useradd_res_json := await useradd_res.json(encoding='utf-8'))['status'] == 'failed':
                                 await ctx.send(embed=discord.Embed(
-                                    title=f'POST failed. (FIXCUCKED)',
-                                    description=f'```{useradd_res_json["error"]}```\n\nTry again.',
+                                    title=f'POST userAdd failed. (FIXCUCKED)',
                                     color=discord.Colour.dark_red()
                                 ))
+                                print(f'userAdd error : \n{useradd_res_json["error"]}')
                                 del self.bot.ratings[v.uid]
                                 return
                     await ctx.send(embed=discord.Embed(

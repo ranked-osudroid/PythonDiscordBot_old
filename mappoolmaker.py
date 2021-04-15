@@ -258,7 +258,8 @@ class MappoolMaker:
                     return False, f'Get info failed : {resp.status}'
                 res_data = await resp.json(encoding='utf-8')
                 if res_data['status'] == 'failed':
-                    return False, f'Get info failed : FIXCUCKED\n```{res_data["error"]}```'
+                    print(f'createPack error : \n{res_data["error"]}')
+                    return False, f'Get info failed : FIXCUCKED'
                 download_link = res_data['downlink']
                 auto_scores = res_data['mapInfo']
 
