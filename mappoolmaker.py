@@ -269,7 +269,7 @@ class MappoolMaker:
 
             for mm in auto_scores:
                 self.match.map_autoscores[mm] = auto_scores[mm]["score"]
-                self.match.map_hashes = auto_scores[mm]["hash"]
+                self.match.map_hashes[mm] = auto_scores[mm]["hash"]
 
             async with self.session.get(download_link) as resp:
                 if resp.status != 200:
