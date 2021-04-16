@@ -70,12 +70,12 @@ class Match_Scrim:
             return
         if r_:
             await self.channel.send(embed=discord.Embed(
-                title=f"{subj} ready!",
+                title=f"{subj.name} ready!",
                 color=discord.Colour.green()
             ))
         else:
             await self.channel.send(embed=discord.Embed(
-                title=f"{subj} unready!",
+                title=f"{subj.name} unready!",
                 color=discord.Colour.green()
             ))
 
@@ -300,11 +300,27 @@ class Match_Scrim:
                 rate = score_diff / d('16')
             else:
                 rate = d('.5')
-            self.elo_manager.update(rate, True)
+            prate_bef, orate_bef = self.elo_manager.get_ratings()
+            pdrate, odrate = self.elo_manager.update(rate, True)
+            prate_aft, orate_aft = self.elo_manager.get_ratings()
             self.bot.ratings[self.bot.uids[self.player.id]], self.bot.ratings[self.bot.uids[self.opponent.id]] = \
-                self.elo_manager.get_ratings()
-            shutil.rmtree(self.mappoolmaker.save_folder_path)
-            self.match_end = True
+                prate_aft, orate_aft
+            c = decimal.DefaultContext
+            c.rounding = decimal.ROUND_FLOOR
+            await self.channel.send(embed=discord.Embed(
+                title="MATCH FINISHED",
+                description=f"__{self.player.name}__ : "
+                            f"{c.to_integral(prate_bef)} => **{c.to_integral(prate_aft)}** "
+                            f"({c.quantize(pdrate, d('.1')):+f})\n"
+                            f"__{self.opponent.name}__ : "
+                            f"{c.to_integral(orate_bef)} => **{c.to_integral(orate_aft)}** "
+                            f"({c.quantize(odrate, d('.1')):+f})\n",
+                color=discord.Colour(0xcaf32a)
+            ))
+            try:
+                shutil.rmtree(self.mappoolmaker.save_folder_path)
+            finally:
+                self.match_end = True
         else:
             if self.round == self.bo and self.map_tb is not None:
                 now_mapnum = self.map_tb
