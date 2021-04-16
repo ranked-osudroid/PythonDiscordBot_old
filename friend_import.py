@@ -205,7 +205,7 @@ def inttomode(i: Optional[int], sep: str = '') -> str:
         r = []
         for md in modeabbrev.values():
             if i & modetoint[md]:
-                r.append(modeabbrev[md])
+                r.append(md)
         return sep.join(r)
     elif i is None:
         return 'N/A'
