@@ -101,12 +101,12 @@ class Match_Scrim:
                 await self.scrim.addplayer("RED", self.player, False)
                 await self.scrim.addplayer("BLUE", self.opponent, False)
                 self.scrim.setmoderule(
-                    {8, },
-                    {9, },
-                    {10, },
-                    {12, 13},
-                    {9, 10, 11, 72, 73},
-                    {8, 9, 10, 11, 72, 73}
+                    {2, },                  # NF
+                    {18, },                 # NFHD
+                    {10, },                 # NFHR
+                    {34, 50},               # NFDT, NFHDDT
+                    {3, 10, 18, 19, 26},    # NFEZ, NFHR, NFHD, NFEZHD, NFHRHD
+                    {2, 3, 10, 18, 19, 26}  # NF, NFEZ, NFHR, NFHD, NFEZHD, NFHRHD
                 )
             else:
                 await self.channel.send(embed=discord.Embed(

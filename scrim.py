@@ -42,12 +42,12 @@ class Scrim:
         self.map_hash: Optional[str] = None
 
         self.availablemode: Dict[str, Iterable[int]] = {
-            'NM': {0, 8},
-            'HD': {1, 9},
-            'HR': {2, 10},
-            'DT': {4, 5, 12, 13},
-            'FM': {1, 2, 3, 9, 10, 11, 64, 65, 72, 73},
-            'TB': {0, 1, 2, 3, 8, 9, 10, 11, 64, 65, 72, 73},
+            'NM': {0, 2, },
+            'HD': {16, 18, },
+            'HR': {8, 10, },
+            'DT': {32, 34, 48, 50},
+            'FM': {1, 3, 8, 10, 16, 17, 18, 19, 24, 26},
+            'TB': {0, 1, 2, 3, 8, 10, 16, 17, 18, 19, 24, 26}
         }
 
         self.setfuncs: Dict[str, Callable[[str], NoReturn]] = {
