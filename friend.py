@@ -474,7 +474,7 @@ class MyCog(commands.Cog):
                 description=f"Map Info : `{scrim.getmapfull()}`\n"
                             f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
                             f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.\n"
-                            f"Map Hash : {scrim.getmaphash()}",
+                            f"Map Hash : `{scrim.getmaphash()}`",
                 color=discord.Colour.blue()
             ))
 

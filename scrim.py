@@ -377,7 +377,7 @@ class Scrim:
     def getmaphash(self) -> str:
         return self.map_hash if self.map_hash is not None else 'Undefined'
 
-    async def setform(self, formstr: str):
+    async def setform(self, formstr: str, do_print: bool = True):
         args = list()
         for k in rkind:
             findks = re.findall(k, formstr)
@@ -397,11 +397,12 @@ class Scrim:
             else:
                 formstr = formstr.replace(a, f'(?P<{a}>.*?)')
         self.form = [re.compile(formstr), args]
-        await self.channel.send(embed=discord.Embed(
-            title="Form set!",
-            description=f"RegEx pattern : `{self.form[0].pattern}`",
-            color=discord.Colour.blue()
-        ))
+        if do_print:
+            await self.channel.send(embed=discord.Embed(
+                title="Form set!",
+                description=f"RegEx pattern : `{self.form[0].pattern}`",
+                color=discord.Colour.blue()
+            ))
 
     def setmoderule(
             self,
@@ -466,8 +467,8 @@ class Scrim:
                         if m is None:
                             desc += f"Failed : " \
                                     f"In {await self.bot.getusername(player)}'s recent play info, " \
-                                    f"its difficulty name does NOT fit to the format. " \
-                                    f"(Its difficulty : {p['diff']})"
+                                    f"its difficulty name does NOT fit to the format.\n" \
+                                    f"(Its difficulty : `{p['diff']}`)"
                             continue
                         for k in self.form[1]:
                             if k == 'number':
@@ -477,7 +478,7 @@ class Scrim:
                                     flag = True
                                     desc += f"Failed : " \
                                             f"In {await self.bot.getusername(player)}'s recent play info, " \
-                                            f"its number is wrong. (Its number : {pnum})"
+                                            f"its number is wrong.\n(Its number : `{pnum}`)"
                                     break
                                 continue
                             p[k] = m.group(k)
@@ -495,17 +496,17 @@ class Scrim:
                                 flag = True
                                 desc += f"Failed : " \
                                         f"In {await self.bot.getusername(player)}'s recent play info, " \
-                                        f"its {k} is wrong." \
-                                        f"(Now {k} : {nowk_edited} {'(`'+nowk+'`) ' if nowk!=nowk_edited else ''}/ " \
-                                        f"Its {k} : {p[k]})"
+                                        f"its {k} is wrong.\n" \
+                                        f"(Now {k} : `{nowk_edited}` {'(`'+nowk+'`) ' if nowk!=nowk_edited else ''}/ " \
+                                        f"Its {k} : `{p[k]}`)"
                     if flag:
                         continue
                 else:
                     if p['hash'] != self.map_hash:
                         desc += f"Failed : " \
                                 f"In {await self.bot.getusername(player)}'s recent play info, " \
-                                f"its hash is wrong. " \
-                                f"(Now hash : {self.map_hash} / Its mode number : {p['hash']})"
+                                f"its hash is wrong.\n" \
+                                f"(Now hash : `{self.map_hash}` / Its hash : `{p['hash']}`)"
                         continue
                 pmodeint = modetointfunc(p['modes'])
                 if self.map_mode is not None:
@@ -513,15 +514,11 @@ class Scrim:
                         desc += f"Failed : " \
                                 f"In {await self.bot.getusername(player)}'s recent play info, " \
                                 f"its mode is NOT allowed in now map mode. " \
-                                f"(Now mode numbers allowed to use : {self.availablemode[self.map_mode]} / " \
-                                f"Its mode number : {pmodeint})"
+                                f"(Now mode numbers allowed to use : `{self.availablemode[self.map_mode]}` / " \
+                                f"Its mode number : `{pmodeint}`)"
                         continue
                 p['modes'] = pmodeint
-                extra_rate = d('1')
-                if self.getmode() == 'DT' and pmodeint & 5:
-                    extra_rate /= d('1.06')
-                self.score[player] = (((getd(p['score']) * extra_rate) // d('1'), getd(p['acc']), getd(p['miss'])),
-                                      p['rank'], p['modes'])
+                self.score[player] = ((getd(p['score']), getd(p['acc']), getd(p['miss'])), p['rank'], p['modes'])
                 desc += f"Success : " \
                         f"Player {await self.bot.getusername(player)}'s score = " \
                         f"{self.score[player][0][0]}, {self.score[player][0][1]}%, {self.score[player][0][2]}xMISS / " \

@@ -104,7 +104,7 @@ class Match_Scrim:
                     {2, },                  # NF
                     {18, },                 # NFHD
                     {10, },                 # NFHR
-                    {34, 50},               # NFDT, NFHDDT
+                    {34, },                 # NFDT
                     {3, 10, 18, 19, 26},    # NFEZ, NFHR, NFHD, NFEZHD, NFHRHD
                     {2, 3, 10, 18, 19, 26}  # NF, NFEZ, NFHR, NFHD, NFEZHD, NFHRHD
                 )
@@ -123,7 +123,7 @@ class Match_Scrim:
                     description="Preparing the round...",
                     color=discord.Colour.dark_red()
                 ))
-                await self.scrim.setform(self.diff_form)
+                await self.scrim.setform(self.diff_form, False)
             else:
                 await self.channel.send(embed=discord.Embed(
                     title="The Opponent didn't ready.",
@@ -335,7 +335,7 @@ class Match_Scrim:
                 description=f"Map Info : `{self.scrim.getmapfull()}`\n"
                             f"Map Number : {self.scrim.getnumber()} / Map Mode : {self.scrim.getmode()}\n"
                             f"Map SS Score : {self.scrim.getautoscore()} / Map Length : {self.scrim.getmaptime()} sec\n"
-                            f"Map Hash : {self.scrim.getmaphash()}\n"
+                            f"Map Hash : `{self.scrim.getmaphash()}`\n"
                             f"Allowed modes : "
                             f"`{', '.join(map(inttomode, self.scrim.availablemode[self.scrim.getmode()]))}`",
                 color=discord.Colour.blue()
