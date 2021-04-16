@@ -243,6 +243,8 @@ class Match_Scrim:
             #     'TB': (1009680, 2248906)
             # }
 
+            for bm in selected_pool['maps']:
+                self.mappoolmaker.add_map(bm['sheetId'], bm['mapSetId'], bm['mapId'])
             mappool_link = await self.mappoolmaker.execute_osz_from_fixca(self.mappool_uuid)
             if mappool_link[0] is False:
                 print(mappool_link[1])
@@ -250,8 +252,6 @@ class Match_Scrim:
                     title="Error occurred",
                     description=f'{mappool_link[1]}\nRetry soon by downloading each beatmaps...'
                 ))
-                for bm in selected_pool['maps']:
-                    self.mappoolmaker.add_map(bm['sheetId'], bm['mapSetId'], bm['mapId'])
                 mappool_link = await self.mappoolmaker.execute_osz()
                 if mappool_link[0] is False:
                     print(mappool_link[1])
