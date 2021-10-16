@@ -6,16 +6,16 @@ from collections import defaultdict as dd
 from collections import deque
 
 from osuapi import OsuApi, AHConnector, HTTPError
-
+"""
 from bs4 import BeautifulSoup
 from discord.ext import commands, tasks
 from google.oauth2.service_account import Credentials
 
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-
+"""
 BOT_DEBUG = True
-
+"""
 scopes = [
     'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive',
@@ -44,7 +44,7 @@ drive = GoogleDrive(gauth)
 drive_folder = drive.ListFile(
     {'q': "title='od' and mimeType='application/vnd.google-apps.folder' and trashed=false"}
 ).GetList()[0]
-
+"""
 intents = discord.Intents.default()
 intents.members = True
 intents.reactions = True
@@ -53,13 +53,13 @@ d = decimal.Decimal
 
 with open("key.txt", 'r') as f:
     token = f.read().strip()
-
+"""
 with open("osu_login.json", 'r') as f:
     BASE_LOGIN_DATA = json.load(f)
 
 with open("osu_api_key.txt", 'r') as f:
     api_key = f.read().strip()
-
+"""
 with open("fixca_api_key.txt", 'r') as f:
     fixca_key = f.read().strip()
 

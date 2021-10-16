@@ -242,7 +242,7 @@ class MyCog(commands.Cog):
         if s['valid']:
             await s['scrim'].end()
             del self.bot.datas[ctx.guild.id][ctx.channel.id]
-
+"""
     @commands.command()
     async def verify(self, ctx, uid: Optional[int] = None):
         mid = ctx.author.id
@@ -308,10 +308,13 @@ class MyCog(commands.Cog):
                                 f'And chat `m;verify` again.',
                     color=discord.Colour.orange()
                 ))
+"""
 
     @commands.command(name="map")
     async def _map(self, ctx, *, name: str):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
+        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
+        return
         if s['valid']:
             resultmessage = await ctx.send(embed=discord.Embed(
                 title="Calculating...",
@@ -396,6 +399,8 @@ class MyCog(commands.Cog):
     @commands.command(aliases=['ms'])
     async def mapscore(self, ctx, sc_or_auto: Union[int, str], *, path: Optional[str] = None):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
+        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
+        return
         if s['valid']:
             resultmessage = await ctx.send(embed=discord.Embed(
                 title="Processing...",
@@ -419,6 +424,8 @@ class MyCog(commands.Cog):
     @commands.command(aliases=['l'])
     async def onlineload(self, ctx, checkbit: Optional[int] = None):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
+        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
+        return
         if s['valid']:
             await s['scrim'].onlineload(checkbit)
 
@@ -554,6 +561,8 @@ class MyCog(commands.Cog):
 
     @commands.command(aliases=['pfme'])
     async def profileme(self, ctx, did: Optional[int] = None):
+        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
+        return
         if did is None:
             did = ctx.author.id
         e = discord.Embed(
@@ -687,7 +696,7 @@ class MyBot(commands.Bot):
 
         self.session: Optional[aiohttp.ClientSession] = ses
         self.osuapi: Optional[OsuApi] = osuapi.OsuApi(api_key, connector=AHConnector())
-
+        """
         self.uids: dd[int, int] = dd(int)
         self.ratings: dd[int, d] = dd(d)
         with open('uids.txt', 'r') as uidf:
@@ -700,6 +709,7 @@ class MyBot(commands.Bot):
                 self.ratings[int(userid)] = getd(r)
 
         self.verifies: Dict[int, Verify] = dict()
+        """
 
         self.timers: dd[str, Optional['Timer']] = dd(lambda: None)
         self.timer_count = 0

@@ -427,6 +427,8 @@ class Scrim:
             self.availablemode['TB'] = tb
 
     async def onlineload(self, checkbit: Optional[int] = None):
+        await self.channel.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
+        return
         desc = '====== < Process LOG > ======'
         resultmessage: discord.Message = await self.channel.send(embed=discord.Embed(
             title="Processing...",
@@ -568,6 +570,8 @@ class Scrim:
         return winnerteam
 
     async def do_match_start(self):
+        await self.channel.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
+        return
         if self.match_task is None or self.match_task.done():
             self.match_task = self.loop.create_task(self.match_start())
         else:
@@ -578,6 +582,8 @@ class Scrim:
             ))
 
     async def match_start(self):
+        await self.channel.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
+        return
         try:
             if self.map_time is None:
                 await self.channel.send(embed=discord.Embed(
