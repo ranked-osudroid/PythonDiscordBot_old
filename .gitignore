@@ -14,3 +14,4 @@ uids.txt
 ratings.txt
 goorm.manifest
 __pycache__/
+.flake8
