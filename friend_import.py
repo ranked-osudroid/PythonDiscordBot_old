@@ -59,8 +59,6 @@ with open("osu_login.json", 'r') as f:
 with open("osu_api_key.txt", 'r') as f:
     api_key = f.read().strip()
 """
-with open("fixca_api_key.txt", 'r') as f:
-    fixca_key = f.read().strip()
 
 with open("oma_pools.json", 'r', encoding='utf-8-sig') as f:
     maidbot_pools = json.load(f, parse_float=d)

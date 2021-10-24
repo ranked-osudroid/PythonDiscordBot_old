@@ -756,7 +756,8 @@ class MyBot(commands.Bot):
         return int(rank)
     
     async def get_recent(self, user_name):
-        pass
+        res = await self.req.recentRecord(user_name)
+        return res
 
 
 async def _main():
