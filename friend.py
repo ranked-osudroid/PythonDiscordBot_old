@@ -7,6 +7,7 @@ from scrim import Scrim
 from match import Match_Scrim
 from matchmaker import MatchMaker
 from verify import Verify
+from fixca import RequestManager
 
 class MyCog(commands.Cog):
     def __init__(self, bot: 'MyBot'):
@@ -695,8 +696,9 @@ class MyBot(commands.Bot):
             dd(lambda: dd(lambda: {'valid': False, 'scrim': None}))
 
         self.session: Optional[aiohttp.ClientSession] = ses
-        self.osuapi: Optional[OsuApi] = osuapi.OsuApi(api_key, connector=AHConnector())
+        self.req = RequestManager(self)
         """
+        self.osuapi: Optional[OsuApi] = osuapi.OsuApi(api_key, connector=AHConnector())
         self.uids: dd[int, int] = dd(int)
         self.ratings: dd[int, d] = dd(d)
         with open('uids.txt', 'r') as uidf:
@@ -752,6 +754,9 @@ class MyBot(commands.Bot):
         rank = bs.select_one("#content > section > section > section > aside.aside-lg.bg-light.lter.b-r > "
                              "section > section > div > div.panel.wrapper > div > div:nth-child(1) > a > span").text
         return int(rank)
+    
+    async def get_recent(self, user_name):
+        pass
 
 
 async def _main():

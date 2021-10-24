@@ -1,11 +1,10 @@
-import asyncio, aiohttp, aiofiles, asyncpool, logging, yarl, \
+import asyncio, aiohttp, \
     datetime, decimal, discord, gspread, random, re, time, \
-    traceback, scoreCalc, os, json, osuapi, zipfile, pydrive, shutil, bisect, hashlib
+    traceback, scoreCalc, os, json, bisect, hashlib
 from typing import *
 from collections import defaultdict as dd
 from collections import deque
 
-from osuapi import OsuApi, AHConnector, HTTPError
 """
 from bs4 import BeautifulSoup
 from discord.ext import commands, tasks

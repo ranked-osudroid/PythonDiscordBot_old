@@ -23,4 +23,4 @@ class RequestManager:
             if (resdata := await res.json(encoding='utf-8'))['status'] == 'failed':
                 return f'POST {url} had had occured', res
             return resdata
-
+    

@@ -12,3 +12,5 @@ songs
 .idea/
 uids.txt
 ratings.txt
+goorm.manifest
+__pycache__/
