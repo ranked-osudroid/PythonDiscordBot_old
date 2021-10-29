@@ -1,6 +1,6 @@
 import asyncio, aiohttp, \
     datetime, decimal, discord, gspread, random, re, time, \
-    traceback, scoreCalc, os, json, bisect, hashlib
+    traceback, scoreCalc, os, json, bisect, hashlib, osuapi
 from typing import *
 from collections import defaultdict as dd
 from collections import deque
@@ -56,9 +56,9 @@ with open("key.txt", 'r') as f:
 with open("osu_login.json", 'r') as f:
     BASE_LOGIN_DATA = json.load(f)
 
+"""
 with open("osu_api_key.txt", 'r') as f:
     api_key = f.read().strip()
-"""
 
 with open("oma_pools.json", 'r', encoding='utf-8-sig') as f:
     maidbot_pools = json.load(f, parse_float=d)

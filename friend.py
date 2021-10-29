@@ -243,7 +243,7 @@ class MyCog(commands.Cog):
         if s['valid']:
             await s['scrim'].end()
             del self.bot.datas[ctx.guild.id][ctx.channel.id]
-"""
+    """
     @commands.command()
     async def verify(self, ctx, uid: Optional[int] = None):
         mid = ctx.author.id
@@ -309,8 +309,8 @@ class MyCog(commands.Cog):
                                 f'And chat `m;verify` again.',
                     color=discord.Colour.orange()
                 ))
-"""
-
+    """
+    
     @commands.command(name="map")
     async def _map(self, ctx, *, name: str):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
@@ -697,8 +697,8 @@ class MyBot(commands.Bot):
 
         self.session: Optional[aiohttp.ClientSession] = ses
         self.req = RequestManager(self)
-        """
         self.osuapi: Optional[OsuApi] = osuapi.OsuApi(api_key, connector=AHConnector())
+        """
         self.uids: dd[int, int] = dd(int)
         self.ratings: dd[int, d] = dd(d)
         with open('uids.txt', 'r') as uidf:
@@ -755,9 +755,13 @@ class MyBot(commands.Bot):
                              "section > section > div > div.panel.wrapper > div > div:nth-child(1) > a > span").text
         return int(rank)
     
-    async def get_recent(self, user_name):
-        res = await self.req.recentRecord(user_name)
-        return res
+    async def get_recent(self, user_name=None, uuid=None):
+        if user_name is None and uuid is not None:
+            user_name = (await self.req.get_user(uuid=uuid))['name']
+        return await self.req.recent_record(user_name)
+    
+    async def get_user_info(self, uuid):
+        return await self.req.get_user(uuid)
 
 
 async def _main():

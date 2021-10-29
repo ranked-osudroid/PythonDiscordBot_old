@@ -131,7 +131,7 @@ class Scrim:
             self.findteam[mid] = name
             self.team[name].add(mid)
             self.players.add(mid)
-            self.score[mid] = ((getd(0), getd(0), getd(0)), None, None)
+            self.score[mid] = None
             if do_print:
                 await self.channel.send(embed=discord.Embed(
                     title=f"Player {member.name} participates into Team {name}!",
@@ -372,7 +372,7 @@ class Scrim:
         self.map_time = None
         self.map_hash = None
         for p in self.score:
-            self.score[p] = ((getd(0), getd(0), getd(0)), None, None)
+            self.score[p] = None
         self.round_start_time = None
     
     def setartist(self, artist: str):
@@ -489,7 +489,7 @@ class Scrim:
                     desc += f"Failed : " \
                             f"{await self.bot.getusername(player)}'s UID is not found."
                     continue
-                player_recent_info = await self.bot.get_recent(self.bot.uids[player])
+                player_recent_info = await self.bot.get_recent()
                 if player_recent_info is None:
                     desc += f"Failed : " \
                             f"{await self.bot.getusername(player)}'s recent play info can't be parsed."
@@ -571,7 +571,7 @@ class Scrim:
                     title="MATCH START!",
                     description=f"Map Info : `{self.getmapfull()}`\n"
                                 f"Map Number : {self.getnumber()} / Map Mode : {self.getmode()}\n"
-                                f"Map SS Score : {self.getautoscore()} / Map Length : {self.getmaptime()} sec\n"
+                                f"Map Length : {self.getmaptime()} sec\n"
                                 f"Allowed modes : "
                                 f"`{', '.join(map(inttomode, self.availablemode[self.getmode()]))}`",
                     color=discord.Colour.from_rgb(255, 255, 0)
@@ -600,7 +600,7 @@ class Scrim:
                     color=discord.Colour.from_rgb(128, 128, 255)
                 ))
                 await self.onlineload()
-                r = await self.submit('nero2')
+                r = await self.submit()
                 return r
             except asyncio.CancelledError:
                 await self.channel.send(embed=discord.Embed(
