@@ -53,6 +53,7 @@ class Scrim:
             'diff'  : self.setdiff,
             'number': self.setnumber,
             'mode'  : self.setmode,
+            'autosc': self.setautoscore,
         }
 
         self.getfuncs: Dict[str, Callable[[], str]] = {
@@ -468,9 +469,7 @@ class Scrim:
         if tb:
             self.availablemode['TB'] = tb
 
-    async def onlineload(self, checkbit: Optional[int] = None):
-        await self.channel.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
-        return
+    async def onlineload(self):
         desc = '====== < Process LOG > ======'
         resultmessage: discord.Message = await self.channel.send(embed=discord.Embed(
             title="Processing...",

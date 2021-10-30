@@ -298,7 +298,7 @@ class Match:
             self.scrim.settitle(now_beatmap.title)
             self.scrim.setdiff(now_beatmap.version)
             self.scrim.setmaptime(now_beatmap.total_length)
-            self.scrim.setmode(now_mapnum[:2]) # TODO
+            self.scrim.setmode(now_mapnum[:2])
             await self.channel.send(embed=discord.Embed(
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{self.scrim.getmapfull()}`\n"
@@ -332,85 +332,15 @@ class Match:
                         # if self.scrim is not None and not self.scrim.match_task.done():
                         if self.round > 1:
                             await self.scrim.match_task
-                            r = self.scrim.match_task.result()
-                            data = {
-                                'key': fixca_key,
-                                'matchId': self.made_time,
-                                'mapId': self.mappoolmaker.maps[r['number']][0],
-                                'mapSetId': self.mappoolmaker.maps[r['number']][1],
-                                'mapName': r['map'],
-                                'mapMod': r['mode'],
-                                'mapSheet': r['number'],
-                                'playerScore': r['v2score'][self.player.id],
-                                'opponentScore': r['v2score'][self.opponent.id],
-                                'playerAcc': float(r['score'][self.player.id][0][1]),
-                                'opponentAcc': float(r['score'][self.opponent.id][0][1]),
-                                'playerMod': inttomode(r['score'][self.player.id][2], ','),
-                                'opponentMod': inttomode(r['score'][self.opponent.id][2], ','),
-                                'startedTime': r['start_time']
-                            }
-                            print(data)
-                            if BOT_DEBUG:
-                                async with self.bot.session.post("http://ranked-osudroid.kro.kr/roundSubmit",
-                                                                 data=data) as submit_res:
-                                    if submit_res.status != 200:
-                                        await self.channel.send(embed=discord.Embed(
-                                            title=f'POST roundSubmit failed. ({submit_res.status})',
-                                            color=discord.Colour.dark_red()
-                                        ))
-                                    if (submit_res_json := await submit_res.json(encoding='utf-8'))['status'] == 'failed':
-                                        await self.channel.send(embed=discord.Embed(
-                                            title=f'POST roundSubmit failed. (FIXCUCKED)',
-                                            color=discord.Colour.dark_red()
-                                        ))
-                                        print(f'roundSubmit error : \n{submit_res_json["error"]}')
                         break
                     await asyncio.sleep(1)
                 if self.match_end or self.aborted:
-                    player_updated_elo, opponent_updated_elo = self.elo_manager.get_ratings()
-                    if self.round > 0:
-                        reds = self.scrim.setscore["RED"]
-                        blues = self.scrim.setscore["BLUE"]
-                    else:
-                        reds, blues = 0, 0
-                    if reds > blues:
-                        winner = "player"
-                    elif reds == blues:
-                        winner = "draw"
-                    else:
-                        winner = "opponent"
-                    end_data = {
-                        "key": fixca_key,
-                        "matchId": self.made_time,
-                        "winner": winner,
-                        "playerScore": reds,
-                        "opponentScore": blues,
-                        "playerChangedElo": str(player_updated_elo),
-                        "opponentChangedElo": str(opponent_updated_elo),
-                        "aborted": self.aborted
-                    }
-                    print(end_data)
-                    if BOT_DEBUG:
-                        async with self.bot.session.post("http://ranked-osudroid.kro.kr/matchEnd",
-                                                         data=end_data) as end_res:
-                            if end_res.status != 200:
-                                await self.channel.send(embed=discord.Embed(
-                                    title=f'POST matchEnd failed. ({end_res.status})\n',
-                                    color=discord.Colour.dark_red()
-                                ))
-                            if (end_res_json := await end_res.json(encoding='utf-8'))['status'] == 'failed':
-                                await self.channel.send(embed=discord.Embed(
-                                    title=f'POST matchEnd failed. (FIXCUCKED)\n',
-                                    color=discord.Colour.dark_red()
-                                ))
-                                print(f'matchEnd error : \n{end_res_json["error"]}')
+                    # player_updated_elo, opponent_updated_elo = self.elo_manager.get_ratings()
                     break
         except BaseException as ex_:
             print(get_traceback_str(ex_))
             raise ex_
         finally:
-            if self.mappoolmaker.drive_file is not None:
-                self.mappoolmaker.drive_file.Delete()
             del self.bot.matches[self.player], self.bot.matches[self.opponent]
 
     async def do_match_start(self):
