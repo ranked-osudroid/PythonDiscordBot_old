@@ -1,5 +1,5 @@
 from friend_import import *
-from scrim import Scrim
+from scrim_new import Scrim
 from timer import Timer
 from mappoolmaker import MappoolMaker
 from elo_rating import EloRating
@@ -53,9 +53,11 @@ class Match:
         self.BO = bo
         self.channel: Optional[discord.TextChannel] = None
         self.made_time = datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")
+        self.playID: Dict[int, str] = {self.player.id: '', self.opponent.id: ''}
+        self.uuid: Dict[int, str] = {self.player.id: '', self.opponent.id: ''}
 
         self.mappool_uuid: Optional[str] = None
-        self.map_infos: Dict[str, dict] = dict()
+        self.map_infos: Dict[str, osuapi.osu.Beatmap] = dict()
         self.map_order: List[str] = []
         self.map_hashes: Dict[str, str] = dict()
         self.map_tb: Optional[str] = None
@@ -189,6 +191,9 @@ class Match:
                     )), asyncio.sleep(1))
             self.round += 1
             await self.scrim.do_match_start()
+            mid, msid = self.scrim.getmapid()
+            self.playID = {self.player.id: await self.bot.req.create_playID(self.uuid[self.player.id], mid, msid),
+                           self.opponent.id: await self.bot.req.create_playID(self.uuid[self.opponent.id], mid, msid)}
     
     async def do_progress(self):
         if self.match_end or self.aborted:
@@ -299,6 +304,7 @@ class Match:
             self.scrim.setdiff(now_beatmap.version)
             self.scrim.setmaptime(now_beatmap.total_length)
             self.scrim.setmode(now_mapnum[:2])
+            self.scrim.setmapid(now_beatmap.beatmap_id, now_beatmap.beatmapset_id)
             await self.channel.send(embed=discord.Embed(
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{self.scrim.getmapfull()}`\n"

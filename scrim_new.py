@@ -36,6 +36,7 @@ class Scrim:
         self.map_mode: Optional[str] = None
         self.map_hash: Optional[str] = None
         self.map_auto_score: Optional[int, d] = None
+        self.map_id: Optional[Tuple[int, int]] = None
         
         self.availablemode: Dict[str, Iterable[int]] = {
             'NM': {0, 2, },
@@ -54,6 +55,7 @@ class Scrim:
             'number': self.setnumber,
             'mode'  : self.setmode,
             'autosc': self.setautoscore,
+            'id'    : self.setmapid,
         }
 
         self.getfuncs: Dict[str, Callable[[], str]] = {
@@ -64,6 +66,7 @@ class Scrim:
             'number': self.getnumber,
             'mode'  : self.getmode,
             'autosc': self.getautoscore,
+            'id'    : self.getmapid,
         }
 
         self.log: List[str] = []
@@ -447,6 +450,12 @@ class Scrim:
     def getmaphash(self) -> str:
         return self.map_hash if self.map_hash is not None else 'Undefined'
     
+    def setmapid(self, mapid, mapsetid):
+        self.map_id = (mapdi, mapsetid)
+    
+    def getmapid(self):
+        return self.map_id
+    
     def setmoderule(
             self,
             nm: Optional[Iterable[int]],
@@ -587,12 +596,11 @@ class Scrim:
                     color=discord.Colour.from_rgb(128, 128, 255)
                 ))
                 for i in range(30, -1, -1):
-                    await timermessage.edit(embed=discord.Embed(
+                    await asyncio.gather(timermessage.edit(embed=discord.Embed(
                         title=f"MAP TIME OVER!",
                         description=f"There's additional {i} second(s) left.",
                         color=discord.Colour.from_rgb(128, 128, 255)
-                    ))
-                    await asyncio.sleep(1)
+                    )), asyncio.sleep(1))
                 await self.channel.send(embed=discord.Embed(
                     title=f"MAP EXTRA TIME OVER!",
                     description="Online loading...",
