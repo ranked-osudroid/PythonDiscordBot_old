@@ -13,18 +13,18 @@ class RequestManager:
     async def _post(self, url, data, **kwargs):
         async with self.session.post(self.BASEURL+url, data=data|kwargs) as res:
             if res.status != 200:
-                return False, f'POST {url} failed.', res
+                raise HttpError('POST', url)
             if (resdata := await res.json(encoding='utf-8'))['status'] == 'failed':
-                return False, f'POST {url} had had occured', res
-            return True, resdata
+                raise FixcaError('POST', url)
+            return resdata
 
     async def _get(self, url, data, **kwargs):
         async with self.session.get(self.BASEURL+url, data=data|kwargs) as res:
             if res.status != 200:
-                return f'POST {url} failed.', res
+                raise HttpError('GET', url)
             if (resdata := await res.json(encoding='utf-8'))['status'] == 'failed':
-                return f'POST {url} had had occured', res
-            return True, resdata
+                raise FixcaError('GET', url)
+            return resdata
     
     async def recent_record(self, name):
         return await self._post('recentRecord', 
@@ -41,4 +41,22 @@ class RequestManager:
     async def get_user_bydiscord(self, d_id):
         return await self._post('userInfoDiscord',
                                 key=self.key, discordid=d_id)
-    
+
+
+class HttpError(Exception):
+    def __init__(self, method: str, url: str):
+        super().__init__()
+        self.method = method
+        self.url = url
+
+    def __str__(self):
+        return f"Getting datas from {self.method} {self.url} failed."
+
+class FixcaError(Exception):
+    def __init__(self, method: str, url: str):
+        super().__init__()
+        self.method = method
+        self.url = url
+
+    def __str__(self):
+        return f"Got datas from {self.method} {self.url} with status 'failed'."

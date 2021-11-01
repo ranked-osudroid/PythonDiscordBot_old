@@ -25,7 +25,7 @@ class Scrim:
         # member_id : teamname
         self.setscore: Dict[str, int] = dict()
         # teamname : int
-        self.score: Dict[str, Optional[dict]] = dict()
+        self.score: Dict[int, Optional[dict]] = dict()
         
         self.map_artist: Optional[str] = None
         self.map_author: Optional[str] = None
@@ -292,18 +292,7 @@ class Scrim:
                               f"({' / '.join(str(x) for x in self.score[p][0])} - {self.score[p][1]} - "
                               f"{inttomode(self.score[p][2])})")
         self.log.append('\n'.join(logtxt))
-        r = dict()
-        r['score'] = dict()
-        r['v2score'] = dict()
-        r['start_time'] = self.round_start_time
-        r['map'] = self.getmapfull()
-        r['number'] = self.getnumber()
-        r['mode'] = self.getmode()
-        for p in self.score:
-            r['score'][p] = self.score[p]
-            r['v2score'][p] = calculatedscores[p]
         self.resetmap()
-        return r
     
     async def submit_fixca(self):
         resultmessage = await self.channel.send(embed=discord.Embed(
@@ -451,7 +440,7 @@ class Scrim:
         return self.map_hash if self.map_hash is not None else 'Undefined'
     
     def setmapid(self, mapid, mapsetid):
-        self.map_id = (mapdi, mapsetid)
+        self.map_id = (mapid, mapsetid)
     
     def getmapid(self):
         return self.map_id
@@ -492,11 +481,6 @@ class Scrim:
                     description=desc,
                     color=discord.Colour.orange()
                 ))
-                if self.bot.uids.get(player) is None:
-                    # uids should be changed into names
-                    desc += f"Failed : " \
-                            f"{await self.bot.getusername(player)}'s UID is not found."
-                    continue
                 player_recent_info = await self.bot.get_recent()
                 if player_recent_info is None:
                     desc += f"Failed : " \
@@ -551,8 +535,6 @@ class Scrim:
         return winnerteam
         
     async def do_match_start(self):
-        await self.channel.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
-        return
         if self.match_task is None or self.match_task.done():
             self.match_task = self.loop.create_task(self.match_start())
         else:
@@ -563,8 +545,6 @@ class Scrim:
             ))
 
     async def match_start(self):
-        await self.channel.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
-        return
         try:
             if self.map_time is None:
                 await self.channel.send(embed=discord.Embed(
@@ -584,7 +564,6 @@ class Scrim:
                                 f"`{', '.join(map(inttomode, self.availablemode[self.getmode()]))}`",
                     color=discord.Colour.from_rgb(255, 255, 0)
                 ))
-                a = self.map_time
                 extra_rate = d('1')
                 if self.getmode() == 'DT':
                     extra_rate = d('1') / d('1.5')
@@ -607,8 +586,7 @@ class Scrim:
                     color=discord.Colour.from_rgb(128, 128, 255)
                 ))
                 await self.onlineload()
-                r = await self.submit()
-                return r
+                await self.submit()
             except asyncio.CancelledError:
                 await self.channel.send(embed=discord.Embed(
                     title="Match Aborted!",

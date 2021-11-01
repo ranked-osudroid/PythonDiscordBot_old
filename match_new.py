@@ -58,7 +58,6 @@ class Match:
         self.mappool_uuid: Optional[str] = None
         self.map_infos: Dict[str, osuapi.osu.Beatmap] = dict()
         self.map_order: List[str] = []
-        self.map_hashes: Dict[str, str] = dict()
         self.map_tb: Optional[str] = None
 
         self.scrim: Optional[Scrim] = None
@@ -192,6 +191,8 @@ class Match:
             mid, msid = self.scrim.getmapid()
             self.playID = {self.player.id: await self.bot.req.create_playID(self.uuid[self.player.id], mid, msid),
                            self.opponent.id: await self.bot.req.create_playID(self.uuid[self.opponent.id], mid, msid)}
+            if (mh := self.playID[self.player.id]['mapHash']) == self.playID[self.opponent.id]['mapHash']:
+                self.scrim.setmaphash(mh)
     
     async def do_progress(self):
         if self.match_end or self.aborted:
@@ -298,9 +299,6 @@ class Match:
                 now_mapnum = self.map_tb
             else:
                 now_mapnum = self.map_order[self.round - 1]
-            maphash = self.map_hashes.get(now_mapnum)
-            if maphash:
-                self.scrim.setmaphash(maphash)
             now_beatmap = self.map_infos[now_mapnum]
             self.scrim.setnumber(now_mapnum)
             self.scrim.setartist(now_beatmap.artist)
@@ -315,7 +313,6 @@ class Match:
                 description=f"Map Info : `{self.scrim.getmapfull()}`\n"
                             f"Map Number : {self.scrim.getnumber()} / Map Mode : {self.scrim.getmode()}\n"
                             f"Map Length : {self.scrim.getmaptime()} sec\n"
-                            f"Map Hash : `{self.scrim.getmaphash()}`\n"
                             f"Allowed modes : "
                             f"`{', '.join(map(inttomode, self.scrim.availablemode[self.scrim.getmode()]))}`",
                 color=discord.Colour.blue()
