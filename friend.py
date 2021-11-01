@@ -1,4 +1,7 @@
-import discord
+import discord, importlib
+
+import friend_import, help_texts, timer, scrim, match, matchmaker, verify, fixca
+modules = [friend_import, help_texts, timer, scrim, match, matchmaker, verify, fixca]
 
 from friend_import import *
 from help_texts import helptxt_pages
@@ -39,8 +42,10 @@ class MyCog(commands.Cog):
                 f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}] "
                 f"[{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}"
             )
+        """
         if credentials.expired:
             gs.login()
+        """
         pm = self.bot.matches.get(p)
         if message.content == 'rdy' and pm is not None and ch == pm.channel:
             await pm.switch_ready(p)
@@ -156,6 +161,21 @@ class MyCog(commands.Cog):
         )
         await locals()['__ex']()
         await ctx.send('Done')
+
+    @commands.command()
+    @is_owner()
+    async def reload(self, ctx):
+        for module in modules:
+            importlib.reload(module)
+        from friend_import import *
+        from help_texts import helptxt_pages
+        from timer import Timer
+        from scrim import Scrim
+        from match import Match_Scrim
+        from matchmaker import MatchMaker
+        from verify import Verify
+        from fixca import RequestManager
+        await ctx.send('Reload success')
 
     @commands.command()
     async def make(self, ctx):
@@ -697,21 +717,10 @@ class MyBot(commands.Bot):
 
         self.session: Optional[aiohttp.ClientSession] = ses
         self.req = RequestManager(self)
-        self.osuapi: Optional[OsuApi] = osuapi.OsuApi(api_key, connector=AHConnector())
-        """
-        self.uids: dd[int, int] = dd(int)
-        self.ratings: dd[int, d] = dd(d)
-        with open('uids.txt', 'r') as uidf:
-            while data := uidf.readline():
-                discordid, userid = data.split(' ')
-                self.uids[int(discordid)] = int(userid)
-        with open('ratings.txt', 'r') as ratf:
-            while data := ratf.readline():
-                userid, r = data.split(' ')
-                self.ratings[int(userid)] = getd(r)
+        self.osuapi = osuapi.OsuApi(api_key, connector=osuapi.AHConnector())
 
-        self.verifies: Dict[int, Verify] = dict()
-        """
+        self.uids: dd[int, int] = dd(int)
+        self.ratings: dd[str, d] = dd(lambda: d(1500))
 
         self.timers: dd[str, Optional['Timer']] = dd(lambda: None)
         self.timer_count = 0
@@ -757,11 +766,16 @@ class MyBot(commands.Bot):
     
     async def get_recent(self, user_name=None, uuid=None):
         if user_name is None and uuid is not None:
-            user_name = (await self.req.get_user(uuid=uuid))['name']
+            user_name = (await self.req.get_user_byuuid(uuid=uuid))['name']
         return await self.req.recent_record(user_name)
     
-    async def get_user_info(self, uuid):
-        return await self.req.get_user(uuid)
+    async def get_user_info(self, id_=None):
+        if isinstance(id_, str):
+            return await self.req.get_user_byuuid(id_)
+        elif isinstance(id_, int):
+            return await self.req.get_user_bydiscord(id_)
+        else:
+            return
 
 
 async def _main():
@@ -773,7 +787,7 @@ async def _main():
         try:
             res = await app.osuapi.get_user("peppy")
             assert res[0].user_id == 2
-        except HTTPError:
+        except osuapi.HTTPError:
             print("Invalid osu!API key")
             turnoff = True
         except AssertionError:
@@ -790,12 +804,6 @@ async def _main():
         except Exception as _ex:
             raise
         finally:
-            with open('uids.txt', 'w') as f__:
-                for u in app.uids:
-                    f__.write(f"{u} {app.uids[u]}\n")
-            with open('ratings.txt', 'w') as f__:
-                for u in app.ratings:
-                    f__.write(f"{u} {app.ratings[u]}\n")
             app.osuapi.close()
             await app.change_presence(status=discord.Status.offline)
             await app.loop.shutdown_asyncgens()

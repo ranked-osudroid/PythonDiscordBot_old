@@ -10,6 +10,8 @@ oma_pools_orig.json
 fixca_api_key.txt
 songs
 .idea/
+.idea/**/*.xml
+.idea/**/*.iml
 uids.txt
 ratings.txt
 goorm.manifest

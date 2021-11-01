@@ -1,7 +1,6 @@
 from friend_import import *
 from scrim_new import Scrim
 from timer import Timer
-from mappoolmaker import MappoolMaker
 from elo_rating import EloRating
 
 if TYPE_CHECKING:
@@ -53,8 +52,8 @@ class Match:
         self.BO = bo
         self.channel: Optional[discord.TextChannel] = None
         self.made_time = datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")
-        self.playID: Dict[int, str] = {self.player.id: '', self.opponent.id: ''}
-        self.uuid: Dict[int, str] = {self.player.id: '', self.opponent.id: ''}
+        self.playID: Dict[int, Optional[dict]] = {self.player.id: None, self.opponent.id: None}
+        self.uuid: Dict[int, Optional[dict]] = {self.player.id: None, self.opponent.id: None}
 
         self.mappool_uuid: Optional[str] = None
         self.map_infos: Dict[str, osuapi.osu.Beatmap] = dict()
@@ -156,7 +155,6 @@ class Match:
                     description="Preparing the round...",
                     color=discord.Colour.dark_red()
                 ))
-                await self.scrim.setform(self.diff_form, False)
             else:
                 await self.channel.send(embed=discord.Embed(
                     title="The Opponent didn't ready.",
@@ -201,10 +199,10 @@ class Match:
         elif self.round == -1:
             self.channel = await self.bot.match_category_channel.create_text_channel(f"Match_{self.made_time}")
             self.scrim = Scrim(self.bot, self.channel)
-            # self.player_info = await self.bot.get_user_info(uuid)
-            # self.opponent_info = await self.bot.get_user_info(uuid)
-            # self.elo_manager.set_player_rating(d(res_data["playerStat"]["playerElo"]))
-            # self.elo_manager.set_opponent_rating(d(res_data["playerStat"]["opponentElo"]))
+            self.player_info = await self.bot.get_user_info(self.player.id)
+            self.opponent_info = await self.bot.get_user_info(self.player.id)
+            self.elo_manager.set_player_rating(self.bot.ratings[self.player_info['uuid']])
+            self.elo_manager.set_opponent_rating(self.bot.ratings[self.opponent_info['uuid']])
             await self.channel.send(
                 f"{self.player.mention} {self.opponent.mention}",
                 embed=discord.Embed(
@@ -214,13 +212,16 @@ class Match:
             )
             self.timer = Timer(self.bot, self.channel, f"Match_{self.made_time}_invite", 120, self.go_next_status)
         elif self.round == 0:
-            # rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
-            # print('Before select_pool_mmr_range :', rate_lower, rate_highter)
-            # # 1000 ~ 2000 => 1200 ~ 3300
-            # rate_lower = elo_convert(rate_lower)
-            # rate_highter = elo_convert(rate_highter)
-            # print('After  select_pool_mmr_range :', rate_lower, rate_highter)
-            pool_pools = maidbot_pools
+            rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
+            print('Before select_pool_mmr_range :', rate_lower, rate_highter)
+            # 1000 ~ 2000 => 1200 ~ 3300
+            rate_lower = elo_convert(rate_lower)
+            rate_highter = elo_convert(rate_highter)
+            print('After  select_pool_mmr_range :', rate_lower, rate_highter)
+            pool_pools = list(filter(
+                lambda po: rate_lower - 50 <= po['averageMMR'] <= rate_highter + 50,
+                maidbot_pools
+            ))
             selected_pool = random.choice(pool_pools)
             self.mappool_uuid = selected_pool['uuid']
             print('Selected pool :', selected_pool['name'])
@@ -231,6 +232,11 @@ class Match:
                             f"{elo_convert_rev(selected_pool['averageMMR']).quantize(d('.0001'))}\n"
                             f"Mappool UUID : `{self.mappool_uuid}`",
                 color=discord.Colour(0x0ef37c)
+            ))
+
+            calcmsg = await self.channel.send(embed=discord.Embed(
+                title="Mappool initiating...",
+                color=discord.Colour.blurple()
             ))
 
             for md in selected_pool['maps']:
@@ -251,8 +257,8 @@ class Match:
             self.map_order.append(maps['NM'].pop())
             self.map_tb = maps['TB'].pop()
 
-            await self.channel.send(f"{self.player.mention} {self.opponent.mention}", embed=discord.Embed(
-                title="All is ready!",
+            await calcmsg.edit(content=f"{self.player.mention} {self.opponent.mention}", embed=discord.Embed(
+                title="Mappool successfully initiated!",
                 description=f"If you got ready, chat `rdy`.\n"
                             f"You have 30 seconds to continue.",
                 color=discord.Colour.blue()
@@ -260,41 +266,40 @@ class Match:
             self.timer = Timer(self.bot, self.channel, f"Match_{self.made_time}_finalready", 30, self.go_next_status)
         elif self.round == len(self.map_order) or self.round > self.bo or \
                 self.winfor in set(self.scrim.setscore.values()):
-            # winner = await self.scrim.end()
-            # score_diff = \
-            #     self.scrim.setscore["RED"] - self.scrim.setscore["BLUE"]
-            # if score_diff > 0:
-            #     rate = d('1') - score_diff / d('16')
-            # elif score_diff < 0:
-            #     rate = score_diff / d('16')
-            # else:
-            #     rate = d('.5')
-            # prate_bef, orate_bef = self.elo_manager.get_ratings()
-            # pdrate, odrate = self.elo_manager.update(rate, True)
-            # prate_aft, orate_aft = self.elo_manager.get_ratings()
-            # self.bot.ratings[self.bot.uids[self.player.id]], self.bot.ratings[self.bot.uids[self.opponent.id]] = \
-            #     prate_aft, orate_aft
-            # c = decimal.DefaultContext
-            # c.rounding = decimal.ROUND_FLOOR
-            # await self.channel.send(embed=discord.Embed(
-            #     title="MATCH FINISHED",
-            #     description=f"__{self.player.name}__ : "
-            #                 f"{c.to_integral(prate_bef)} => **{c.to_integral(prate_aft)}** "
-            #                 f"({c.quantize(pdrate, d('.1')):+f})\n"
-            #                 f"__{self.opponent.name}__ : "
-            #                 f"{c.to_integral(orate_bef)} => **{c.to_integral(orate_aft)}** "
-            #                 f"({c.quantize(odrate, d('.1')):+f})\n",
-            #     color=discord.Colour(0xcaf32a)
-            # ))
-            # self.match_end = True
-            pass
+            winner = await self.scrim.end()
+            score_diff = \
+                self.scrim.setscore["RED"] - self.scrim.setscore["BLUE"]
+            if score_diff > 0:
+                rate = d('1') - score_diff / d('16')
+            elif score_diff < 0:
+                rate = score_diff / d('16')
+            else:
+                rate = d('.5')
+            prate_bef, orate_bef = self.elo_manager.get_ratings()
+            pdrate, odrate = self.elo_manager.update(rate, True)
+            prate_aft, orate_aft = self.elo_manager.get_ratings()
+            self.bot.ratings[self.player_info['uuid']], self.bot.ratings[self.player_info['uuid']] = \
+                prate_aft, orate_aft
+            c = decimal.DefaultContext
+            c.rounding = decimal.ROUND_FLOOR
+            await self.channel.send(embed=discord.Embed(
+                title="MATCH FINISHED",
+                description=f"__{self.player.name}__ : "
+                            f"{c.to_integral(prate_bef)} => **{c.to_integral(prate_aft)}** "
+                            f"({c.quantize(pdrate, d('.1')):+f})\n"
+                            f"__{self.opponent.name}__ : "
+                            f"{c.to_integral(orate_bef)} => **{c.to_integral(orate_aft)}** "
+                            f"({c.quantize(odrate, d('.1')):+f})\n",
+                color=discord.Colour(0xcaf32a)
+            ))
+            self.match_end = True
         else:
             if self.round == self.bo and self.map_tb is not None:
                 now_mapnum = self.map_tb
             else:
                 now_mapnum = self.map_order[self.round - 1]
             maphash = self.map_hashes.get(now_mapnum)
-            if not isinstance(maphash, Exception):
+            if maphash:
                 self.scrim.setmaphash(maphash)
             now_beatmap = self.map_infos[now_mapnum]
             self.scrim.setnumber(now_mapnum)
@@ -317,10 +322,10 @@ class Match:
             ))
             await self.channel.send(embed=discord.Embed(
                 title=f"Round #{self.round} ready!",
-                description="Chat `rdy` in 2 minutes.",
+                description="Chat `rdy` in 3 minutes.",
                 color=discord.Colour.orange()
             ))
-            self.timer = Timer(self.bot, self.channel, f"Match_{self.made_time}_{self.round}", 120, self.go_next_status)
+            self.timer = Timer(self.bot, self.channel, f"Match_{self.made_time}_{self.round}", 180, self.go_next_status)
 
     async def match_start(self):
         try:
@@ -351,7 +356,7 @@ class Match:
 
     async def do_match_start(self):
         if self.match_task is None or self.match_task.done():
-            self.match_task = self.loop.create_task(self.match_start())
+            self.match_task = self.bot.loop.create_task(self.match_start())
         else:
             await self.channel.send(embed=discord.Embed(
                 title="Match is already processing!",

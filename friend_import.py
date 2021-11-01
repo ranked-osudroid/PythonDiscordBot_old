@@ -4,10 +4,10 @@ import asyncio, aiohttp, \
 from typing import *
 from collections import defaultdict as dd
 from collections import deque
+from discord.ext import commands, tasks
 
 """
 from bs4 import BeautifulSoup
-from discord.ext import commands, tasks
 from google.oauth2.service_account import Credentials
 
 from pydrive.auth import GoogleAuth
@@ -208,7 +208,7 @@ def inttomode(i: Optional[int], sep: str = '') -> str:
         return 'N/A'
     else:
         return 'NM'
-
+"""
 async def osu_login(session):
     async with session.get(OSU_HOME) as page:
         if page.status != 200:
@@ -227,7 +227,7 @@ async def osu_login(session):
                 return False
             print('로그인 성공')
     return True
-
+"""
 class BotOff(Exception):
     def __init__(self):
         super().__init__("Shutdown is coming!")

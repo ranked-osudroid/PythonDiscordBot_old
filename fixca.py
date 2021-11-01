@@ -11,7 +11,7 @@ class RequestManager:
             self.session = bot.session
 
     async def _post(self, url, data, **kwargs):
-        async with self.session.post(BASEURL+url, data=data|kwargs) as res:
+        async with self.session.post(self.BASEURL+url, data=data|kwargs) as res:
             if res.status != 200:
                 return False, f'POST {url} failed.', res
             if (resdata := await res.json(encoding='utf-8'))['status'] == 'failed':
@@ -19,7 +19,7 @@ class RequestManager:
             return True, resdata
 
     async def _get(self, url, data, **kwargs):
-        async with self.session.get(BASEURL+url, data=data|kwargs) as res:
+        async with self.session.get(self.BASEURL+url, data=data|kwargs) as res:
             if res.status != 200:
                 return f'POST {url} failed.', res
             if (resdata := await res.json(encoding='utf-8'))['status'] == 'failed':
@@ -34,7 +34,11 @@ class RequestManager:
         return await self._post('createPlayID', 
                                 key=self.key, uuid=uuid, mapid=mapid, mapsetid=mapsetid)
 
-    async def get_user(self, uuid):
+    async def get_user_byuuid(self, uuid):
         return await self._post('userInfo', 
                                 key=self.key, uuid=uuid)
+
+    async def get_user_bydiscord(self, d_id):
+        return await self._post('userInfoDiscord',
+                                key=self.key, discordid=d_id)
     
