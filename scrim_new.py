@@ -72,9 +72,8 @@ class Scrim:
         self.log: List[str] = []
         self.timer: Optional[Timer] = None
         self.PRINT_ON: bool = True
-    
-    
-    async def maketeam(self, name: str, do_print: bool=None):
+
+    async def maketeam(self, name: str, do_print: bool = None):
         if do_print is None:
             do_print = self.PRINT_ON
         if self.team.get(name) is not None and do_print:
@@ -93,7 +92,7 @@ class Scrim:
                     color=discord.Colour.blue()
                 ))
 
-    async def removeteam(self, name: str, do_print: bool=None):
+    async def removeteam(self, name: str, do_print: bool = None):
         if do_print is None:
             do_print = self.PRINT_ON
         if self.team.get(name) is None and do_print:
@@ -144,7 +143,7 @@ class Scrim:
                     color=discord.Colour.blue()
                 ))
 
-    async def removeplayer(self, member: Optional[discord.Member], do_print: bool=None):
+    async def removeplayer(self, member: Optional[discord.Member], do_print: bool = None):
         if do_print is None:
             do_print = self.PRINT_ON
         if not member:
@@ -171,7 +170,7 @@ class Scrim:
     async def addscore(self, 
                        member: Optional[discord.Member], 
                        score: int, acc: float, miss: int,
-                       grade: str=None, mode: Union[int, str]=0):
+                       grade: str = None, mode: Union[int, str] = 0):
         if not member:
             return
         if type(mode) == str:
@@ -190,7 +189,7 @@ class Scrim:
                 color=discord.Colour.blue()
             ))
 
-    async def removescore(self, member: Optional[discord.Member], do_print: bool=None):
+    async def removescore(self, member: Optional[discord.Member], do_print: bool = None):
         if do_print is None:
             do_print = self.PRINT_ON
         if not member:
@@ -208,7 +207,7 @@ class Scrim:
                 color=discord.Colour.blue()
             ))
     
-    async def submit(self, calcmode: Optional[str]):
+    async def submit(self, calcmode: Optional[str] = None):
         if v2dict.get(calcmode) is None:
             await self.channel.send(embed=discord.Embed(
                 title="Unknown Calculate Mode!",
@@ -335,8 +334,8 @@ class Scrim:
             sendtxt.add_field(
                 name=f"*Team {t} total score : {teamscore[t]}*",
                 value='\n'.join(
-                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score['rank']]} "
-                     f"({inttomode(self.score['mode'])}) : "
+                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p]['rank']]} "
+                     f"({inttomode(self.score[p]['mode'])}) : "
                      f"{self.score[p]['score']} / {self.score[p]['acc']}% / {self.score[p]['miss']} :x:\n"
                      f"({self.score[p]['300']}, {self.score[p]['100']}, {self.score[p]['50']})"
                      for p in self.team[t]])+'\n',
@@ -362,7 +361,7 @@ class Scrim:
         self.map_number = None
         self.map_mode = None
         self.map_auto_score = None
-        self.map_time = None
+        self.map_length = None
         self.map_hash = None
         for p in self.score:
             self.score[p] = None
@@ -410,11 +409,11 @@ class Scrim:
     def getautoscore(self) -> Union[int, d]:
         return self.map_auto_score if self.map_auto_score is not None else -1
 
-    def setmaptime(self, t: Union[int, d]):
-        self.map_time = t
+    def setmaplength(self, t: Union[int, d]):
+        self.map_length = t
 
-    def getmaptime(self) -> Union[int, d]:
-        return self.map_time if self.map_time is not None else -1
+    def getmaplength(self) -> Union[int, d]:
+        return self.map_length if self.map_length is not None else -1
 
     def setmapinfo(self, infostr: str):
         m = analyze.match(infostr)
@@ -488,13 +487,14 @@ class Scrim:
                     continue
                 if player_recent_info['mapHash'] != self.getmaphash():
                     desc += f"Failed : " \
-                            f"In {await self.bot.getusername(player)}'s recently played info, its hash is different.\n" \
-                            f"(Now hash : `{self.getmaphash()}` / Its hash : `{player_recent_info['mapHash']}`)"
+                            f"In {await self.bot.getusername(player)}'s recently played info, its hash is different." \
+                            f"\n(Now hash : `{self.getmaphash()}` / Its hash : `{player_recent_info['mapHash']}`)"
                     continue
                 self.score[player] = player_recent_info
                 desc += f"Success : " \
                         f"Player {await self.bot.getusername(player)}'s score = " \
-                        f"{self.score[player]['score']}, {self.score[player]['acc']}%, {self.score[player]['miss']}xMISS / " \
+                        f"{self.score[player]['score']}, {self.score[player]['acc']}%, " \
+                        f"{self.score[player]['miss']}xMISS / " \
                         f"{inttomode(self.score[player]['modList'])} / {self.score[player]['rank']} rank"
         await resultmessage.edit(embed=discord.Embed(
             title="Calculation finished!",
@@ -546,7 +546,7 @@ class Scrim:
 
     async def match_start(self):
         try:
-            if self.map_time is None:
+            if self.map_length is None:
                 await self.channel.send(embed=discord.Embed(
                     title="The length of the map is not modified!",
                     description="Use `m;maptime` and try again.",
@@ -559,7 +559,7 @@ class Scrim:
                     title="MATCH START!",
                     description=f"Map Info : `{self.getmapfull()}`\n"
                                 f"Map Number : {self.getnumber()} / Map Mode : {self.getmode()}\n"
-                                f"Map Length : {self.getmaptime()} sec\n"
+                                f"Map Length : {self.getmaplength()} sec\n"
                                 f"Allowed modes : "
                                 f"`{', '.join(map(inttomode, self.availablemode[self.getmode()]))}`",
                     color=discord.Colour.from_rgb(255, 255, 0)
@@ -568,7 +568,7 @@ class Scrim:
                 if self.getmode() == 'DT':
                     extra_rate = d('1') / d('1.5')
                 self.timer = Timer(self.bot, self.channel, f"{self.start_time}_{self.getnumber()}",
-                                   int(self.getmaptime() * extra_rate))
+                                   int(self.getmaplength() * extra_rate))
                 await self.timer.task
                 timermessage = await self.channel.send(embed=discord.Embed(
                     title=f"MAP TIME OVER!",

@@ -120,7 +120,6 @@ class Match:
     async def go_next_status(self, timer_cancelled):
         if self.round == -1:
             if timer_cancelled:
-                self.round = 0
                 await self.channel.send(embed=discord.Embed(
                     title="ALL READY!",
                     description="Making match & Selecting mappool...",
@@ -148,7 +147,6 @@ class Match:
                 self.aborted = True
         elif self.round == 0:
             if timer_cancelled:
-                self.round = 1
                 await self.channel.send(embed=discord.Embed(
                     title="ALL READY!",
                     description="Preparing the round...",
@@ -186,13 +184,13 @@ class Match:
                         description=f"**Force** Round #{self.round} to start in **{i}**...",
                         color=discord.Colour.purple()
                     )), asyncio.sleep(1))
-            self.round += 1
             await self.scrim.do_match_start()
             mid, msid = self.scrim.getmapid()
             self.playID = {self.player.id: await self.bot.req.create_playID(self.uuid[self.player.id], mid, msid),
                            self.opponent.id: await self.bot.req.create_playID(self.uuid[self.opponent.id], mid, msid)}
             if (mh := self.playID[self.player.id]['mapHash']) == self.playID[self.opponent.id]['mapHash']:
                 self.scrim.setmaphash(mh)
+        self.round += 1
     
     async def do_progress(self):
         if self.match_end or self.aborted:
@@ -267,7 +265,7 @@ class Match:
             self.timer = Timer(self.bot, self.channel, f"Match_{self.made_time}_finalready", 30, self.go_next_status)
         elif self.round == len(self.map_order) or self.round > self.bo or \
                 self.winfor in set(self.scrim.setscore.values()):
-            winner = await self.scrim.end()
+            await self.scrim.end()
             score_diff = \
                 self.scrim.setscore["RED"] - self.scrim.setscore["BLUE"]
             if score_diff > 0:
@@ -305,14 +303,14 @@ class Match:
             self.scrim.setauthor(now_beatmap.creator)
             self.scrim.settitle(now_beatmap.title)
             self.scrim.setdiff(now_beatmap.version)
-            self.scrim.setmaptime(now_beatmap.total_length)
+            self.scrim.setmaplength(now_beatmap.total_length)
             self.scrim.setmode(now_mapnum[:2])
             self.scrim.setmapid(now_beatmap.beatmap_id, now_beatmap.beatmapset_id)
             await self.channel.send(embed=discord.Embed(
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{self.scrim.getmapfull()}`\n"
                             f"Map Number : {self.scrim.getnumber()} / Map Mode : {self.scrim.getmode()}\n"
-                            f"Map Length : {self.scrim.getmaptime()} sec\n"
+                            f"Map Length : {self.scrim.getmaplength()} sec\n"
                             f"Allowed modes : "
                             f"`{', '.join(map(inttomode, self.scrim.availablemode[self.scrim.getmode()]))}`",
                 color=discord.Colour.blue()

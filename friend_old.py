@@ -1855,14 +1855,14 @@ async def _map(ctx, *, name: str):
             if mapautosc:
                 scrim.setautoscore(int(mapautosc))
             if maptime_:
-                scrim.setmaptime(int(maptime_))
+                scrim.setmaplength(int(maptime_))
             scrim.setnumber(name)
             scrim.setmode(re.findall('|'.join(modes), name.split(';')[-1])[0])
         await resultmessage.edit(embed=discord.Embed(
             title=f"Map infos Modified!",
             description=f"Map Info : `{scrim.getmapfull()}`\n"
                         f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                        f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.",
+                        f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
             color=discord.Colour.blue()
         ))
 
@@ -1881,7 +1881,7 @@ async def mapmode(ctx, mode: str):
             title=f"Map infos Modified!",
             description=f"Map Info : `{scrim.getmapfull()}`\n"
                         f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                        f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.",
+                        f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
             color=discord.Colour.blue()
         ))
 
@@ -1894,12 +1894,12 @@ async def maptime(ctx, _time: int):
             color=discord.Colour.orange()
         ))
         scrim = s['scrim']
-        scrim.setmaptime(_time)
+        scrim.setmaplength(_time)
         await resultmessage.edit(embed=discord.Embed(
             title=f"Map infos Modified!",
             description=f"Map Info : `{scrim.getmapfull()}`\n"
                         f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                        f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.",
+                        f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
             color=discord.Colour.blue()
         ))
 
@@ -1922,7 +1922,7 @@ async def mapscore(ctx, sc_or_auto: Union[int, str], *, path: Optional[str] = No
             title=f"Map infos Modified!",
             description=f"Map Info : `{scrim.getmapfull()}`\n"
                         f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                        f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.",
+                        f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
             color=discord.Colour.blue()
         ))
 

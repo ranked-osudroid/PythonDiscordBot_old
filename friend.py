@@ -1,13 +1,13 @@
 import discord, importlib
 
-import friend_import, help_texts, timer, scrim, match, matchmaker, verify, fixca
-modules = [friend_import, help_texts, timer, scrim, match, matchmaker, verify, fixca]
+import friend_import, help_texts, timer, scrim_new, match_new, matchmaker, verify, fixca
+modules = [friend_import, help_texts, timer, scrim_new, match_new, matchmaker, verify, fixca]
 
 from friend_import import *
 from help_texts import helptxt_pages
 from timer import Timer
-from scrim import Scrim
-from match import Match_Scrim
+from scrim_new import Scrim
+from match_new import Match
 from matchmaker import MatchMaker
 from verify import Verify
 from fixca import RequestManager
@@ -170,12 +170,40 @@ class MyCog(commands.Cog):
         from friend_import import *
         from help_texts import helptxt_pages
         from timer import Timer
-        from scrim import Scrim
-        from match import Match_Scrim
+        from scrim_new import Scrim
+        from match_new import Match
         from matchmaker import MatchMaker
         from verify import Verify
         from fixca import RequestManager
         await ctx.send('Reload success')
+
+    @commands.command(name="continue")
+    @is_owner()
+    async def continue_(self, ctx):
+        now_match = self.bot.matches[ctx.author]
+        if now_match.match_task.done():
+            await now_match.do_match_start()
+        else:
+            await ctx.send(embed=discord.Embed(
+                title="Match is still processing!",
+                description="Try again soon.",
+                color=discord.Colour.dark_red()
+            ))
+
+    @commands.command()
+    @is_owner()
+    async def showerrormsg(self, ctx):
+        now_match = self.bot.matches[ctx.author]
+        if txt := now_match.get_debug_txt() is not None:
+            await ctx.send(embed=discord.Embed(
+                title="Error message",
+                description=f"```{txt}```",
+            ))
+        else:
+            await ctx.send(embed=discord.Embed(
+                title="No error occured... now.",
+                description=f"```{now_match.match_task}```",
+            ))
 
     @commands.command()
     async def make(self, ctx):
@@ -370,14 +398,14 @@ class MyCog(commands.Cog):
                 if mapautosc:
                     scrim.setautoscore(int(mapautosc))
                 if maptime_:
-                    scrim.setmaptime(int(maptime_))
+                    scrim.setmaplength(int(maptime_))
                 scrim.setnumber(name)
                 scrim.setmode(re.findall('|'.join(modes), name.split(';')[-1])[0])
             await resultmessage.edit(embed=discord.Embed(
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{scrim.getmapfull()}`\n"
                             f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.",
+                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
                 color=discord.Colour.blue()
             ))
 
@@ -395,7 +423,7 @@ class MyCog(commands.Cog):
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{scrim.getmapfull()}`\n"
                             f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.",
+                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
                 color=discord.Colour.blue()
             ))
 
@@ -408,12 +436,12 @@ class MyCog(commands.Cog):
                 color=discord.Colour.orange()
             ))
             scrim = s['scrim']
-            scrim.setmaptime(_time)
+            scrim.setmaplength(_time)
             await resultmessage.edit(embed=discord.Embed(
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{scrim.getmapfull()}`\n"
                             f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.",
+                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
                 color=discord.Colour.blue()
             ))
 
@@ -438,7 +466,7 @@ class MyCog(commands.Cog):
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{scrim.getmapfull()}`\n"
                             f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.",
+                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
                 color=discord.Colour.blue()
             ))
 
@@ -501,7 +529,7 @@ class MyCog(commands.Cog):
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{scrim.getmapfull()}`\n"
                             f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaptime()} sec.\n"
+                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.\n"
                             f"Map Hash : `{scrim.getmaphash()}`",
                 color=discord.Colour.blue()
             ))
@@ -725,7 +753,7 @@ class MyBot(commands.Bot):
         self.timers: dd[str, Optional['Timer']] = dd(lambda: None)
         self.timer_count = 0
 
-        self.matches: Dict[discord.Member, 'Match_Scrim'] = dict()
+        self.matches: Dict[discord.Member, 'Match'] = dict()
         self.match_category_channel: Optional[discord.CategoryChannel] = None
         self.matchmaker = MatchMaker(self)
 

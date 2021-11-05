@@ -598,7 +598,7 @@ class Scrim:
                     title="MATCH START!",
                     description=f"Map Info : `{self.getmapfull()}`\n"
                                 f"Map Number : {self.getnumber()} / Map Mode : {self.getmode()}\n"
-                                f"Map SS Score : {self.getautoscore()} / Map Length : {self.getmaptime()} sec\n"
+                                f"Map SS Score : {self.getautoscore()} / Map Length : {self.getmaplength()} sec\n"
                                 f"Allowed modes : "
                                 f"`{', '.join(map(inttomode, self.availablemode[self.getmode()]))}`",
                     color=discord.Colour.from_rgb(255, 255, 0)
@@ -608,7 +608,7 @@ class Scrim:
                 if self.getmode() == 'DT':
                     extra_rate = d('1') / d('1.5')
                 self.timer = Timer(self.bot, self.channel, f"{self.start_time}_{self.getnumber()}",
-                                   int(self.getmaptime() * extra_rate))
+                                   int(self.getmaplength() * extra_rate))
                 await self.timer.task
                 timermessage = await self.channel.send(embed=discord.Embed(
                     title=f"MAP TIME OVER!",
