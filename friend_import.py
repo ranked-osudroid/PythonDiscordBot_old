@@ -167,7 +167,8 @@ modetoint = {
     'HD': 16,
     'DT': 32,
     'NC': 64,
-    'PR': 128
+    'PR': 128,
+    'FL': 256,
 }
 modeabbrev = {
     'None': 'NM',
@@ -179,6 +180,7 @@ modeabbrev = {
     'DoubleTime': 'DT',
     'NightCore': 'NC',
     'Precise': 'PR',
+    'FlashLight': 'FL',
 }
 infotoint = {
     'artist': 1,

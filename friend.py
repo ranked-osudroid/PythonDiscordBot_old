@@ -4,13 +4,12 @@ import friend_import, help_texts, timer, scrim_new, match_new, matchmaker, verif
 modules = [friend_import, help_texts, timer, scrim_new, match_new, matchmaker, verify, fixca]
 
 from friend_import import *
-from help_texts import helptxt_pages
-from timer import Timer
-from scrim_new import Scrim
-from match_new import Match
-from matchmaker import MatchMaker
-from verify import Verify
-from fixca import RequestManager
+helptxt_pages = help_texts.helptxt_pages
+Timer = timer.Timer
+Scrim = scrim_new.Scrim
+Match = match_new.Match
+MatchMaker = matchmaker.MatchMaker
+RequestManager = fixca.RequestManager
 
 class MyCog(commands.Cog):
     def __init__(self, bot: 'MyBot'):
@@ -167,14 +166,6 @@ class MyCog(commands.Cog):
     async def reload(self, ctx):
         for module in modules:
             importlib.reload(module)
-        from friend_import import *
-        from help_texts import helptxt_pages
-        from timer import Timer
-        from scrim_new import Scrim
-        from match_new import Match
-        from matchmaker import MatchMaker
-        from verify import Verify
-        from fixca import RequestManager
         await ctx.send('Reload success')
 
     @commands.command(name="continue")
@@ -361,9 +352,9 @@ class MyCog(commands.Cog):
     
     @commands.command(name="map")
     async def _map(self, ctx, *, name: str):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
         return
+        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             resultmessage = await ctx.send(embed=discord.Embed(
                 title="Calculating...",
@@ -411,6 +402,8 @@ class MyCog(commands.Cog):
 
     @commands.command(aliases=['mm'])
     async def mapmode(self, ctx, mode: str):
+        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
+        return
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             resultmessage = await ctx.send(embed=discord.Embed(
@@ -429,6 +422,8 @@ class MyCog(commands.Cog):
 
     @commands.command(aliases=['mt'])
     async def maptime(self, ctx, _time: int):
+        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
+        return
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             resultmessage = await ctx.send(embed=discord.Embed(
@@ -447,9 +442,9 @@ class MyCog(commands.Cog):
 
     @commands.command(aliases=['ms'])
     async def mapscore(self, ctx, sc_or_auto: Union[int, str], *, path: Optional[str] = None):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
         return
+        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             resultmessage = await ctx.send(embed=discord.Embed(
                 title="Processing...",
@@ -472,14 +467,16 @@ class MyCog(commands.Cog):
 
     @commands.command(aliases=['l'])
     async def onlineload(self, ctx, checkbit: Optional[int] = None):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
         return
+        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             await s['scrim'].onlineload(checkbit)
 
     @commands.command()
     async def form(self, ctx, *, f_: str):
+        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
+        return
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             await s['scrim'].setform(f_)
@@ -643,6 +640,8 @@ class MyCog(commands.Cog):
 
     @commands.command(aliases=['rs'])
     async def recentme(self, ctx, uid: Optional[int] = None):
+        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
+        return
         if uid is None:
             uid = self.bot.uids.get(ctx.author.id)
         if uid == 0:
@@ -703,20 +702,14 @@ class MyCog(commands.Cog):
                 color=discord.Colour.dark_red()
             ))
             return
-        elif self.bot.uids[ctx.author.id] == 0:
-            await ctx.send(embed=discord.Embed(
-                title=f"You should bind your UID first. Use `m;verify`",
-                color=discord.Colour.dark_red()
-            ))
-            return
-        elif self.bot.shutdown_datetime - datetime.datetime.now(tz=KST) <= datetime.timedelta(minutes=30):
+        """elif self.bot.shutdown_datetime - datetime.datetime.now(tz=KST) <= datetime.timedelta(minutes=30):
             await ctx.send(embed=discord.Embed(
                 title=f"The bot is supposed to shutdown at {self.bot.shutdown_datetime.strftime('%H:%M')} KST.",
                 description=f"You can join the queue until 30 minutes before shutdown "
                             f"({(self.bot.shutdown_datetime - datetime.timedelta(minutes=30)).strftime('%H:%M')} KST).",
                 color=discord.Colour.dark_red()
             ))
-            return
+            return"""
         self.bot.matchmaker.add_player(ctx.author)
         await ctx.send(embed=discord.Embed(
             title=f"{ctx.author.name} queued.",
@@ -747,7 +740,7 @@ class MyBot(commands.Bot):
         self.req = RequestManager(self)
         self.osuapi = osuapi.OsuApi(api_key, connector=osuapi.AHConnector())
 
-        self.uids: dd[int, int] = dd(int)
+        self.uuid: dd[int, str] = dd(str)
         self.ratings: dd[str, d] = dd(lambda: d(1500))
 
         self.timers: dd[str, Optional['Timer']] = dd(lambda: None)
@@ -797,11 +790,15 @@ class MyBot(commands.Bot):
             user_name = (await self.req.get_user_byuuid(uuid=uuid))['name']
         return await self.req.recent_record(user_name)
     
-    async def get_user_info(self, id_=None):
+    async def get_user_info(self, id_=None, update=False):
         if isinstance(id_, str):
-            return await self.req.get_user_byuuid(id_)
+            res = await self.req.get_user_byuuid(id_)
+            self.uuid[res['discordId']] = res['uuid']
+            return res
         elif isinstance(id_, int):
-            return await self.req.get_user_bydiscord(id_)
+            res = await self.req.get_user_bydiscord(id_)
+            self.uuid[res['discordId']] = res['uuid']
+            return res
         else:
             return
 
@@ -809,39 +806,26 @@ class MyBot(commands.Bot):
 async def _main():
     app = MyBot(ses=aiohttp.ClientSession(), command_prefix='m;', help_command=None, intents=intents)
     app.add_cog(MyCog(app))
-    got_login = await osu_login(app.session)
-    if got_login:
-        turnoff = False
-        try:
-            res = await app.osuapi.get_user("peppy")
-            assert res[0].user_id == 2
-        except osuapi.HTTPError:
-            print("Invalid osu!API key")
-            turnoff = True
-        except AssertionError:
-            print("Something went wrong")
-            turnoff = True
 
-        assert turnoff is False
-        bot_task = asyncio.create_task(app.start(token))
-        try:
-            await auto_off(app.shutdown_datetime)
-        except asyncio.CancelledError:
-            print('_main() : Cancelled')
-            raise
-        except Exception as _ex:
-            raise
-        finally:
-            app.osuapi.close()
-            await app.change_presence(status=discord.Status.offline)
-            await app.loop.shutdown_asyncgens()
-            app.loop.close()
-            await app.close()
-            if not bot_task.done():
-                bot_task.cancel()
-            await app.session.close()
-            app.matchmaker.close()
-            print('_main() : finally done')
+    bot_task = asyncio.create_task(app.start(token))
+    try:
+        await auto_off(app.shutdown_datetime)
+    except asyncio.CancelledError:
+        print('_main() : Cancelled')
+        raise
+    except Exception as _ex:
+        raise
+    finally:
+        app.osuapi.close()
+        await app.change_presence(status=discord.Status.offline)
+        await app.loop.shutdown_asyncgens()
+        app.loop.close()
+        await app.close()
+        if not bot_task.done():
+            bot_task.cancel()
+        await app.session.close()
+        app.matchmaker.close()
+        print('_main() : finally done')
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()

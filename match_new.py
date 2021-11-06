@@ -53,7 +53,7 @@ class Match:
         self.channel: Optional[discord.TextChannel] = None
         self.made_time = datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")
         self.playID: Dict[int, Optional[dict]] = {self.player.id: None, self.opponent.id: None}
-        self.uuid: Dict[int, Optional[dict]] = {self.player.id: None, self.opponent.id: None}
+        self.uuid: Dict[int, Optional[str]] = {self.player.id: None, self.opponent.id: None}
 
         self.mappool_uuid: Optional[str] = None
         self.map_infos: Dict[str, osuapi.osu.Beatmap] = dict()
@@ -131,12 +131,12 @@ class Match:
                 await self.scrim.addplayer("RED", self.player, False)
                 await self.scrim.addplayer("BLUE", self.opponent, False)
                 self.scrim.setmoderule(
-                    {2, },                  # NF
-                    {18, },                 # NFHD
-                    {10, },                 # NFHR
-                    {34, },                 # NFDT
-                    {3, 10, 18, 19, 26},    # NFEZ, NFHR, NFHD, NFEZHD, NFHRHD
-                    {2, 3, 10, 18, 19, 26}  # NF, NFEZ, NFHR, NFHD, NFEZHD, NFHRHD
+                    {128, },                         # PR
+                    {144, },                         # PRHD
+                    {136, },                         # PRHR
+                    {160, },                         # PRDT
+                    {129, 136, 144, 145, 152},       # PREZ, PRHR, PRHD, PREZHD, PRHRHD
+                    {128, 129, 136, 144, 145, 152}   # PR, PREZ, PRHR, PRHD, PREZHD, PRHRHD
                 )
             else:
                 await self.channel.send(embed=discord.Embed(
@@ -197,9 +197,11 @@ class Match:
             return
         elif self.round == -1:
             self.channel = await self.bot.match_category_channel.create_text_channel(f"Match_{self.made_time}")
-            self.scrim = Scrim(self.bot, self.channel)
+            self.scrim = Scrim(self.bot, self.channel, self)
             self.player_info = await self.bot.get_user_info(self.player.id)
-            self.opponent_info = await self.bot.get_user_info(self.player.id)
+            self.opponent_info = await self.bot.get_user_info(self.opponent.id)
+            self.uuid[self.player.id] = self.player_info['uuid']
+            self.uuid[self.opponent.id] = self.opponent_info['uuid']
             self.elo_manager.set_player_rating(self.bot.ratings[self.player_info['uuid']])
             self.elo_manager.set_opponent_rating(self.bot.ratings[self.opponent_info['uuid']])
             await self.channel.send(
@@ -239,7 +241,7 @@ class Match:
             ))
 
             for md in selected_pool['maps']:
-                self.map_infos[md['sheetId']] = await self.bot.osuapi.get_beatmaps(beatmap_id=md['mapId'])
+                self.map_infos[md['sheetId']] = (await self.bot.osuapi.get_beatmaps(beatmap_id=md['mapId']))[0]
 
             maps = dict([(i, []) for i in modes])
             for k in self.map_infos:
@@ -306,6 +308,8 @@ class Match:
             self.scrim.setmaplength(now_beatmap.total_length)
             self.scrim.setmode(now_mapnum[:2])
             self.scrim.setmapid(now_beatmap.beatmap_id, now_beatmap.beatmapset_id)
+            mid = self.scrim.getmapid()
+            download_link = f"https://osu.ppy.sh/beatmapsets/{mid[1]}#osu/{mid[0]}"
             await self.channel.send(embed=discord.Embed(
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{self.scrim.getmapfull()}`\n"
@@ -313,6 +317,11 @@ class Match:
                             f"Map Length : {self.scrim.getmaplength()} sec\n"
                             f"Allowed modes : "
                             f"`{', '.join(map(inttomode, self.scrim.availablemode[self.scrim.getmode()]))}`",
+                color=discord.Colour.blue()
+            ))
+            await self.channel.send(embed=discord.Embed(
+                title=f"Map download links HERE!",
+                description=download_link,
                 color=discord.Colour.blue()
             ))
             await self.channel.send(embed=discord.Embed(

@@ -1,5 +1,5 @@
 from friend_import import *
-from match import Match_Scrim
+from match_new import Match
 
 if TYPE_CHECKING:
     from friend import MyBot
@@ -9,7 +9,7 @@ class WaitingPlayer:
         self.bot = bot
         self.loop = bot.loop
         self.player = discord_member
-        self.player_rating = self.bot.ratings[self.bot.uids[discord_member.id]]
+        self.player_rating = self.bot.ratings[self.bot.uuid[discord_member.id]]
         self.target_rating_low = self.player_rating
         self.target_rating_high = self.player_rating
         self.dr = 10
@@ -57,7 +57,7 @@ class MatchMaker:
                         opponent = min(opponents, key=lambda o: abs(o.player_rating - p.player_rating))
                         self.pool.remove(opponent)
                         self.bot.matches[p.player] = self.bot.matches[opponent.player] = m = \
-                            Match_Scrim(self.bot, p.player, opponent.player)
+                            Match(self.bot, p.player, opponent.player)
                         await m.do_match_start()
                         self.players_in_pool.remove(p.player.id)
                         self.players_in_pool.remove(opponent.player.id)

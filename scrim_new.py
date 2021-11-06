@@ -3,12 +3,15 @@ from timer import Timer
 
 if TYPE_CHECKING:
     from friend import MyBot
+    from match_new import Match
 
 class Scrim:
     def __init__(self,
                  bot: 'MyBot',
-                 channel: discord.TextChannel):
+                 channel: discord.TextChannel,
+                 match_: Optional['Match'] = None):
         self.bot = bot
+        self.match = match_
         self.loop = self.bot.loop
         self.channel: discord.TextChannel = channel
         self.start_time = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
@@ -480,7 +483,12 @@ class Scrim:
                     description=desc,
                     color=discord.Colour.orange()
                 ))
-                player_recent_info = await self.bot.get_recent()
+                if self.match:
+                    player_recent_info = await self.bot.get_recent(
+                        uuid=self.match.uuid[player])
+                else:
+                    player_recent_info = await self.bot.get_recent(
+                        uuid=(await self.bot.get_user_info(player))['uuid'])
                 if player_recent_info is None:
                     desc += f"Failed : " \
                             f"{await self.bot.getusername(player)}'s recent play info can't be parsed."
