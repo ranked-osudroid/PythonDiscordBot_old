@@ -787,17 +787,27 @@ class MyBot(commands.Bot):
     
     async def get_recent(self, user_name=None, uuid=None):
         if user_name is None and uuid is not None:
-            user_name = (await self.req.get_user_byuuid(uuid=uuid))['name']
-        return await self.req.recent_record(user_name)
+            user_info = await self.req.get_user_byuuid(uuid=uuid)
+            if isinstance(user_info, Exception):
+                raise user_info
+            user_name = user_info['name']
+        res = await self.req.recent_record(user_name)
+        if isinstance(res, Exception):
+            raise res
+        return res
     
     async def get_user_info(self, id_=None, update=False):
         if isinstance(id_, str):
             res = await self.req.get_user_byuuid(id_)
-            self.uuid[res['discordId']] = res['uuid']
+            if not isinstance(res, Exception):
+                self.uuid[res['discordId']] = res['uuid']
             return res
         elif isinstance(id_, int):
+            if not update and (r := self.uuid.get(id_)) is not None:
+                return r
             res = await self.req.get_user_bydiscord(id_)
-            self.uuid[res['discordId']] = res['uuid']
+            if not isinstance(res, Exception):
+                self.uuid[res['discordId']] = res['uuid']
             return res
         else:
             return

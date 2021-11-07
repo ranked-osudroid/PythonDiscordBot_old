@@ -489,6 +489,11 @@ class Scrim:
                 else:
                     player_recent_info = await self.bot.get_recent(
                         uuid=(await self.bot.get_user_info(player))['uuid'])
+                if isinstance(player_recent_info, Exception):
+                    print(player_recent_info.data)
+                    desc += f"Failed : " \
+                            f"Error occured ({player_recent_info})"
+                    continue
                 if player_recent_info is None:
                     desc += f"Failed : " \
                             f"{await self.bot.getusername(player)}'s recent play info can't be parsed."
@@ -496,14 +501,25 @@ class Scrim:
                 if player_recent_info['mapHash'] != self.getmaphash():
                     desc += f"Failed : " \
                             f"In {await self.bot.getusername(player)}'s recently played info, its hash is different." \
-                            f"\n(Now hash : `{self.getmaphash()}` / Its hash : `{player_recent_info['mapHash']}`)"
+                            f"\n(Hash of the map : `{self.getmaphash()}` / Your hash : `{player_recent_info['mapHash']}`)"
+                    continue
+                if self.map_mode is not None and \
+                    (mi := modetointfunc(list(
+                        (ml := player_recent_info['modList'])[i:i+2]
+                        for i in range(len(ml)//2)
+                    ))) not in self.availablemode[self.map_mode]:
+                    desc += f"Failed : " \
+                            f"In {await self.bot.getusername(player)}'s recent play info, " \
+                            f"its mode is NOT allowed in now map mode. " \
+                            f"(Modes allowed to use in this round : `{self.availablemode[self.map_mode]}` / " \
+                            f"Your mode : `{player_recent_info['modList']} = {mi}`)"
                     continue
                 self.score[player] = player_recent_info
                 desc += f"Success : " \
                         f"Player {await self.bot.getusername(player)}'s score = " \
                         f"{self.score[player]['score']}, {self.score[player]['acc']}%, " \
                         f"{self.score[player]['miss']}xMISS / " \
-                        f"{inttomode(self.score[player]['modList'])} / {self.score[player]['rank']} rank"
+                        f"{self.score[player]['modList']} / {self.score[player]['rank']} rank"
         await resultmessage.edit(embed=discord.Embed(
             title="Calculation finished!",
             description=desc,

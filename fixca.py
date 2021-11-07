@@ -15,7 +15,7 @@ class RequestManager:
             data = dict()
         async with self.session.post(self.BASEURL+url, data=data|kwargs) as res:
             if res.status != 200:
-                return HttpError('POST', url)
+                return HttpError('POST', url, res)
             if (resdata := await res.json(encoding='utf-8'))['status'] == 'failed':
                 return FixcaError('POST', url, resdata)
             return resdata
@@ -25,7 +25,7 @@ class RequestManager:
             data = dict()
         async with self.session.get(self.BASEURL+url, data=data|kwargs) as res:
             if res.status != 200:
-                return HttpError('GET', url)
+                return HttpError('GET', url, res)
             if (resdata := await res.json(encoding='utf-8'))['status'] == 'failed':
                 return FixcaError('GET', url, resdata)
             return resdata
@@ -48,10 +48,11 @@ class RequestManager:
 
 
 class HttpError(Exception):
-    def __init__(self, method: str, url: str):
+    def __init__(self, method: str, url: str, data=None):
         super().__init__()
         self.method = method
         self.url = url
+        self.data = data
 
     def __str__(self):
         return f"Getting datas from {self.method} {self.url} failed."
