@@ -131,12 +131,12 @@ class Match:
                 await self.scrim.addplayer("RED", self.player, False)
                 await self.scrim.addplayer("BLUE", self.opponent, False)
                 self.scrim.setmoderule(
-                    {128, },                         # PR
-                    {144, },                         # PRHD
-                    {136, },                         # PRHR
-                    {160, },                         # PRDT
-                    {129, 136, 144, 145, 152},       # PREZ, PRHR, PRHD, PREZHD, PRHRHD
-                    {128, 129, 136, 144, 145, 152}   # PR, PREZ, PRHR, PRHD, PREZHD, PRHRHD
+                    {0, 128, },                         # PR
+                    {16, 144, },                         # PRHD
+                    {8, 136, },                         # PRHR
+                    {32, 160, },                         # PRDT
+                    {1, 8, 16, 17, 24, 129, 136, 144, 145, 152},       # PREZ, PRHR, PRHD, PREZHD, PRHRHD
+                    {0, 1, 8, 16, 17, 24, 128, 129, 136, 144, 145, 152}   # PR, PREZ, PRHR, PRHD, PREZHD, PRHRHD
                 )
             else:
                 await self.channel.send(embed=discord.Embed(
