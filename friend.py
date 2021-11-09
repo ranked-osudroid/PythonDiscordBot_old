@@ -819,7 +819,7 @@ async def _main():
 
     bot_task = asyncio.create_task(app.start(token))
     try:
-        await auto_off(app.shutdown_datetime)
+        await bot_task
     except asyncio.CancelledError:
         print('_main() : Cancelled')
         raise
@@ -829,7 +829,6 @@ async def _main():
         app.osuapi.close()
         await app.change_presence(status=discord.Status.offline)
         await app.loop.shutdown_asyncgens()
-        app.loop.close()
         await app.close()
         if not bot_task.done():
             bot_task.cancel()
