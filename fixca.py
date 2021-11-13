@@ -1,7 +1,7 @@
 from friend_import import *
 
 class RequestManager:
-    BASEURL = "https://ranked-osudroid.ml"
+    BASEURL = "https://ranked-osudroid.ml/"
     with open("fixca_api_key.txt", 'r') as f:
         key = f.read().strip()
 

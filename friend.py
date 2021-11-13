@@ -164,8 +164,15 @@ class MyCog(commands.Cog):
     @commands.command()
     @is_owner()
     async def reload(self, ctx):
+        global helptxt_pages, Timer, Scrim, Match, MatchMaker, RequestManager
         for module in modules:
             importlib.reload(module)
+        helptxt_pages = help_texts.helptxt_pages
+        Timer = timer.Timer
+        Scrim = scrim_new.Scrim
+        Match = match_new.Match
+        MatchMaker = matchmaker.MatchMaker
+        RequestManager = fixca.RequestManager
         await ctx.send('Reload success')
 
     @commands.command(name="continue")
@@ -796,15 +803,13 @@ class MyBot(commands.Bot):
             raise res
         return res
     
-    async def get_user_info(self, id_=None, update=False):
+    async def get_user_info(self, id_=None):
         if isinstance(id_, str):
             res = await self.req.get_user_byuuid(id_)
             if not isinstance(res, Exception):
                 self.uuid[res['discordId']] = res['uuid']
             return res
         elif isinstance(id_, int):
-            if not update and (r := self.uuid.get(id_)) is not None:
-                return r
             res = await self.req.get_user_bydiscord(id_)
             if not isinstance(res, Exception):
                 self.uuid[res['discordId']] = res['uuid']
