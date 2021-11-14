@@ -796,12 +796,9 @@ class MyBot(commands.Bot):
         if user_name is None and uuid is not None:
             user_info = await self.req.get_user_byuuid(uuid=uuid)
             if isinstance(user_info, Exception):
-                raise user_info
+                return user_info
             user_name = user_info['name']
-        res = await self.req.recent_record(user_name)
-        if isinstance(res, Exception):
-            raise res
-        return res
+        return await self.req.recent_record(user_name)
     
     async def get_user_info(self, id_=None):
         if isinstance(id_, str):
