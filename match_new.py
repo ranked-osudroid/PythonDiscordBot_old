@@ -380,7 +380,8 @@ class Match:
             print(get_traceback_str(ex_))
             raise ex_
         finally:
-            del self.bot.matches[self.player], self.bot.matches[self.opponent]
+            # del self.bot.matches[self.player], self.bot.matches[self.opponent]
+            pass
 
     async def do_match_start(self):
         if self.match_task is None or self.match_task.done():

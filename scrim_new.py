@@ -137,7 +137,7 @@ class Scrim:
             self.findteam[mid] = name
             self.team[name].add(mid)
             self.players.add(mid)
-            self.score[mid] = None
+            self.score[mid] = {'score': d(0), 'acc': d(0), 'miss': d(0), 'rank': None, 'mode': 0}
             if do_print:
                 await self.channel.send(embed=discord.Embed(
                     title=f"Player {member.name} participates into Team {name}!",
@@ -230,7 +230,12 @@ class Scrim:
         ))
         calculatedscores = dict()
         for p in self.score:
-            calculatedscores[p] = calcf(self.map_auto_score, *self.score[p][0])
+            calculatedscores[p] = calcf(
+                self.map_auto_score, 
+                self.score[p]['score'],
+                self.score[p]['acc'],
+                self.score[p]['miss']
+            )
         teamscore = dict()
         for t in self.team:
             teamscore[t] = 0
@@ -267,9 +272,9 @@ class Scrim:
             sendtxt.add_field(
                 name=f"*Team {t} total score : {teamscore[t]}*",
                 value='\n'.join(
-                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p][1]]} "
-                     f"({inttomode(self.score[p][2])}) : "
-                     f"{self.score[p][0][0]} / {self.score[p][0][1]}% / {self.score[p][0][2]} :x: "
+                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p]['rank']]} "
+                     f"({inttomode(self.score[p]['mode'])}) : "
+                     f"{self.score[p]['score']} / {self.score[p]['acc']}% / {self.score[p]['miss']} :x: "
                      f"= {calculatedscores[p]}"
                      for p in self.team[t]])+'\n',
                 inline=False
@@ -478,6 +483,7 @@ class Scrim:
         for team in self.team:
             for player in self.team[team]:
                 desc += '\n'
+                playername = await self.bot.getusername(player)
                 await resultmessage.edit(embed=discord.Embed(
                     title="Processing...",
                     description=desc,
@@ -491,22 +497,26 @@ class Scrim:
                     if isinstance(uuid_, Exception):
                         print(uuid_.data)
                         desc += f"Failed : " \
-                                f"Error occured ({uuid_})"
+                                f"Error occurred while getting {playername}'s info ({uuid_})"
                         continue
                     player_recent_info = await self.bot.get_recent(
                         uuid=uuid_)
                 if isinstance(player_recent_info, Exception):
                     print(player_recent_info.data)
+                    if (s_ := player_recent_info.data.get('error')) is not None and \
+                        s_ == 'This user has not played any map yet!':
+                        desc += f"Failed : " \
+                                f"{playername} didn't played the map"
                     desc += f"Failed : " \
-                            f"Error occured ({player_recent_info})"
+                            f"Error occurred while getting {playername}'s recent record ({player_recent_info})"
                     continue
                 if player_recent_info is None:
                     desc += f"Failed : " \
-                            f"{await self.bot.getusername(player)}'s recent play info can't be parsed."
+                            f"{playername}'s recent play info can't be parsed."
                     continue
                 if player_recent_info['mapHash'] != self.getmaphash():
                     desc += f"Failed : " \
-                            f"In {await self.bot.getusername(player)}'s recently played info, its hash is different." \
+                            f"In {playername}'s recently played info, its hash is different." \
                             f"\n(Hash of the map : `{self.getmaphash()}` / Your hash : `{player_recent_info['mapHash']}`)"
                     continue
                 if self.map_mode is not None and \
@@ -515,14 +525,17 @@ class Scrim:
                         for i in range(len(player_recent_info['modList'])//2)
                     ))) not in self.availablemode[self.map_mode]:
                     desc += f"Failed : " \
-                            f"In {await self.bot.getusername(player)}'s recent play info, " \
+                            f"In {playername}'s recent play info, " \
                             f"its mode is NOT allowed in now map mode. " \
                             f"(Modes allowed to use in this round : `{self.availablemode[self.map_mode]}` / " \
                             f"Your mode : `{player_recent_info['modList']} = {mi}`)"
                     continue
                 self.score[player] = player_recent_info
+                self.score[player]['score'] = d(self.score[player]['score'])
+                self.score[player]['acc'] = d(self.score[player]['acc'][:-1])
+                self.score[player]['miss'] = d(self.score[player]['miss'])
                 desc += f"Success : " \
-                        f"Player {await self.bot.getusername(player)}'s score = " \
+                        f"Player {playername}'s score = " \
                         f"{self.score[player]['score']}, {self.score[player]['acc']}%, " \
                         f"{self.score[player]['miss']}xMISS / " \
                         f"{self.score[player]['modList']} / {self.score[player]['rank']} rank"
