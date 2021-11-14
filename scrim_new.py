@@ -519,11 +519,11 @@ class Scrim:
                             f"In {playername}'s recently played info, its hash is different." \
                             f"\n(Hash of the map : `{self.getmaphash()}` / Your hash : `{player_recent_info['mapHash']}`)"
                     continue
-                if self.map_mode is not None and \
-                    (mi := modetointfunc(list(
+                    modeijt = modetointfunc(list(
                         player_recent_info['modList'][i:i+2]
                         for i in range(len(player_recent_info['modList'])//2)
-                    ))) not in self.availablemode[self.map_mode]:
+                if self.map_mode is not None and \
+                    modeint not in self.availablemode[self.map_mode]:
                     desc += f"Failed : " \
                             f"In {playername}'s recent play info, " \
                             f"its mode is NOT allowed in now map mode. " \
@@ -534,6 +534,7 @@ class Scrim:
                 self.score[player]['score'] = d(self.score[player]['score'])
                 self.score[player]['acc'] = d(self.score[player]['acc'][:-1])
                 self.score[player]['miss'] = d(self.score[player]['miss'])
+                self.score[player]['mode'] = modeint
                 desc += f"Success : " \
                         f"Player {playername}'s score = " \
                         f"{self.score[player]['score']}, {self.score[player]['acc']}%, " \
