@@ -511,8 +511,8 @@ class Scrim:
                     continue
                 if self.map_mode is not None and \
                     (mi := modetointfunc(list(
-                        (ml := player_recent_info['modList'])[i:i+2]
-                        for i in range(len(ml)//2)
+                        player_recent_info['modList'][i:i+2]
+                        for i in range(len(player_recent_info['modList'])//2)
                     ))) not in self.availablemode[self.map_mode]:
                     desc += f"Failed : " \
                             f"In {await self.bot.getusername(player)}'s recent play info, " \
