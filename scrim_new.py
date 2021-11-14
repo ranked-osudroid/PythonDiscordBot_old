@@ -490,7 +490,7 @@ class Scrim:
                     uuid_ = await self.bot.get_user_info(player)
                     if isinstance(uuid_, Exception):
                         print(uuid_.data)
-                        desc += f"Failed : " \ 
+                        desc += f"Failed : " \
                                 f"Error occured ({uuid_})"
                         continue
                     player_recent_info = await self.bot.get_recent(
