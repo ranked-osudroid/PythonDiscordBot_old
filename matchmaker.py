@@ -4,6 +4,7 @@ from match_new import Match
 if TYPE_CHECKING:
     from friend import MyBot
 
+
 class WaitingPlayer:
     def __init__(self, bot: 'MyBot', discord_member: discord.Member):
         self.bot = bot
