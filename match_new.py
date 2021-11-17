@@ -67,7 +67,6 @@ class Match:
         # -1 = 매치 생성 전
         # 0 = 플레이어 참가 대기
         # n = n라운드 준비 대기
-        self.bo = bo
         self.winfor = (bo / d('2')).to_integral(rounding=decimal.ROUND_HALF_UP)
         self.match_end = False
         self.aborted = False
@@ -289,17 +288,13 @@ class Match:
                 color=discord.Colour.blue()
             ))
             self.timer = Timer(self.bot, self.channel, f"Match_{self.made_time}_finalready", 30, self.go_next_status)
-        elif self.round == len(self.map_order) or self.round > self.bo or \
+        elif self.round == len(self.map_order) or self.round > self.BO or \
                 self.winfor in set(self.scrim.setscore.values()):
             await self.scrim.end()
             score_diff = \
                 self.scrim.setscore["RED"] - self.scrim.setscore["BLUE"]
-            if score_diff > 0:
-                rate = d('1') - score_diff / d('16')
-            elif score_diff < 0:
-                rate = score_diff / d('16')
-            else:
-                rate = d('.5')
+            div_ = d(2 * self.winfor)
+            rate = d('.5') + score_diff / div_
             prate_bef, orate_bef = self.elo_manager.get_ratings()
             pdrate, odrate = self.elo_manager.update(rate, True)
             prate_aft, orate_aft = self.elo_manager.get_ratings()
@@ -319,7 +314,7 @@ class Match:
             ))
             self.match_end = True
         else:
-            if self.round == self.bo and self.map_tb is not None:
+            if self.round == self.BO and self.map_tb is not None:
                 now_mapnum = self.map_tb
             else:
                 now_mapnum = self.map_order[self.round - 1]
@@ -381,9 +376,8 @@ class Match:
         except BaseException as ex_:
             print(get_traceback_str(ex_))
             raise ex_
-        finally:
-            # del self.bot.matches[self.player], self.bot.matches[self.opponent]
-            pass
+        else:  # 'finally' here actually
+            del self.bot.matches[self.player], self.bot.matches[self.opponent]
 
     async def do_match_start(self):
         if self.match_task is None or self.match_task.done():
