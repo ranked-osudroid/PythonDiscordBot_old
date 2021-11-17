@@ -61,7 +61,12 @@ class MyCog(commands.Cog):
         print('================ ERROR ================')
         print(exceptiontxt)
         print('=======================================')
-        await ctx.send(f'Error Occurred :\n```{exceptiontxt}```')
+        await ctx.send(
+            embed=discord.Embed(
+                title="Error occured",
+                description=f"{exception}\nCheck the log."
+            )
+        )
 
     @commands.command(name="help")
     async def _help(self, ctx):
@@ -192,7 +197,7 @@ class MyCog(commands.Cog):
     @is_owner()
     async def showerrormsg(self, ctx):
         now_match = self.bot.matches[ctx.author]
-        if txt := now_match.get_debug_txt() is not None:
+        if (txt := now_match.get_debug_txt()) is not None:
             await ctx.send(embed=discord.Embed(
                 title="Error message",
                 description=f"```{txt}```",
@@ -758,6 +763,16 @@ class MyBot(commands.Bot):
         self.matchmaker = MatchMaker(self)
 
         self.shutdown_datetime = get_shutdown_datetime()
+
+        def custon_exception_handler(loop, context):
+            loop.default_exception_handler(context)
+            exception = context.get('exception')
+            if isinstance(exception, Exception):
+                print('Error occurred in the bot loop : ')
+                print(get_traceback_str(exception))
+                print('='*20)
+
+        self.loop.set_exception_handler(custon_exception_handler)
 
     async def getusername(self, x: int) -> str:
         if self.member_names.get(x) is None:

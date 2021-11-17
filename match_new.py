@@ -333,7 +333,9 @@ class Match:
             self.scrim.setmode(now_mapnum[:2])
             self.scrim.setmapid(now_beatmap.beatmap_id, now_beatmap.beatmapset_id)
             mid = self.scrim.getmapid()
-            download_link = f"https://osu.ppy.sh/beatmapsets/{mid[1]}#osu/{mid[0]}"
+            download_link = f"Osu!\t: https://osu.ppy.sh/beatmapsets/{mid[1]}#osu/{mid[0]}\n" \
+                            f"Chimu\t: https://chimu.moe/en/d/{mid[1]}\n" \
+                            f"Beatconnect\t: ~~Not avaliable now~~"
             await self.channel.send(embed=discord.Embed(
                 title=f"Map infos Modified!",
                 description=f"Map Info : `{self.scrim.getmapfull()}`\n"

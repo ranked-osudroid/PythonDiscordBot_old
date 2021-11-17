@@ -254,7 +254,7 @@ RANK_EMOJI = {
     'SH': "<:rankingSH:829276952622923786>",
     'X': "<:rankingX:829276952841158656>",
     'XH': "<:rankingXH:829276952430772255>",
-    None: "<:questionmark:665176979414188052>"
+    None: ":question:"
 }
 
 rankFilenameR = re.compile('assets/images/ranking-(.+)-small[.]png')

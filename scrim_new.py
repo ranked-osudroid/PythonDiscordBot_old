@@ -296,8 +296,9 @@ class Scrim:
             logtxt.append(f'\nTeam {t} = {teamscore[t]}')
             for p in self.team[t]:
                 logtxt.append(f"Player {await self.bot.getusername(p)} = {calculatedscores[p]} "
-                              f"({' / '.join(str(x) for x in self.score[p][0])} - {self.score[p][1]} - "
-                              f"{inttomode(self.score[p][2])})")
+                              f"({' / '.join(str(self.score[p][x]) for x in ('score', 'acc', 'miss'))} - "
+                              f"{self.score[p]['rank']} - "
+                              f"{inttomode(self.score[p]['mode'])})")
         self.log.append('\n'.join(logtxt))
         self.resetmap()
     
@@ -519,16 +520,17 @@ class Scrim:
                             f"In {playername}'s recently played info, its hash is different." \
                             f"\n(Hash of the map : `{self.getmaphash()}` / Your hash : `{player_recent_info['mapHash']}`)"
                     continue
-                    modeijt = modetointfunc(list(
-                        player_recent_info['modList'][i:i+2]
-                        for i in range(len(player_recent_info['modList'])//2)
+                modeint = modetointfunc(list(
+                    player_recent_info['modList'][i:i+2]
+                    for i in range(len(player_recent_info['modList'])//2)
+                ))
                 if self.map_mode is not None and \
                     modeint not in self.availablemode[self.map_mode]:
                     desc += f"Failed : " \
                             f"In {playername}'s recent play info, " \
                             f"its mode is NOT allowed in now map mode. " \
                             f"(Modes allowed to use in this round : `{self.availablemode[self.map_mode]}` / " \
-                            f"Your mode : `{player_recent_info['modList']} = {mi}`)"
+                            f"Your mode : `{player_recent_info['modList']} = {modeint}`)"
                     continue
                 self.score[player] = player_recent_info
                 self.score[player]['score'] = d(self.score[player]['score'])
