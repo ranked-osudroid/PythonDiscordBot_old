@@ -298,7 +298,7 @@ class Match:
             prate_bef, orate_bef = self.elo_manager.get_ratings()
             pdrate, odrate = self.elo_manager.update(rate, True)
             prate_aft, orate_aft = self.elo_manager.get_ratings()
-            self.bot.ratings[self.player_info['uuid']], self.bot.ratings[self.player_info['uuid']] = \
+            self.bot.ratings[self.player_info['uuid']], self.bot.ratings[self.opponent_info['uuid']] = \
                 prate_aft, orate_aft
             c = decimal.DefaultContext
             c.rounding = decimal.ROUND_FLOOR
