@@ -1,7 +1,31 @@
 from friend_import import *
 
+
+class HttpError(Exception):
+    def __init__(self, method: str, url: str, data=None):
+        super().__init__()
+        self.method = method
+        self.url = url
+        self.data = data
+
+    def __str__(self):
+        return f"Getting datas from {self.method} {self.url} failed."
+
+
+class FixcaError(Exception):
+    def __init__(self, method: str, url: str, data=None):
+        super().__init__()
+        self.method = method
+        self.url = url
+        self.data = data
+
+    def __str__(self):
+        return f"Got datas from {self.method} {self.url} with status 'failed'."
+
+
 class RequestManager:
     BASEURL = "https://ranked-osudroid.ml/api/"
+    ERRORS = (HttpError, FixcaError)
     with open("fixca_api_key.txt", 'r') as f:
         key = f.read().strip()
 
@@ -46,23 +70,3 @@ class RequestManager:
         return await self._post('userInfoDiscord',
                                 key=self.key, discordid=d_id)
 
-
-class HttpError(Exception):
-    def __init__(self, method: str, url: str, data=None):
-        super().__init__()
-        self.method = method
-        self.url = url
-        self.data = data
-
-    def __str__(self):
-        return f"Getting datas from {self.method} {self.url} failed."
-
-class FixcaError(Exception):
-    def __init__(self, method: str, url: str, data=None):
-        super().__init__()
-        self.method = method
-        self.url = url
-        self.data = data
-
-    def __str__(self):
-        return f"Got datas from {self.method} {self.url} with status 'failed'."

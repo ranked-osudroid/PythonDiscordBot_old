@@ -133,7 +133,7 @@ class Scrim:
                 await self.channel.send(embed=discord.Embed(
                     title=f"Player {member.name} participates into Team {name}!",
                     description=f"Now player list of Team {name}:\n"
-                                f"{chr(10).join([(await self.bot.getusername(pl)) for pl in self.team[name]])}",
+                                f"{chr(10).join([(await self.bot.get_discord_username(pl)) for pl in self.team[name]])}",
                     color=discord.Colour.blue()
                 ))
 
@@ -155,7 +155,7 @@ class Scrim:
                 await self.channel.send(embed=discord.Embed(
                     title=f"Player {member.name} is leaving Team {temp}.",
                     description=f"Now player list of Team {temp}:\n"
-                                f"{chr(10).join([(await self.bot.getusername(pl)) for pl in self.team[temp]])}",
+                                f"{chr(10).join([(await self.bot.get_discord_username(pl)) for pl in self.team[temp]])}",
                     color=discord.Colour.blue()
                 ))
 
@@ -252,7 +252,7 @@ class Scrim:
             sendtxt.add_field(
                 name=f"*Team {t} total score : {teamscore[t]}*",
                 value='\n'.join(
-                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p][1]]} "
+                    [f"{await self.bot.get_discord_username(p)} - {RANK_EMOJI[self.score[p][1]]} "
                      f"({inttomode(self.score[p][2])}) : "
                      f"{self.score[p][0][0]} / {self.score[p][0][1]}% / {self.score[p][0][2]} :x: "
                      f"= {calculatedscores[p]}"
@@ -275,7 +275,7 @@ class Scrim:
         for t in self.team:
             logtxt.append(f'\nTeam {t} = {teamscore[t]}')
             for p in self.team[t]:
-                logtxt.append(f"Player {await self.bot.getusername(p)} = {calculatedscores[p]} "
+                logtxt.append(f"Player {await self.bot.get_discord_username(p)} = {calculatedscores[p]} "
                               f"({' / '.join(str(x) for x in self.score[p][0])} - {self.score[p][1]} - "
                               f"{inttomode(self.score[p][2])})")
         self.log.append('\n'.join(logtxt))
@@ -444,12 +444,12 @@ class Scrim:
                 ))
                 if self.bot.uids.get(player) is None:
                     desc += f"Failed : " \
-                            f"{await self.bot.getusername(player)}'s UID is not found."
+                            f"{await self.bot.get_discord_username(player)}'s UID is not found."
                     continue
                 player_recent_info = await self.bot.getrecent(self.bot.uids[player])
                 if player_recent_info is None:
                     desc += f"Failed : " \
-                            f"{await self.bot.getusername(player)}'s recent play info can't be parsed."
+                            f"{await self.bot.get_discord_username(player)}'s recent play info can't be parsed."
                     continue
                 p = dict()
                 p['artist'], p['title'], p['author'], p['diff'] = player_recent_info[0]
@@ -468,7 +468,7 @@ class Scrim:
                         m = self.form[0].match(p['diff'])
                         if m is None:
                             desc += f"Failed : " \
-                                    f"In {await self.bot.getusername(player)}'s recent play info, " \
+                                    f"In {await self.bot.get_discord_username(player)}'s recent play info, " \
                                     f"its difficulty name does NOT fit to the format.\n" \
                                     f"(Its difficulty : `{p['diff']}`)"
                             continue
@@ -479,7 +479,7 @@ class Scrim:
                                 if mnum != pnum:
                                     flag = True
                                     desc += f"Failed : " \
-                                            f"In {await self.bot.getusername(player)}'s recent play info, " \
+                                            f"In {await self.bot.get_discord_username(player)}'s recent play info, " \
                                             f"its number is wrong.\n(Its number : `{pnum}`)"
                                     break
                                 continue
@@ -497,7 +497,7 @@ class Scrim:
                             if nowk_edited != p[k]:
                                 flag = True
                                 desc += f"Failed : " \
-                                        f"In {await self.bot.getusername(player)}'s recent play info, " \
+                                        f"In {await self.bot.get_discord_username(player)}'s recent play info, " \
                                         f"its {k} is wrong.\n" \
                                         f"(Now {k} : `{nowk_edited}` {'(`'+nowk+'`) ' if nowk!=nowk_edited else ''}/ " \
                                         f"Its {k} : `{p[k]}`)"
@@ -506,7 +506,7 @@ class Scrim:
                 else:
                     if p['hash'] != self.map_hash:
                         desc += f"Failed : " \
-                                f"In {await self.bot.getusername(player)}'s recent play info, " \
+                                f"In {await self.bot.get_discord_username(player)}'s recent play info, " \
                                 f"its hash is wrong.\n" \
                                 f"(Now hash : `{self.map_hash}` / Its hash : `{p['hash']}`)"
                         continue
@@ -514,7 +514,7 @@ class Scrim:
                 if self.map_mode is not None:
                     if pmodeint not in self.availablemode[self.map_mode]:
                         desc += f"Failed : " \
-                                f"In {await self.bot.getusername(player)}'s recent play info, " \
+                                f"In {await self.bot.get_discord_username(player)}'s recent play info, " \
                                 f"its mode is NOT allowed in now map mode. " \
                                 f"(Now mode numbers allowed to use : `{self.availablemode[self.map_mode]}` / " \
                                 f"Its mode number : `{pmodeint}`)"
@@ -522,7 +522,7 @@ class Scrim:
                 p['modes'] = pmodeint
                 self.score[player] = ((getd(p['score']), getd(p['acc']), getd(p['miss'])), p['rank'], p['modes'])
                 desc += f"Success : " \
-                        f"Player {await self.bot.getusername(player)}'s score = " \
+                        f"Player {await self.bot.get_discord_username(player)}'s score = " \
                         f"{self.score[player][0][0]}, {self.score[player][0][1]}%, {self.score[player][0][2]}xMISS / " \
                         f"{inttomode(self.score[player][2])} / {self.score[player][1]} rank"
         await resultmessage.edit(embed=discord.Embed(

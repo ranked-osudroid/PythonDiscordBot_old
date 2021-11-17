@@ -63,7 +63,7 @@ class MyCog(commands.Cog):
         print('=======================================')
         await ctx.send(
             embed=discord.Embed(
-                title="Error occured",
+                title="Error occurred",
                 description=f"{exception}\nCheck the log."
             )
         )
@@ -613,7 +613,7 @@ class MyCog(commands.Cog):
             for t in scrim.team:
                 e.add_field(
                     name="Team " + t,
-                    value='\n'.join([(await self.bot.getusername(x)) for x in scrim.team[t]])
+                    value='\n'.join([(await self.bot.get_discord_username(x)) for x in scrim.team[t]])
                 )
             await ctx.send(embed=e)
 
@@ -624,7 +624,7 @@ class MyCog(commands.Cog):
         if did is None:
             did = ctx.author.id
         e = discord.Embed(
-            title=f"{await self.bot.getusername(did)}'s profile",
+            title=f"{await self.bot.get_discord_username(did)}'s profile",
             color=discord.Colour(0xdb6ee1)
         )
         uid = self.bot.uids.get(did)
@@ -722,6 +722,20 @@ class MyCog(commands.Cog):
                 color=discord.Colour.dark_red()
             ))
             return"""
+        userinfo = await self.bot.get_user_info(ctx.author.id)
+        if isinstance(userinfo, self.bot.req.ERRORS):
+            if (s_ := userinfo.data.get('error')) is not None and \
+                    (s_ == 'This user is not exist.' or s_ == "This user is not registered!"):
+                await ctx.send(embed=discord.Embed(
+                    title=f"You didn't registered!",
+                    color=discord.Colour.dark_red()
+                ))
+            else:
+                await ctx.send(embed=discord.Embed(
+                    title="Error occurred",
+                    description=f"{userinfo}\nCheck the log."
+                ))
+            return
         self.bot.matchmaker.add_player(ctx.author)
         await ctx.send(embed=discord.Embed(
             title=f"{ctx.author.name} queued.",
@@ -739,6 +753,7 @@ class MyCog(commands.Cog):
                         f"Now the number of players in queue (including you) : {len(self.bot.matchmaker.pool)}",
             color=discord.Colour(0x78f7fb)
         ))
+
 
 class MyBot(commands.Bot):
     def __init__(self, ses, *args, **kwargs):
@@ -774,14 +789,14 @@ class MyBot(commands.Bot):
 
         self.loop.set_exception_handler(custon_exception_handler)
 
-    async def getusername(self, x: int) -> str:
+    async def get_discord_username(self, x: int) -> str:
         if self.member_names.get(x) is None:
             user = self.get_user(x)
             if user is None:
                 user = await self.fetch_user(x)
             self.member_names[x] = user.name
         return self.member_names[x]
-
+    """
     async def getrecent(self, _id: int) -> Optional[Tuple[Sequence[AnyStr], Sequence[AnyStr], Sequence[AnyStr], str]]:
         url = url_base + str(_id)
         html = await self.session.get(url)
@@ -806,7 +821,7 @@ class MyBot(commands.Bot):
         rank = bs.select_one("#content > section > section > section > aside.aside-lg.bg-light.lter.b-r > "
                              "section > section > div > div.panel.wrapper > div > div:nth-child(1) > a > span").text
         return int(rank)
-    
+    """
     async def get_recent(self, user_name=None, uuid=None):
         if user_name is None and uuid is not None:
             user_info = await self.req.get_user_byuuid(uuid=uuid)

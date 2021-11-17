@@ -30,6 +30,7 @@ class WaitingPlayer:
             print(get_traceback_str(ex_))
             raise ex_
 
+
 class MatchMaker:
     def __init__(self, bot: 'MyBot'):
         self.bot = bot

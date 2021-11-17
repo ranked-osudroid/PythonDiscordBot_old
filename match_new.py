@@ -1,3 +1,4 @@
+import fixca
 from friend_import import *
 from scrim_new import Scrim
 from timer import Timer
@@ -187,10 +188,10 @@ class Match:
             mid, msid = self.scrim.getmapid()
             self.playID = {self.player.id: await self.bot.req.create_playID(self.uuid[self.player.id], mid, msid),
                            self.opponent.id: await self.bot.req.create_playID(self.uuid[self.opponent.id], mid, msid)}
-            if isinstance(pl := self.playID[self.player.id], Exception):
+            if isinstance(pl := self.playID[self.player.id], self.bot.req.ERRORS):
                 print(pl.data)
                 raise pl
-            if isinstance(op := self.playID[self.opponent.id], Exception):
+            if isinstance(op := self.playID[self.opponent.id], self.bot.req.ERRORS):
                 print(op.data)
                 raise op
             if (mh := pl['mapHash']) == op['mapHash']:
@@ -204,7 +205,7 @@ class Match:
             self.channel = await self.bot.match_category_channel.create_text_channel(f"Match_{self.made_time}")
             self.scrim = Scrim(self.bot, self.channel, self)
             self.player_info = await self.bot.get_user_info(self.player.id)
-            if isinstance(self.player_info, Exception):
+            if isinstance(self.player_info, self.bot.req.ERRORS):
                 await self.channel.send(
                     embed=discord.Embed(
                         title="Error occured",
@@ -214,7 +215,7 @@ class Match:
                 print(self.player_info.data)
                 raise self.player_info
             self.opponent_info = await self.bot.get_user_info(self.opponent.id)
-            if isinstance(self.opponent_info, Exception):
+            if isinstance(self.opponent_info, self.bot.req.ERRORS):
                 await self.channel.send(
                     embed=discord.Embed(
                         title="Error occured",

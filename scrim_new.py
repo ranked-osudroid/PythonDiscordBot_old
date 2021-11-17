@@ -142,7 +142,7 @@ class Scrim:
                 await self.channel.send(embed=discord.Embed(
                     title=f"Player {member.name} participates into Team {name}!",
                     description=f"Now player list of Team {name}:\n"
-                                f"{chr(10).join([(await self.bot.getusername(pl)) for pl in self.team[name]])}",
+                                f"{chr(10).join([(await self.bot.get_discord_username(pl)) for pl in self.team[name]])}",
                     color=discord.Colour.blue()
                 ))
 
@@ -166,7 +166,7 @@ class Scrim:
                 await self.channel.send(embed=discord.Embed(
                     title=f"Player {member.name} is leaving Team {temp}.",
                     description=f"Now player list of Team {temp}:\n"
-                                f"{chr(10).join([(await self.bot.getusername(pl)) for pl in self.team[temp]])}",
+                                f"{chr(10).join([(await self.bot.get_discord_username(pl)) for pl in self.team[temp]])}",
                     color=discord.Colour.blue()
                 ))
 
@@ -272,7 +272,7 @@ class Scrim:
             sendtxt.add_field(
                 name=f"*Team {t} total score : {teamscore[t]}*",
                 value='\n'.join(
-                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p]['rank']]} "
+                    [f"{await self.bot.get_discord_username(p)} - {RANK_EMOJI[self.score[p]['rank']]} "
                      f"({inttomode(self.score[p]['mode'])}) : "
                      f"{self.score[p]['score']} / {self.score[p]['acc']}% / {self.score[p]['miss']} :x: "
                      f"= {calculatedscores[p]}"
@@ -295,7 +295,7 @@ class Scrim:
         for t in self.team:
             logtxt.append(f'\nTeam {t} = {teamscore[t]}')
             for p in self.team[t]:
-                logtxt.append(f"Player {await self.bot.getusername(p)} = {calculatedscores[p]} "
+                logtxt.append(f"Player {await self.bot.get_discord_username(p)} = {calculatedscores[p]} "
                               f"({' / '.join(str(self.score[p][x]) for x in ('score', 'acc', 'miss'))} - "
                               f"{self.score[p]['rank']} - "
                               f"{inttomode(self.score[p]['mode'])})")
@@ -343,7 +343,7 @@ class Scrim:
             sendtxt.add_field(
                 name=f"*Team {t} total score : {teamscore[t]}*",
                 value='\n'.join(
-                    [f"{await self.bot.getusername(p)} - {RANK_EMOJI[self.score[p]['rank']]} "
+                    [f"{await self.bot.get_discord_username(p)} - {RANK_EMOJI[self.score[p]['rank']]} "
                      f"({inttomode(self.score[p]['mode'])}) : "
                      f"{self.score[p]['score']} / {self.score[p]['acc']}% / {self.score[p]['miss']} :x:\n"
                      f"({self.score[p]['300']}, {self.score[p]['100']}, {self.score[p]['50']})"
@@ -484,7 +484,7 @@ class Scrim:
         for team in self.team:
             for player in self.team[team]:
                 desc += '\n'
-                playername = await self.bot.getusername(player)
+                playername = await self.bot.get_discord_username(player)
                 await resultmessage.edit(embed=discord.Embed(
                     title="Processing...",
                     description=desc,
@@ -495,14 +495,14 @@ class Scrim:
                         uuid=self.match.uuid[player])
                 else:
                     uuid_ = await self.bot.get_user_info(player)
-                    if isinstance(uuid_, Exception):
+                    if isinstance(uuid_, self.bot.req.ERRORS):
                         print(uuid_.data)
                         desc += f"Failed : " \
                                 f"Error occurred while getting {playername}'s info ({uuid_})"
                         continue
                     player_recent_info = await self.bot.get_recent(
                         uuid=uuid_)
-                if isinstance(player_recent_info, Exception):
+                if isinstance(player_recent_info, self.bot.req.ERRORS):
                     print(player_recent_info.data)
                     if (s_ := player_recent_info.data.get('error')) is not None and \
                         s_ == 'This user has not played any map yet!':
