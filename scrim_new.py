@@ -361,6 +361,7 @@ class Scrim:
             inline=False
         )
         await resultmessage.edit(embed=sendtxt)
+        self.resetmap()
     
     def resetmap(self):
         self.map_artist = None
@@ -373,7 +374,7 @@ class Scrim:
         self.map_length = None
         self.map_hash = None
         for p in self.score:
-            self.score[p] = None
+            self.score[p] = {'score': d(0), 'acc': d(0), 'miss': d(0), 'rank': None, 'mode': 0}
         self.round_start_time = None
     
     def setartist(self, artist: str):
@@ -645,5 +646,6 @@ class Scrim:
             except GeneratorExit:
                 return
         except BaseException as ex_:
+            print('[@] Scrim.match_start :')
             print(get_traceback_str(ex_))
             raise ex_

@@ -248,6 +248,8 @@ class Match:
                 maidbot_pools
             ))
             selected_pool = random.choice(pool_pools)
+            while selected_pool['uuid'] in {"462ef3b6-b4ed-3331-96fd-b5c61aa9187c",}:
+                selected_pool = random.choice(pool_pools)
             self.mappool_uuid = selected_pool['uuid']
             print('Selected pool :', selected_pool['name'])
             await self.channel.send(embed=discord.Embed(
@@ -265,7 +267,12 @@ class Match:
             ))
 
             for md in selected_pool['maps']:
-                self.map_infos[md['sheetId']] = (await self.bot.osuapi.get_beatmaps(beatmap_id=md['mapId']))[0]
+                tempmap = await self.bot.osuapi.get_beatmaps(beatmap_id=md['mapId'])
+                if len(tempmap) == 0:
+                    print('[@] Match.do_progress (mappool initiating) :', md['mapId'], 'error')
+                    self.aborted = True
+                    return
+                self.map_infos[md['sheetId']] = tempmap[0]
 
             maps = dict([(i, []) for i in modes])
             for k in self.map_infos:
@@ -333,17 +340,20 @@ class Match:
                             f"Chimu\t: https://chimu.moe/en/d/{mid[1]}\n" \
                             f"Beatconnect\t: ~~Not avaliable now~~"
             await self.channel.send(embed=discord.Embed(
-                title=f"Map infos Modified!",
-                description=f"Map Info : `{self.scrim.getmapfull()}`\n"
-                            f"Map Number : {self.scrim.getnumber()} / Map Mode : {self.scrim.getmode()}\n"
-                            f"Map Length : {self.scrim.getmaplength()} sec\n"
-                            f"Allowed modes : "
-                            f"`{', '.join(map(inttomode, self.scrim.availablemode[self.scrim.getmode()]))}`",
-                color=discord.Colour.blue()
+                title=f"Map selected!",
+                description=f"Artist : **{self.scrim.getartist()}**\n"
+                            f"Title : **{self.scrim.gettitle()}**\n"
+                            f"Author : **{self.scrim.getauthor()}**\n"
+                            f"Difficulty : **{self.scrim.getdiff()}**"
             ))
             await self.channel.send(embed=discord.Embed(
-                title=f"Map download links HERE!",
-                description=download_link,
+                title=f"Details here...",
+                description=f"Map Info : `{self.scrim.getmapfull()}`\n"
+                            f"Map Number : `{self.scrim.getnumber()}`\n"
+                            f"Map Length : `{self.scrim.getmaplength()}` sec\n"
+                            f"Allowed modes : "
+                            f"`{', '.join(map(inttomode, self.scrim.availablemode[self.scrim.getmode()]))}`\n\n"
+                            f"*Download links here :*\n{download_link}",
                 color=discord.Colour.blue()
             ))
             await self.channel.send(embed=discord.Embed(
@@ -375,6 +385,7 @@ class Match:
                     # player_updated_elo, opponent_updated_elo = self.elo_manager.get_ratings()
                     break
         except BaseException as ex_:
+            print('[@] Match.match_start :')
             print(get_traceback_str(ex_))
             raise ex_
         else:  # 'finally' here actually
