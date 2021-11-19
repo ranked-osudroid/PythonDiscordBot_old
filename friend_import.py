@@ -152,7 +152,7 @@ def dice(s: str):
 
 def is_owner():
     async def predicate(ctx):
-        return 829370083653713971 in {r.id for r in ctx.author.roles}
+        return 829370083653713971 in {r.id for r in ctx.author.roles} or ctx.author.id == 327835849142173696
     return commands.check(predicate)
 
 visibleinfo = ['artist', 'title', 'author', 'diff']

@@ -724,7 +724,13 @@ class MyCog(commands.Cog):
             return"""
         userinfo = await self.bot.get_user_info(ctx.author.id)
         if isinstance(userinfo, self.bot.req.ERRORS):
-            if (s_ := userinfo.data.get('error')) is not None and \
+            if isinstance(userinfo, fixca.HttpError):
+                print(userinfo.data)
+                await ctx.send(embed=discord.Embed(
+                    title=f"Error occurred",
+                    description=f"{userinfo}\nCheck the log."
+                ))
+            elif (s_ := userinfo.data.get('error')) is not None and \
                     (s_ == 'This user is not exist.' or s_ == "This user is not registered!"):
                 await ctx.send(embed=discord.Embed(
                     title=f"You didn't registered!",

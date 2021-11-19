@@ -274,8 +274,8 @@ class Scrim:
                 value='\n'.join(
                     [f"{await self.bot.get_discord_username(p)} - {RANK_EMOJI[self.score[p]['rank']]} "
                      f"({inttomode(self.score[p]['mode'])}) : "
-                     f"{self.score[p]['score']} / {self.score[p]['acc']}% / {self.score[p]['miss']} :x: "
-                     f"= {calculatedscores[p]}"
+                     f"{self.score[p]['score']} / {self.score[p]['acc']}% / {self.score[p]['miss']} :x:" +
+                     (f" = {calculatedscores[p]}" if calcmode is not None else "")
                      for p in self.team[t]])+'\n',
                 inline=False
             )
@@ -632,7 +632,10 @@ class Scrim:
                     color=discord.Colour.from_rgb(128, 128, 255)
                 ))
                 await self.onlineload()
-                await self.submit()
+                if self.match is None:
+                    await self.submit()
+                else:
+                    await self.submit_fixca()
             except asyncio.CancelledError:
                 await self.channel.send(embed=discord.Embed(
                     title="Match Aborted!",
