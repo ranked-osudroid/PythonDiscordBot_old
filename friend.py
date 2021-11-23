@@ -57,6 +57,12 @@ class MyCog(commands.Cog):
                 color=discord.Colour.dark_gray()
             ))
             return
+        elif isinstance(exception, commands.errors.CommandNotFound):
+            await ctx.send(embed=discord.Embed(
+                title=exception.args[0],
+                color=discord.Colour.dark_gray()
+            ))
+            return
         exceptiontxt = get_traceback_str(exception)
         print('================ ERROR ================')
         print(exceptiontxt)
@@ -64,9 +70,12 @@ class MyCog(commands.Cog):
         await ctx.send(
             embed=discord.Embed(
                 title="Error occurred",
-                description=f"{exception}\nCheck the log."
+                description=f"{type(exception).__name__} : {exception}\nCheck the log."
             )
         )
+        if isinstance(exception, self.bot.req.ERRORS):
+            print('Data :')
+            print(exception.data)
 
     @commands.command(name="help")
     async def _help(self, ctx):
@@ -619,90 +628,108 @@ class MyCog(commands.Cog):
 
     @commands.command(aliases=['pfme'])
     async def profileme(self, ctx, did: Optional[int] = None):
-        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
-        return
         if did is None:
             did = ctx.author.id
-        e = discord.Embed(
-            title=f"{await self.bot.get_discord_username(did)}'s profile",
-            color=discord.Colour(0xdb6ee1)
-        )
-        uid = self.bot.uids.get(did)
-        if uid == 0:
+        userinfo = await self.bot.get_user_info(did)
+        if isinstance(userinfo, Exception):
             await ctx.send(embed=discord.Embed(
-                title=f"You should bind your UID first. Use `m;verify`",
+                title=f"{ctx.author.name}, you didn't registered!",
                 color=discord.Colour.dark_red()
             ))
             return
-        e.add_field(
-            name="UID",
-            value=str(uid)
+        e = discord.Embed(
+            title=f"Profile of {ctx.author.name}",
+            color=discord.Colour(0xdb6ee1)
         )
-        if self.bot.ratings.get(uid) is None:
-            self.bot.ratings[uid] = get_initial_elo(await self.bot.get_rank(uid))
+        e.add_field(
+            name="Username",
+            value=userinfo['name']
+        )
+        e.add_field(
+            name="O!UID (Original Osu!droid UID)",
+            value=userinfo['o_uid']
+        )
+        e.add_field(
+            name="UUID",
+            value=userinfo['uuid'],
+            inline=False
+        )
+        e.add_field(
+            name="Created time stamp",
+            value=datetime.datetime.utcfromtimestamp(userinfo['verified_time']).strftime("%Y-%m-%d %H:%M:%S"),
+            inline=False
+        )
         e.add_field(
             name="Elo",
-            value=str(self.bot.ratings[uid].to_integral(rounding=decimal.ROUND_FLOOR))
+            value=str(self.bot.ratings[userinfo['uuid']].to_integral(rounding=decimal.ROUND_FLOOR))
         )
         e.add_field(
             name="Tier",
-            value=get_elo_rank(self.bot.ratings[uid])
+            value=get_elo_rank(self.bot.ratings[userinfo['uuid']])
         )
         await ctx.send(embed=e)
 
     @commands.command(aliases=['rs'])
     async def recentme(self, ctx, uid: Optional[int] = None):
-        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
-        return
         if uid is None:
-            uid = self.bot.uids.get(ctx.author.id)
-        if uid == 0:
-            await ctx.send(embed=discord.Embed(
-                title=f"You should bind your UID first. Use `m;verify`",
-                color=discord.Colour.dark_red()
-            ))
+            uid = ctx.author.id
+        rp: Optional[dict, ValueError, fixca.HttpError, fixca.FixcaError] = await self.bot.get_recent(id_=uid)
+        if isinstance(rp, self.bot.req.ERRORS):
+            errormsg = rp.data.get('error')
+            if errormsg == 'This user has not played any map yet!':
+                await ctx.send(embed=discord.Embed(
+                    title=f"{ctx.author.name}, you didn't play any map!",
+                    color=discord.Colour.dark_red()
+                ))
+            elif errormsg == 'This user is not exist.' or errormsg == 'This user is not registered!':
+                await ctx.send(embed=discord.Embed(
+                    title=f"{ctx.author.name}, you didn't registered!",
+                    color=discord.Colour.dark_red()
+                ))
+            else:
+                await ctx.send(embed=discord.Embed(
+                    title=f"Error occurred while loading {ctx.author.name}'s recent record.",
+                    description=f"{rp}\nCheck the log."
+                ))
             return
-        recent_play_info = await self.bot.getrecent(uid)
-        rd = dict()
-        rd['artist'], rd['title'], rd['author'], rd['diff'] = recent_play_info[0]
         e = discord.Embed(
             title=f"{ctx.author.name}'(s) recent play info",
             color=discord.Colour(0x78a94c)
         )
+        om: list[osuapi.osu.Beatmap] = await self.bot.osuapi.get_beatmaps(beatmap_hash=rp['mapHash'])
+        if len(om) < 1:
+            e.add_field(
+                name="Map Info",
+                value=f"Not available beatmap\n"
+                      f"(map id = `{rp['mapId']}` / mapset id = `{rp['mapSetId']}` / map hash = `{rp['mapHash']}`)",
+                inline=False
+            )
+        else:
+            om: osuapi.osu.Beatmap = om[0]
+            e.add_field(
+                name="Map Info",
+                value=f"`{makefull(artist=om.artist, title=om.title, author=om.creator, diff=om.version)}`\n"
+                      f"(map hash = `{rp['mapHash']}`)\n\n"
+                      f"Download link :\n"
+                      f"Osu!\t: https://osu.ppy.sh/beatmapsets/{rp['mapSetId']}#osu/{rp['mapId']}\n"
+                      f"Chimu\t: https://chimu.moe/en/d/{rp['mapSetId']}\n"
+                      f"Beatconnect\t: ~~Not avaliable now~~",
+                inline=False
+            )
         e.add_field(
-            name="Map",
-            value=f"`{makefull(**rd)}`",
+            name="Played Time (UTC)",
+            value=datetime.datetime.utcfromtimestamp(rp['submitTime']).strftime("%Y-%m-%d %H:%M:%S"),
             inline=False
         )
         e.add_field(
-            name="Played Time",
-            value=recent_play_info[1][0],
-            inline=False
-        )
-        e.add_field(
-            name="Score / Accuracy / Miss",
-            value=f"{recent_play_info[1][1]} / {recent_play_info[1][3]}% / {recent_play_info[2][0]} :x:",
+            name="Score Info",
+            value=f"{rp['score']} / {rp['acc']} / {rp['miss']} :x:\n"
+                  f"{RANK_EMOJI[rp['rank']]} ({rp['300']} / {rp['100']} / {rp['50']})",
             inline=False
         )
         e.add_field(
             name="Mod",
-            value=inttomode(modetointfunc(recent_play_info[1][2].split(', '))),
-        )
-        e.add_field(
-            name="Combo",
-            value=f"{recent_play_info[1][4]}x"
-        )
-        rk = rankFilenameR.match(recent_play_info[3])
-        if rk is not None:
-            rk = rk.group(1)
-        e.add_field(
-            name="Rank",
-            value=RANK_EMOJI[rk]
-        )
-        e.add_field(
-            name="Hash",
-            value=recent_play_info[2][1],
-            inline=False
+            value=rp['modList'],
         )
         await ctx.send(embed=e)
 
@@ -828,9 +855,14 @@ class MyBot(commands.Bot):
                              "section > section > div > div.panel.wrapper > div > div:nth-child(1) > a > span").text
         return int(rank)
     """
-    async def get_recent(self, user_name=None, uuid=None):
-        if user_name is None and uuid is not None:
-            user_info = await self.req.get_user_byuuid(uuid=uuid)
+    async def get_recent(self, user_name=None, id_=None):
+        if user_name is None and id_ is not None:
+            if isinstance(id_, str):
+                user_info = await self.req.get_user_byuuid(uuid=id_)
+            elif isinstance(id_, int):
+                user_info = await self.req.get_user_bydiscord(d_id=id_)
+            else:
+                return ValueError(f"Wrong type of argument : {id_} ({type(id_).__name__!r})")
             if isinstance(user_info, Exception):
                 return user_info
             user_name = user_info['name']
@@ -848,7 +880,7 @@ class MyBot(commands.Bot):
                 self.uuid[res['discordId']] = res['uuid']
             return res
         else:
-            return
+            return ValueError(f"Wrong type of argument : {id_} ({type(id_).__name__!r})")
 
 
 async def _main():

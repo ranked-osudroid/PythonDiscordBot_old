@@ -493,7 +493,7 @@ class Scrim:
                 ))
                 if self.match:
                     player_recent_info = await self.bot.get_recent(
-                        uuid=self.match.uuid[player])
+                        id_=self.match.uuid[player])
                 else:
                     uuid_ = await self.bot.get_user_info(player)
                     if isinstance(uuid_, self.bot.req.ERRORS):
@@ -502,7 +502,7 @@ class Scrim:
                                 f"Error occurred while getting {playername}'s info ({uuid_})"
                         continue
                     player_recent_info = await self.bot.get_recent(
-                        uuid=uuid_)
+                        id_=uuid_)
                 if isinstance(player_recent_info, self.bot.req.ERRORS):
                     print(player_recent_info.data)
                     if (s_ := player_recent_info.data.get('error')) is not None and \
