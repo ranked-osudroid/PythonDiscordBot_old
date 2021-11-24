@@ -9,7 +9,8 @@ class HttpError(Exception):
         self.data = data
 
     def __str__(self):
-        return f"Getting datas from {self.method} {self.url} failed."
+        return f"Failed getting datas from {self.method} {self.url} " \
+               f"(HttpError : {self.data.status})"
 
 
 class FixcaError(Exception):
@@ -20,7 +21,29 @@ class FixcaError(Exception):
         self.data = data
 
     def __str__(self):
-        return f"Got datas from {self.method} {self.url} with status 'failed'."
+        return f"Failed gettng datas from {self.method} {self.url} " \
+               f"(FixcaError : {FixcaErrorCode.desc[self.data['code']]})"
+
+
+class FixcaErrorCode:
+    INVALID_KEY = 0
+    INVALID_QUERY = 1
+    INVALID_SECURE = 2
+    DATABASE_ERROR = 3
+    INTERNAL_SERVER_ERROR = 4
+    USER_NOT_EXIST = 5
+    EXPIRED_PLAYID = 6
+    PLAYID_NOT_FOUND = 7
+    ALREADY_REGISTERED = 8
+    PLAYER_NO_RECORDS = 9
+    MAP_NOT_EXIST = 10
+    TOKEN_NOT_EXIST = 11
+    TOKEN_LOCKED = 12
+    TOKEN_EXPIRED = 13
+    ILLEGAL_LOGIN = 14
+    desc = ['INVALID_KEY', 'INVALID_QUERY', 'INVALID_SECURE', 'DATABASE_ERROR', 'INTERNAL_SERVER_ERROR',
+            'USER_NOT_EXIST', 'EXPIRED_PLAYID', 'PLAYID_NOT_FOUND', 'ALREADY_REGISTERED', 'PLAYER_NO_RECORDS',
+            'MAP_NOT_EXIST', 'TOKEN_NOT_EXIST', 'TOKEN_LOCKED', 'TOKEN_EXPIRED', 'ILLEGAL_LOGIN']
 
 
 class RequestManager:
@@ -40,9 +63,9 @@ class RequestManager:
         async with self.session.post(self.BASEURL+url, data=data|kwargs) as res:
             if res.status != 200:
                 return HttpError('POST', url, res)
-            if (resdata := await res.json(encoding='utf-8'))['status'] == 'failed':
+            if not (resdata := await res.json(encoding='utf-8'))['status']:
                 return FixcaError('POST', url, resdata)
-            return resdata
+            return resdata['output']
 
     async def _get(self, url, data=None, **kwargs):
         if data is None:
@@ -50,9 +73,9 @@ class RequestManager:
         async with self.session.get(self.BASEURL+url, data=data|kwargs) as res:
             if res.status != 200:
                 return HttpError('GET', url, res)
-            if (resdata := await res.json(encoding='utf-8'))['status'] == 'failed':
+            if not (resdata := await res.json(encoding='utf-8'))['status']:
                 return FixcaError('GET', url, resdata)
-            return resdata
+            return resdata['output']
     
     async def recent_record(self, name):
         return await self._post('recentRecord', 
@@ -67,6 +90,6 @@ class RequestManager:
                                 key=self.key, uuid=uuid)
 
     async def get_user_bydiscord(self, d_id):
-        return await self._post('userInfoDiscord',
+        return await self._post('userInfo',
                                 key=self.key, discordid=d_id)
 
