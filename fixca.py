@@ -82,7 +82,7 @@ class RequestManager:
                                 key=self.key, name=name)
     
     async def create_playID(self, uuid, mapid, mapsetid):
-        return await self._post('createPlayID', 
+        return await self._post('createPlayId',
                                 key=self.key, uuid=uuid, mapid=mapid, mapsetid=mapsetid)
 
     async def get_user_byuuid(self, uuid):

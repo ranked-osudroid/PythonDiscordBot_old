@@ -675,22 +675,10 @@ class MyCog(commands.Cog):
             uid = ctx.author.id
         rp: Optional[dict, ValueError, fixca.HttpError, fixca.FixcaError] = await self.bot.get_recent(id_=uid)
         if isinstance(rp, self.bot.req.ERRORS):
-            errormsg = rp.data.get('error')
-            if errormsg == 'This user has not played any map yet!':
-                await ctx.send(embed=discord.Embed(
-                    title=f"{ctx.author.name}, you didn't play any map!",
-                    color=discord.Colour.dark_red()
-                ))
-            elif errormsg == 'This user is not exist.' or errormsg == 'This user is not registered!':
-                await ctx.send(embed=discord.Embed(
-                    title=f"{ctx.author.name}, you didn't registered!",
-                    color=discord.Colour.dark_red()
-                ))
-            else:
-                await ctx.send(embed=discord.Embed(
-                    title=f"Error occurred while loading {ctx.author.name}'s recent record.",
-                    description=f"{rp}\nCheck the log."
-                ))
+            await ctx.send(embed=discord.Embed(
+                title=f"Error occurred while loading {ctx.author.name}'s recent record.",
+                description=f"{rp}\nCheck the log."
+            ))
             return
         e = discord.Embed(
             title=f"{ctx.author.name}'(s) recent play info",
