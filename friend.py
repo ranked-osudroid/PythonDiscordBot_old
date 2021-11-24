@@ -848,7 +848,7 @@ class MyBot(commands.Bot):
             if isinstance(id_, str):
                 user_info = await self.req.get_user_byuuid(uuid=id_)
             elif isinstance(id_, int):
-                user_info = await self.req.get_user_bydiscord(d_id=id_)
+                user_info = await self.req.get_user_bydiscord(d_id=str(id_))
             else:
                 return ValueError(f"Wrong type of argument : {id_} ({type(id_).__name__!r})")
             if isinstance(user_info, Exception):
@@ -863,7 +863,7 @@ class MyBot(commands.Bot):
                 self.uuid[res['discordId']] = res['uuid']
             return res
         elif isinstance(id_, int):
-            res = await self.req.get_user_bydiscord(id_)
+            res = await self.req.get_user_bydiscord(str(id_))
             if not isinstance(res, Exception):
                 self.uuid[res['discordId']] = res['uuid']
             return res
