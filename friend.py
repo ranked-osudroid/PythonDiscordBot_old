@@ -23,7 +23,7 @@ class MyCog(commands.Cog):
         game = discord.Game("m;help")
         await self.bot.change_presence(status=discord.Status.online, activity=game)
         print("==========BOT START==========")
-        self.bot.match_category_channel = await self.bot.fetch_channel(824985957165957151)
+        self.bot.match_place = await self.bot.fetch_channel(824985957165957151)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -797,7 +797,7 @@ class MyBot(commands.Bot):
         self.timer_count = 0
 
         self.matches: Dict[discord.Member, 'Match'] = dict()
-        self.match_category_channel: Optional[discord.CategoryChannel] = None
+        self.match_place: Optional[discord.CategoryChannel] = None
         self.matchmaker = MatchMaker(self)
 
         self.shutdown_datetime = get_shutdown_datetime()

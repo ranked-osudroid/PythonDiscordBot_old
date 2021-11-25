@@ -202,7 +202,7 @@ class Match:
         if self.match_end or self.aborted:
             return
         elif self.round == -1:
-            self.channel = await self.bot.match_category_channel.create_text_channel(f"Match_{self.made_time}")
+            self.channel = await self.bot.match_place.create_text_channel(f"Match_{self.made_time}")
             self.scrim = Scrim(self.bot, self.channel, self)
             self.player_info = await self.bot.get_user_info(self.player.id)
             if isinstance(self.player_info, self.bot.req.ERRORS):
