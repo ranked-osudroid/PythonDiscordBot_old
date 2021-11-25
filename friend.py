@@ -21,11 +21,21 @@ class MyCog(commands.Cog):
         print(f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}]")
         print("BOT NAME :", self.bot.user.name)
         print("BOT ID   :", self.bot.user.id)
-        game = discord.Game("m;help")
-        await self.bot.change_presence(status=discord.Status.online, activity=game)
+        await self.bot.change_presence(status=discord.Status.online)
         print("==========BOT START==========")
         self.bot.match_place = self.bot.get_guild(823413857036402739)
         self.bot.RANKED_OSUDROID_GUILD = self.bot.get_guild(RANKED_OSUDROID_GUILD_ID)
+
+        async def work():
+            try:
+                while True:
+                    await self.bot.change_presence(
+                        activity=discord.Game(f"{len(self.bot.matchmaker.players_in_pool)} queued")
+                    )
+                    await asyncio.sleep(5)
+            except asyncio.CancelledError:
+                raise
+        self.bot.activity_display_task = self.bot.loop.create_task(work())
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -740,7 +750,12 @@ class MyCog(commands.Cog):
                 color=discord.Colour.dark_red()
             ))
             return"""
-        userinfo = await self.bot.get_user_info(ctx.author.id)
+        if 823415179177885706 not in {r.id for r in ctx.author.roles}:
+            await ctx.send(embed=discord.Embed(
+                title=f"You didn't registered!",
+                color=discord.Colour.dark_red()
+            ))
+        """userinfo = await self.bot.get_user_info(ctx.author.id)
         if isinstance(userinfo, self.bot.req.ERRORS):
             if isinstance(userinfo, fixca.HttpError):
                 print(userinfo.data)
@@ -748,8 +763,7 @@ class MyCog(commands.Cog):
                     title=f"Error occurred",
                     description=f"{userinfo}\nCheck the log."
                 ))
-            elif (s_ := userinfo.data.get('error')) is not None and \
-                    (s_ == 'This user is not exist.' or s_ == "This user is not registered!"):
+            elif userinfo.data['error'] == fixca.FixcaErrorCode.USER_NOT_EXIST:
                 await ctx.send(embed=discord.Embed(
                     title=f"You didn't registered!",
                     color=discord.Colour.dark_red()
@@ -759,7 +773,7 @@ class MyCog(commands.Cog):
                     title="Error occurred",
                     description=f"{userinfo}\nCheck the log."
                 ))
-            return
+            return"""
         self.bot.matchmaker.add_player(ctx.author)
         await ctx.send(embed=discord.Embed(
             title=f"{ctx.author.name} queued.",
@@ -814,6 +828,8 @@ class MyBot(commands.Bot):
                 print('='*20)
 
         self.loop.set_exception_handler(custon_exception_handler)
+
+        self.activity_display_task: Optional[asyncio.Task] = None
 
     async def get_discord_username(self, x: int) -> str:
         if self.member_names.get(x) is None:

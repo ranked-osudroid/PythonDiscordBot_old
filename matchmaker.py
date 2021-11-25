@@ -65,10 +65,9 @@ class MatchMaker:
                         self.players_in_pool.remove(opponent.player.id)
                         p.task.cancel()
                         opponent.task.cancel()
-                        i += 1
                     else:
                         self.pool.append(p)
-                    i += 1
+                        i += 1
                 while len(self.querys) > 0:
                     method, player = self.querys.popleft()
                     if method == 1:
