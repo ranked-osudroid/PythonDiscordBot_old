@@ -722,6 +722,7 @@ class MyCog(commands.Cog):
         await ctx.send(embed=e)
 
     @commands.command(aliases=['q'])
+    @is_queue_channel()
     async def queue(self, ctx):
         if self.bot.matches.get(ctx.author):
             await ctx.send(embed=discord.Embed(
@@ -766,6 +767,7 @@ class MyCog(commands.Cog):
         ))
 
     @commands.command(aliases=['uq'])
+    @is_queue_channel()
     async def unqueue(self, ctx):
         self.bot.matchmaker.remove_player(ctx.author)
         await ctx.send(embed=discord.Embed(
@@ -789,7 +791,7 @@ class MyBot(commands.Bot):
         self.osuapi = osuapi.OsuApi(api_key, connector=osuapi.AHConnector())
 
         self.uuid: dd[int, str] = dd(str)
-        self.ratings: dd[str, d] = dd(lambda: d(1500))
+        self.ratings: dd[str, d] = dd(lambda: d(2000))
 
         self.timers: dd[str, Optional['Timer']] = dd(lambda: None)
         self.timer_count = 0

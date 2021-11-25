@@ -155,6 +155,11 @@ def is_owner():
         return 829370083653713971 in {r.id for r in ctx.author.roles} or ctx.author.id == 327835849142173696
     return commands.check(predicate)
 
+def is_queue_channel():
+    async def predicate(ctx):
+        return ctx.channel.id in {823459553529692200, 829369406487265302, 824986021539741747}
+    return commands.check(predicate)
+
 visibleinfo = ['artist', 'title', 'author', 'diff']
 modes = ['NM', 'HD', 'HR', 'DT', 'FM', 'TB']
 moder = re.compile(r"(NM|HD|HR|DT|FM|TB)")
