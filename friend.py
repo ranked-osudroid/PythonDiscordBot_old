@@ -24,8 +24,8 @@ class MyCog(commands.Cog):
         game = discord.Game("m;help")
         await self.bot.change_presence(status=discord.Status.online, activity=game)
         print("==========BOT START==========")
-        self.bot.match_place = await self.bot.get_guild(823413857036402739)
-        self.bot.RANKED_OSUDROID_GUILD = await self.bot.get_guild(RANKED_OSUDROID_GUILD_ID)
+        self.bot.match_place = self.bot.get_guild(823413857036402739)
+        self.bot.RANKED_OSUDROID_GUILD = self.bot.get_guild(RANKED_OSUDROID_GUILD_ID)
 
     @commands.Cog.listener()
     async def on_message(self, message):
