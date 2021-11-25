@@ -11,6 +11,7 @@ Match = match_new.Match
 MatchMaker = matchmaker.MatchMaker
 RequestManager = fixca.RequestManager
 
+
 class MyCog(commands.Cog):
     def __init__(self, bot: 'MyBot'):
         self.bot = bot
@@ -23,7 +24,8 @@ class MyCog(commands.Cog):
         game = discord.Game("m;help")
         await self.bot.change_presence(status=discord.Status.online, activity=game)
         print("==========BOT START==========")
-        self.bot.match_place = await self.bot.fetch_channel(824985957165957151)
+        self.bot.match_place = await self.bot.get_guild(823413857036402739)
+        self.bot.RANKED_OSUDROID_GUILD = await self.bot.get_guild(RANKED_OSUDROID_GUILD_ID)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -797,13 +799,14 @@ class MyBot(commands.Bot):
         self.timer_count = 0
 
         self.matches: Dict[discord.Member, 'Match'] = dict()
-        self.match_place: Optional[discord.CategoryChannel] = None
+        self.match_place: Optional[discord.CategoryChannel, discord.Guild] = None
+        self.RANKED_OSUDROID_GUILD: Optional[discord.Guild] = None
         self.matchmaker = MatchMaker(self)
 
         self.shutdown_datetime = get_shutdown_datetime()
 
-        def custon_exception_handler(loop, context):
-            loop.default_exception_handler(context)
+        def custon_exception_handler(loop_, context):
+            loop_.default_exception_handler(context)
             exception = context.get('exception')
             if isinstance(exception, Exception):
                 print('Error occurred in the bot loop : ')
@@ -874,7 +877,8 @@ class MyBot(commands.Bot):
 
 
 async def _main():
-    app = MyBot(ses=aiohttp.ClientSession(), command_prefix='m;', help_command=None, intents=intents)
+    PREFIX = '/'
+    app = MyBot(ses=aiohttp.ClientSession(), command_prefix=PREFIX, help_command=None, intents=intents)
     app.add_cog(MyCog(app))
 
     bot_task = asyncio.create_task(app.start(token))

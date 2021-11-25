@@ -160,6 +160,8 @@ def is_queue_channel():
         return ctx.channel.id in {823459553529692200, 829369406487265302, 824986021539741747}
     return commands.check(predicate)
 
+RANKED_OSUDROID_GUILD_ID = 823413857036402739
+
 visibleinfo = ['artist', 'title', 'author', 'diff']
 modes = ['NM', 'HD', 'HR', 'DT', 'FM', 'TB']
 moder = re.compile(r"(NM|HD|HR|DT|FM|TB)")

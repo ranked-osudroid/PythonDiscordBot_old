@@ -62,6 +62,7 @@ class Match:
         self.map_tb: Optional[str] = None
 
         self.scrim: Optional[Scrim] = None
+        self.role: Optional[discord.Role] = None
         self.timer: Optional[Timer] = None
 
         self.round = -1
@@ -202,7 +203,17 @@ class Match:
         if self.match_end or self.aborted:
             return
         elif self.round == -1:
-            self.channel = await self.bot.match_place.create_text_channel(f"Match_{self.made_time}")
+            chname = f"m{self.made_time}"
+            guild = self.bot.RANKED_OSUDROID_GUILD
+            self.role = await guild.create_role(name=chname, color=discord.Colour.random())
+            await self.player.add_roles(self.role)
+            await self.opponent.add_roles(self.role)
+            overwrites = {
+                guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                guild.get_role(823415474183471134): discord.PermissionOverwrite(read_messages=True),  # Moderator
+                self.role: discord.PermissionOverwrite(read_messages=True)
+            }
+            self.channel = await self.bot.match_place.create_text_channel(chname, overwrites=overwrites)
             self.scrim = Scrim(self.bot, self.channel, self)
             self.player_info = await self.bot.get_user_info(self.player.id)
             if isinstance(self.player_info, self.bot.req.ERRORS):
