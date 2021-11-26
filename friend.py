@@ -763,7 +763,7 @@ class MyCog(commands.Cog):
                     title=f"Error occurred",
                     description=f"{userinfo}\nCheck the log."
                 ))
-            elif userinfo.data['error'] == fixca.FixcaErrorCode.USER_NOT_EXIST:
+            elif userinfo.data['code'] == fixca.FixcaErrorCode.USER_NOT_EXIST:
                 await ctx.send(embed=discord.Embed(
                     title=f"You didn't registered!",
                     color=discord.Colour.dark_red()
@@ -816,6 +816,8 @@ class MyBot(commands.Bot):
         self.match_place: Optional[discord.CategoryChannel, discord.Guild] = None
         self.RANKED_OSUDROID_GUILD: Optional[discord.Guild] = None
         self.matchmaker = MatchMaker(self)
+
+        self.finished_matches: List['Match'] = []
 
         self.shutdown_datetime = get_shutdown_datetime()
 

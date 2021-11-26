@@ -1,3 +1,4 @@
+import fixca
 from friend_import import *
 from timer import Timer
 
@@ -502,14 +503,14 @@ class Scrim:
                                 f"Error occurred while getting {playername}'s info ({uuid_})"
                         continue
                     player_recent_info = await self.bot.get_recent(
-                        id_=uuid_)
+                        id_=uuid_['uuid'])
                 if isinstance(player_recent_info, self.bot.req.ERRORS):
                     print(player_recent_info.data)
-                    if (s_ := player_recent_info.data.get('error')) is not None and \
-                        s_ == 'This user has not played any map yet!':
+                    if player_recent_info.data['code'] == fixca.FixcaErrorCode.PLAYER_NO_RECORDS:
                         desc += f"Failed : " \
                                 f"{playername} didn't played the map"
-                    desc += f"Failed : " \
+                    else:
+                        desc += f"Failed : " \
                             f"Error occurred while getting {playername}'s recent record ({player_recent_info})"
                     continue
                 if player_recent_info is None:
@@ -521,7 +522,7 @@ class Scrim:
                             f"In {playername}'s recently played info, its hash is different." \
                             f"\n(Hash of the map : `{self.getmaphash()}` / Your hash : `{player_recent_info['mapHash']}`)"
                     continue
-                modeint = modetointfunc(player_recent_info.split(','))
+                modeint = modetointfunc(player_recent_info['modList'].split(','))
                 if self.map_mode is not None and \
                     modeint not in self.availablemode[self.map_mode]:
                     desc += f"Failed : " \

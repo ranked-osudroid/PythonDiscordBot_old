@@ -399,8 +399,10 @@ class Match:
             print('[@] Match.match_start :')
             print(get_traceback_str(ex_))
             raise ex_
-        else:  # 'finally' here actually
+        finally:  # 'finally' here actually
+            self.bot.finished_matches.append(self)
             del self.bot.matches[self.player], self.bot.matches[self.opponent]
+            await self.role.delete()
 
     async def do_match_start(self):
         if self.match_task is None or self.match_task.done():
