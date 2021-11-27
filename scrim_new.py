@@ -533,6 +533,8 @@ class Scrim:
                     continue
                 self.score[player] = player_recent_info
                 self.score[player]['score'] = d(self.score[player]['score'])
+                if self.map_mode == 'FM' and (modeint == 0 or modeint == 128):
+                    self.score[player]['score'] *= d('.8')
                 self.score[player]['acc'] = d(self.score[player]['acc'][:-1])
                 self.score[player]['miss'] = d(self.score[player]['miss'])
                 self.score[player]['mode'] = modeint
