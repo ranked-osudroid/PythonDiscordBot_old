@@ -70,10 +70,10 @@ class MyCog(commands.Cog):
             ))
             return
         elif isinstance(exception, commands.errors.CommandNotFound):
-            await ctx.send(embed=discord.Embed(
+            """await ctx.send(embed=discord.Embed(
                 title=exception.args[0],
                 color=discord.Colour.dark_gray()
-            ))
+            ))"""
             return
         exceptiontxt = get_traceback_str(exception)
         print('================ ERROR ================')

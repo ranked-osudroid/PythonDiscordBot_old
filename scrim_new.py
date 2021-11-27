@@ -347,7 +347,7 @@ class Scrim:
                     [f"{await self.bot.get_discord_username(p)} - {RANK_EMOJI[self.score[p]['rank']]} "
                      f"({inttomode(self.score[p]['mode'])}) : "
                      f"{self.score[p]['score']} / {self.score[p]['acc']}% / {self.score[p]['miss']} :x:\n"
-                     f"({self.score[p]['300']}, {self.score[p]['100']}, {self.score[p]['50']})"
+                     f"({self.score[p].get('300')}, {self.score[p].get('100')}, {self.score[p].get('50')})"
                      for p in self.team[t]])+'\n',
                 inline=False
             )

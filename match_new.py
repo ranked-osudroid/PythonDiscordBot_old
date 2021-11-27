@@ -132,12 +132,12 @@ class Match:
                 await self.scrim.addplayer("RED", self.player, False)
                 await self.scrim.addplayer("BLUE", self.opponent, False)
                 self.scrim.setmoderule(
-                    {0, 128, },                         # PR
-                    {16, 144, },                         # PRHD
-                    {8, 136, },                         # PRHR
-                    {32, 160, },                         # PRDT
-                    {1, 8, 16, 17, 24, 129, 136, 144, 145, 152},       # PREZ, PRHR, PRHD, PREZHD, PRHRHD
-                    {0, 1, 8, 16, 17, 24, 128, 129, 136, 144, 145, 152}   # PR, PREZ, PRHR, PRHD, PREZHD, PRHRHD
+                    {0, 128, },  # NM
+                    {16, 144, },  # HD
+                    {8, 136, },  # HR
+                    {32, 160, },  # DT
+                    {0, 1, 8, 16, 17, 24, 128, 129, 136, 144, 145, 152},  # FM
+                    {0, 1, 8, 16, 17, 24, 128, 129, 136, 144, 145, 152}  # TB
                 )
             else:
                 await self.channel.send(embed=discord.Embed(
@@ -352,13 +352,6 @@ class Match:
                             f"Beatconnect\t: ~~Not avaliable now~~"
             await self.channel.send(embed=discord.Embed(
                 title=f"Map selected!",
-                description=f"Artist : **{self.scrim.getartist()}**\n"
-                            f"Title : **{self.scrim.gettitle()}**\n"
-                            f"Author : **{self.scrim.getauthor()}**\n"
-                            f"Difficulty : **{self.scrim.getdiff()}**"
-            ))
-            await self.channel.send(embed=discord.Embed(
-                title=f"Details here...",
                 description=f"Map Info : `{self.scrim.getmapfull()}`\n"
                             f"Map Number : `{self.scrim.getnumber()}`\n"
                             f"Map Length : `{self.scrim.getmaplength()}` sec\n"
@@ -366,6 +359,14 @@ class Match:
                             f"`{', '.join(map(inttomode, self.scrim.availablemode[self.scrim.getmode()]))}`\n\n"
                             f"*Download links here :*\n{download_link}",
                 color=discord.Colour.blue()
+            ))
+            await self.channel.send(embed=discord.Embed(
+                title=f"Only map infos here :",
+                description=f"Artist : **{self.scrim.getartist()}**\n"
+                            f"Title : **{self.scrim.gettitle()}**\n"
+                            f"Author : **{self.scrim.getauthor()}**\n"
+                            f"Difficulty : **{self.scrim.getdiff()}**",
+                color=discord.Colour.green()
             ))
             await self.channel.send(embed=discord.Embed(
                 title=f"Round #{self.round} ready!",
