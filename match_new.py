@@ -174,6 +174,8 @@ class Match:
                         color=discord.Colour.purple()
                     )), asyncio.sleep(1))
             else:
+                self.player_ready = True
+                self.opponent_ready = True
                 message = await self.channel.send(embed=discord.Embed(
                     title="READY TIME OVER!",
                     description=f"Force Round #{self.round} to start in 10...",

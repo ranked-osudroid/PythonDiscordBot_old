@@ -88,4 +88,4 @@ class Timer:
             await self.callback(cancelled)
 
     def left_sec(self) -> float:
-        return self.seconds - ((datetime.datetime.utcnow() - self.start_time).total_seconds())
+        return round(self.seconds - ((datetime.datetime.utcnow() - self.start_time).total_seconds()), 6)

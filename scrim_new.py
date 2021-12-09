@@ -579,6 +579,7 @@ class Scrim:
                   'You can download this file and see the match logs.',
             inline=False
         )
+        await self.channel.send(embed=sendtxt)
         return winnerteam
         
     async def do_match_start(self):
