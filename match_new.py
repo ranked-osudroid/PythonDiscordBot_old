@@ -309,7 +309,7 @@ class Match:
                 color=discord.Colour.blue()
             ))
             self.timer = Timer(self.bot, self.channel, f"Match_{self.made_time}_finalready", 30, self.go_next_status)
-        elif self.round == len(self.map_order) or self.round > self.BO or \
+        elif (self.map_tb is None and self.round > len(self.map_order)) or self.round > self.BO or \
                 self.winfor in set(self.scrim.setscore.values()):
             await self.scrim.end()
             score_diff = \
