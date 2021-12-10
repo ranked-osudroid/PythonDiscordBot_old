@@ -23,7 +23,7 @@ class MyCog(commands.Cog):
         print("BOT ID   :", self.bot.user.id)
         await self.bot.change_presence(status=discord.Status.online)
         print("==========BOT START==========")
-        self.bot.match_place = self.bot.get_guild(823413857036402739)
+        self.bot.match_place = await self.bot.fetch_channel(823413857036402741)
         self.bot.RANKED_OSUDROID_GUILD = self.bot.get_guild(RANKED_OSUDROID_GUILD_ID)
 
         async def work():

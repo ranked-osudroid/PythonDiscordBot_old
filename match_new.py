@@ -174,8 +174,6 @@ class Match:
                         color=discord.Colour.purple()
                     )), asyncio.sleep(1))
             else:
-                self.player_ready = True
-                self.opponent_ready = True
                 message = await self.channel.send(embed=discord.Embed(
                     title="READY TIME OVER!",
                     description=f"Force Round #{self.round} to start in 10...",
@@ -202,6 +200,7 @@ class Match:
         self.round += 1
     
     async def do_progress(self):
+        self.reset_ready()
         if self.match_end or self.aborted:
             return
         elif self.round == -1:
@@ -212,8 +211,11 @@ class Match:
             await self.opponent.add_roles(self.role)
             overwrites = {
                 guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                guild.get_role(823415474183471134): discord.PermissionOverwrite(read_messages=True),  # Moderator
-                self.role: discord.PermissionOverwrite(read_messages=True)
+                guild.get_role(823415179177885706):
+                    discord.PermissionOverwrite(read_messages=True, send_messages=False),  # verified
+                guild.get_role(823415474183471134):
+                    discord.PermissionOverwrite(read_messages=True, send_messages=True),  # Moderator
+                self.role: discord.PermissionOverwrite(read_messages=True, send_messages=True)
             }
             self.channel = await self.bot.match_place.create_text_channel(chname, overwrites=overwrites)
             self.scrim = Scrim(self.bot, self.channel, self)
@@ -261,7 +263,7 @@ class Match:
                 maidbot_pools
             ))
             selected_pool = random.choice(pool_pools)
-            while selected_pool['uuid'] in {"462ef3b6-b4ed-3331-96fd-b5c61aa9187c",}:
+            while selected_pool['uuid'] in unplayable_pools_uuid:
                 selected_pool = random.choice(pool_pools)
             self.mappool_uuid = selected_pool['uuid']
             print('Selected pool :', selected_pool['name'])
@@ -283,6 +285,12 @@ class Match:
                 tempmap = await self.bot.osuapi.get_beatmaps(beatmap_id=md['mapId'])
                 if len(tempmap) == 0:
                     print('[@] Match.do_progress (mappool initiating) :', md['mapId'], 'error')
+                    await calcmsg.edit(content=f"{self.player.mention} {self.opponent.mention}", embed=discord.Embed(
+                        title="There's unplayable map in the mappool!",
+                        description=f"Map id = {md['mapid']}\n"
+                                    f"Call the moderator.\n"
+                                    f"**This match will be aborted.**"
+                    ))
                     self.aborted = True
                     return
                 self.map_infos[md['sheetId']] = tempmap[0]
@@ -351,7 +359,7 @@ class Match:
             mid = self.scrim.getmapid()
             download_link = f"Osu!\t: https://osu.ppy.sh/beatmapsets/{mid[1]}#osu/{mid[0]}\n" \
                             f"Chimu\t: https://chimu.moe/en/d/{mid[1]}\n" \
-                            f"Beatconnect\t: ~~Not avaliable now~~"
+                            f"Beatconnect\t: https://beatconnect.io/b/{mid[1]}"
             await self.channel.send(embed=discord.Embed(
                 title=f"Map selected!",
                 description=f"Map Info : `{self.scrim.getmapfull()}`\n"
@@ -389,7 +397,6 @@ class Match:
                         break
                     if self.is_all_ready():
                         await self.timer.cancel()
-                        self.reset_ready()
                         # if self.scrim is not None and not self.scrim.match_task.done():
                         if self.round > 1:
                             await self.scrim.match_task
@@ -401,11 +408,26 @@ class Match:
         except BaseException as ex_:
             print('[@] Match.match_start :')
             print(get_traceback_str(ex_))
+            await self.channel.send(embed=discord.Embed(
+                title="Error Ocurred",
+                description=f"{ex_}\nCheck the log.\n**This match will be aborted.**",
+            ))
             raise ex_
-        finally:  # 'finally' here actually
+        finally:
             self.bot.finished_matches.append(self)
             del self.bot.matches[self.player], self.bot.matches[self.opponent]
-            await self.role.delete()
+
+            async def do_stuff(*args):
+                await self.channel.delete()
+                await self.role.delete()
+                self.bot.finished_matches.remove(self)
+            self.timer = Timer(
+                self.bot,
+                self.channel,
+                f"M_{self.made_time}_delete",
+                10 if self.aborted else 600,
+                do_stuff
+            )
 
     async def do_match_start(self):
         if self.match_task is None or self.match_task.done():

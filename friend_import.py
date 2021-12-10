@@ -152,7 +152,7 @@ def dice(s: str):
 
 def is_owner():
     async def predicate(ctx):
-        return 829370083653713971 in {r.id for r in ctx.author.roles} or ctx.author.id == 327835849142173696
+        return 823414751689441331 in {r.id for r in ctx.author.roles} or ctx.author.id == 327835849142173696
     return commands.check(predicate)
 
 def is_queue_channel():
@@ -298,3 +298,8 @@ def elo_convert(x):
 def elo_convert_rev(x):
     return (x - 1200) / d('2.1') + 1000
 
+unplayable_pools_uuid = {
+    "462ef3b6-b4ed-3331-96fd-b5c61aa9187c",
+    "7cdd9393-1bfa-3f40-a430-563abd9009a4",
+    "578c649c-fd05-3945-9af8-29d282fa2fc0"
+}
