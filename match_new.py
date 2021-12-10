@@ -253,11 +253,11 @@ class Match:
             self.timer = Timer(self.bot, self.channel, f"Match_{self.made_time}_invite", 120, self.go_next_status)
         elif self.round == 0:
             rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
-            print('Before select_pool_mmr_range :', rate_lower, rate_highter)
+            # print('Before select_pool_mmr_range :', rate_lower, rate_highter)
             # 1000 ~ 2000 => 1200 ~ 3300
             rate_lower = elo_convert(rate_lower)
             rate_highter = elo_convert(rate_highter)
-            print('After  select_pool_mmr_range :', rate_lower, rate_highter)
+            # print('After  select_pool_mmr_range :', rate_lower, rate_highter)
             pool_pools = list(filter(
                 lambda po: rate_lower - 50 <= po['averageMMR'] <= rate_highter + 50,
                 maidbot_pools
@@ -266,7 +266,7 @@ class Match:
             while selected_pool['uuid'] in unplayable_pools_uuid:
                 selected_pool = random.choice(pool_pools)
             self.mappool_uuid = selected_pool['uuid']
-            print('Selected pool :', selected_pool['name'])
+            # print('Selected pool :', selected_pool['name'])
             await self.channel.send(embed=discord.Embed(
                 title="Mappool is selected!",
                 description=f"Mappool Name : `{selected_pool['name']}`\n"

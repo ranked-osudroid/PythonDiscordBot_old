@@ -65,7 +65,7 @@ class Timer:
         await self.call_back(False)
 
     async def cancel(self):
-        if self.task.done() or self.task.cancelled():
+        if self.task.done() or self.task.cancelled() or self.done:
             return
         self.task.cancel()
         await self.message.edit(embed=discord.Embed(
