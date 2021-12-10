@@ -392,7 +392,14 @@ class Match:
                 while True:
                     if self.match_end:
                         await self.channel.send(embed=discord.Embed(
-                            title="Match successfully finished"
+                            title="Match successfully finished",
+                            description="Delete after 600 seconds."
+                        ))
+                        break
+                    elif self.aborted:
+                        await self.channel.send(embed=discord.Embed(
+                            title="Match successfully aborted",
+                            description="Delete after 10 seconds."
                         ))
                         break
                     if self.is_all_ready():
