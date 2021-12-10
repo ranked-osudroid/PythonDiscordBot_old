@@ -402,7 +402,7 @@ class Match:
                             description="Delete after 10 seconds."
                         ))
                         break
-                    if self.is_all_ready():
+                    if self.is_all_ready() or self.timer.done:
                         await self.timer.cancel()
                         # if self.scrim is not None and not self.scrim.match_task.done():
                         if self.round > 1:
