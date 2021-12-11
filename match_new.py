@@ -184,6 +184,8 @@ class Match:
                         color=discord.Colour.purple()
                     )), asyncio.sleep(1))
             else:
+                self.player_ready = True
+                self.opponent_ready = True
                 message = await self.channel.send(embed=discord.Embed(
                     title="READY TIME OVER!",
                     description=f"Force Round #{self.round} to start in 10...",
@@ -397,8 +399,8 @@ class Match:
     async def match_start(self):
         try:
             while not self.match_end or self.aborted:
-                self.readyable = True
                 await self.do_progress()
+                self.readyable = True
                 while True:
                     if self.match_end:
                         await self.channel.send(embed=discord.Embed(
@@ -412,7 +414,7 @@ class Match:
                             description="Delete after 10 seconds."
                         ))
                         break
-                    if self.is_all_ready() or self.timer.done:
+                    if self.is_all_ready():
                         await self.timer.cancel()
                         self.reset_ready()
                         # if self.scrim is not None and not self.scrim.match_task.done():
@@ -432,10 +434,14 @@ class Match:
             ))
             raise ex_
         finally:
+            if not self.scrim.match_task.done():
+                self.scrim.match_task.cancel()
             self.bot.finished_matches.append(self)
             del self.bot.matches[self.player], self.bot.matches[self.opponent]
 
             async def do_stuff(*args):
+                if not self.match_task.done():
+                    self.match_task.cancel()
                 await self.channel.delete()
                 await self.role.delete()
                 self.bot.finished_matches.remove(self)
