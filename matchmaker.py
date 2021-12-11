@@ -75,7 +75,9 @@ class MatchMaker:
                             self.pool.append(WaitingPlayer(self.bot, player))
                             self.players_in_pool.add(player.id)
                     else:
-                        if self.pool[-1].player.id == player.id:
+                        if len(self.pool) == 0:
+                            continue
+                        elif self.pool[-1].player.id == player.id:
                             p = self.pool.pop()
                             p.task.cancel()
                             self.players_in_pool.remove(p.player.id)
