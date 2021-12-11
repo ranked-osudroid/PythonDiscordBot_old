@@ -25,7 +25,7 @@ class Timer:
         if self.args is None:
             self.args = tuple()
 
-        self.__task: asyncio.Task = self.loop.create_task(self.run())
+        self.task: asyncio.Task = self.loop.create_task(self.run())
 
     async def run(self):
         try:
@@ -70,7 +70,7 @@ class Timer:
     async def cancel(self):
         if self.done: return
         self.done = True
-        self.__task.cancel()
+        self.task.cancel()
         await self.message.edit(embed=discord.Embed(
             title="TIMER STOPPED!",
             description=f"Timer Name : `{self.name}`\n"
