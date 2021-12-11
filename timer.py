@@ -22,8 +22,10 @@ class Timer:
         self.done = False
         self.callback = async_callback
         self.args = args
+        if self.args is None:
+            self.args = tuple()
 
-        self.task: asyncio.Task = self.loop.create_task(self.run())
+        self.__task: asyncio.Task = self.loop.create_task(self.run())
 
     async def run(self):
         try:
@@ -36,8 +38,7 @@ class Timer:
             await asyncio.sleep(self.seconds)
             await self.timeover()
         except asyncio.CancelledError:
-            await self.cancel()
-            raise
+            return
         except GeneratorExit:
             return
         except BaseException as ex_:
@@ -45,7 +46,7 @@ class Timer:
             raise ex_
 
     async def edit(self):
-        if self.task.done():
+        if self.done:
             return
         await self.message.edit(embed=discord.Embed(
                 title="TIMER RUNNING...",
@@ -56,6 +57,8 @@ class Timer:
             ))
 
     async def timeover(self):
+        if self.done: return
+        self.done = True
         await self.message.edit(embed=discord.Embed(
             title="TIME OVER!",
             description=f"Timer Name : `{self.name}`\n"
@@ -65,9 +68,9 @@ class Timer:
         await self.call_back(False)
 
     async def cancel(self):
-        if self.task.done() or self.task.cancelled() or self.done:
-            return
-        self.task.cancel()
+        if self.done: return
+        self.done = True
+        self.__task.cancel()
         await self.message.edit(embed=discord.Embed(
             title="TIMER STOPPED!",
             description=f"Timer Name : `{self.name}`\n"
@@ -78,14 +81,11 @@ class Timer:
         await self.call_back(True)
 
     async def call_back(self, cancelled):
-        self.done = True
         del self.ownedBot.timers[self.name]
         if self.callback is None:
             return
-        if self.args:
-            await self.callback(cancelled, *self.args)
-        else:
-            await self.callback(cancelled)
+        await self.callback(cancelled, *self.args)
 
     def left_sec(self) -> float:
         return round(self.seconds - ((datetime.datetime.utcnow() - self.start_time).total_seconds()), 6)
+

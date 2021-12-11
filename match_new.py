@@ -79,12 +79,14 @@ class Match:
         self.opponent_ready: bool = False
 
         self.match_task: Optional[asyncio.Task] = None
+        self.readyable: bool = False
     
     def get_debug_txt(self):
         if self.match_task.exception() is not None:
             return get_traceback_str(self.match_task.exception())
 
     async def switch_ready(self, subj):
+        if not self.readyable: return
         r_ = None
         if self.channel is None:
             return
@@ -119,6 +121,7 @@ class Match:
         self.opponent_ready = False
     
     async def go_next_status(self, timer_cancelled):
+        self.readyable = False
         if self.round == -1:
             if timer_cancelled:
                 await self.channel.send(embed=discord.Embed(
@@ -200,7 +203,6 @@ class Match:
         self.round += 1
     
     async def do_progress(self):
-        self.reset_ready()
         if self.match_end or self.aborted:
             return
         elif self.round == -1:
@@ -388,6 +390,7 @@ class Match:
     async def match_start(self):
         try:
             while not self.match_end or self.aborted:
+                self.readyable = True
                 await self.do_progress()
                 while True:
                     if self.match_end:
@@ -404,8 +407,9 @@ class Match:
                         break
                     if self.is_all_ready() or self.timer.done:
                         await self.timer.cancel()
+                        self.reset_ready()
                         # if self.scrim is not None and not self.scrim.match_task.done():
-                        if self.round > 1:
+                        if self.round > 1 and not (self.match_end or self.aborted):
                             await self.scrim.match_task
                         break
                     await asyncio.sleep(1)
