@@ -40,6 +40,8 @@ each mappool has this dict
 """
     
 class Match:
+    __id = 0
+
     def __init__(self,
                  bot: 'MyBot',
                  player: discord.Member,
@@ -51,8 +53,10 @@ class Match:
         self.player_info = None
         self.opponent_info = None
         self.BO = bo
+        self.__id = Match.__id
+        Match.__id += 1
         self.channel: Optional[discord.TextChannel] = None
-        self.made_time = datetime.datetime.utcnow().strftime("%y%m%d%H%M%S%f")
+        self.made_time = datetime.datetime.utcnow()
         self.playID: Dict[int, Optional[dict]] = {self.player.id: None, self.opponent.id: None}
         self.uuid: Dict[int, Optional[str]] = {self.player.id: None, self.opponent.id: None}
 
@@ -80,6 +84,9 @@ class Match:
 
         self.match_task: Optional[asyncio.Task] = None
         self.readyable: bool = False
+
+    def get_id(self):
+        return self.__id
     
     def get_debug_txt(self):
         if self.match_task.exception() is not None:
@@ -206,7 +213,7 @@ class Match:
         if self.match_end or self.aborted:
             return
         elif self.round == -1:
-            chname = f"m{self.made_time}"
+            chname = f"match-{self.__id}"
             guild = self.bot.RANKED_OSUDROID_GUILD
             self.role = await guild.create_role(name=chname, color=discord.Colour.random())
             await self.player.add_roles(self.role)
@@ -215,8 +222,8 @@ class Match:
                 guild.default_role: discord.PermissionOverwrite(read_messages=False),
                 guild.get_role(823415179177885706):
                     discord.PermissionOverwrite(read_messages=True, send_messages=False),  # verified
-                guild.get_role(823415474183471134):
-                    discord.PermissionOverwrite(read_messages=True, send_messages=True),  # Moderator
+                guild.get_role(823730690058354688):
+                    discord.PermissionOverwrite(read_messages=True, send_messages=True),  # Staff member
                 self.role: discord.PermissionOverwrite(read_messages=True, send_messages=True)
             }
             self.channel = await self.bot.match_place.create_text_channel(chname, overwrites=overwrites)
@@ -252,7 +259,7 @@ class Match:
                     description="Chat `rdy` to participate in 2 minutes!"
                 )
             )
-            self.timer = Timer(self.bot, self.channel, f"Match_{self.made_time}_invite", 120, self.go_next_status)
+            self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_invite", 120, self.go_next_status)
         elif self.round == 0:
             rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
             # print('Before select_pool_mmr_range :', rate_lower, rate_highter)
@@ -318,7 +325,7 @@ class Match:
                             f"You have 30 seconds to continue.",
                 color=discord.Colour.blue()
             ))
-            self.timer = Timer(self.bot, self.channel, f"Match_{self.made_time}_finalready", 30, self.go_next_status)
+            self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_finalready", 30, self.go_next_status)
         elif (self.map_tb is None and self.round > len(self.map_order)) or self.round > self.BO or \
                 self.winfor in set(self.scrim.setscore.values()):
             await self.scrim.end()
@@ -385,7 +392,7 @@ class Match:
                 description="Chat `rdy` in 3 minutes.",
                 color=discord.Colour.orange()
             ))
-            self.timer = Timer(self.bot, self.channel, f"Match_{self.made_time}_{self.round}", 180, self.go_next_status)
+            self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_{self.round}", 180, self.go_next_status)
 
     async def match_start(self):
         try:
@@ -435,7 +442,7 @@ class Match:
             self.timer = Timer(
                 self.bot,
                 self.channel,
-                f"M_{self.made_time}_delete",
+                f"Match_{self.__id}_delete",
                 10 if self.aborted else 600,
                 do_stuff
             )
