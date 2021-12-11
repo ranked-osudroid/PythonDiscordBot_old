@@ -58,7 +58,7 @@ class MyCog(commands.Cog):
             gs.login()
         """
         pm = self.bot.matches.get(p)
-        if message.content == 'rdy' and pm is not None and ch == pm.channel:
+        if message.content.strip().lower() == 'rdy' and pm is not None and ch == pm.channel:
             await pm.switch_ready(p)
 
     @commands.Cog.listener()
