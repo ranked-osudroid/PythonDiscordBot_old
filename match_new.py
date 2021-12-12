@@ -299,7 +299,7 @@ class Match:
                     print('[@] Match.do_progress (mappool initiating) :', md['mapId'], 'error')
                     await calcmsg.edit(content=f"{self.player.mention} {self.opponent.mention}", embed=discord.Embed(
                         title="There's unplayable map in the mappool!",
-                        description=f"Map id = {md['mapid']}\n"
+                        description=f"Map id = {md['mapId']}\n"
                                     f"Call the moderator.\n"
                                     f"**This match will be aborted.**"
                     ))
@@ -435,7 +435,7 @@ class Match:
             ))
             raise ex_
         finally:
-            if not self.scrim.match_task.done():
+            if self.scrim.match_task is not None and not self.scrim.match_task.done():
                 self.scrim.match_task.cancel()
             self.bot.finished_matches.append(self)
             del self.bot.matches[self.player], self.bot.matches[self.opponent]
