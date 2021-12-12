@@ -91,6 +91,8 @@ class MyCog(commands.Cog):
 
     @commands.command(name="help")
     async def _help(self, ctx):
+        if isinstance(ctx.channel, discord.channel.DMChannel):
+            return
         help_msg: discord.Message = await ctx.send(embed=helptxt_pages[0])
         await help_msg.add_reaction('⏮')
         await help_msg.add_reaction('◀')
@@ -795,6 +797,25 @@ class MyCog(commands.Cog):
             color=discord.Colour(0x78f7fb)
         ))
 
+    @commands.command()
+    @is_verified()
+    async def duel(self, ctx, opponent: Optional[discord.Member] = None):
+        if opponent is None:
+            if self.bot.duel.get(ctx.author) is None:
+                return
+            else:
+                del self.bot.duel[ctx.author]
+                await ctx.channel.send(embed=discord.Embed(
+                    title="Duel cancelled"
+                ))
+        else:
+            if self.bot.duel.get(ctx.author) is None:
+                self.bot.duel[ctx.author] = opponent
+                await ctx.channel.send(embed=discord.Embed(
+                    title="Duel!"
+                ))
+                # still need work
+
 
 class MyBot(commands.Bot):
     def __init__(self, ses, *args, **kwargs):
@@ -815,6 +836,7 @@ class MyBot(commands.Bot):
         self.timer_count = 0
 
         self.matches: Dict[discord.Member, 'Match'] = dict()
+        self.duel: Dict[discord.Member, discord.Member] = dict()
         self.match_place: Optional[discord.CategoryChannel, discord.Guild] = None
         self.RANKED_OSUDROID_GUILD: Optional[discord.Guild] = None
         self.matchmaker = MatchMaker(self)

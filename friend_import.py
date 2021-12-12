@@ -155,6 +155,11 @@ def is_owner():
         return 823414751689441331 in {r.id for r in ctx.author.roles} or ctx.author.id == 327835849142173696
     return commands.check(predicate)
 
+def is_verified():
+    async def predicate(ctx):
+        return 823415179177885706 in {r.id for r in ctx.author.roles}
+    return commands.check(predicate)
+
 def is_queue_channel():
     async def predicate(ctx):
         return ctx.channel.id in {823459553529692200, 829369406487265302, 824986021539741747}
