@@ -674,7 +674,7 @@ class MyCog(commands.Cog):
         )
         e.add_field(
             name="Elo",
-            value=f"{self.bot.ratings[userinfo['uuid']].to_integral(rounding=decimal.ROUND_FLOOR):,.4f}"
+            value=f"{self.bot.ratings[userinfo['uuid']].quantize(d('.001'), rounding=decimal.ROUND_FLOOR):,.10g}"
         )
         e.add_field(
             name="Tier",
@@ -725,7 +725,7 @@ class MyCog(commands.Cog):
         )
         e.add_field(
             name="Score Info",
-            value=f"{rp['score']} / {rp['acc']} / {rp['miss']} :x:\n"
+            value=f"{rp['score']:,d} / {rp['acc']:.2f} / {rp['miss']} :x:\n"
                   f"{RANK_EMOJI[rp['rank']]} ({rp['300']} / {rp['100']} / {rp['50']})",
             inline=False
         )
