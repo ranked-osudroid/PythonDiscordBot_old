@@ -642,16 +642,16 @@ class MyCog(commands.Cog):
     async def profileme(self, ctx, did: Optional[int] = None):
         if did is None:
             did = ctx.author.id
-        dmember = self.bot.get_user(did)
+        name = self.bot.get_discord_username(did)
         userinfo = await self.bot.get_user_info(did)
         if isinstance(userinfo, Exception):
             await ctx.send(embed=discord.Embed(
-                title=f"{dmember.name} didn't registered!",
+                title=f"{name} didn't registered!",
                 color=discord.Colour.dark_red()
             ))
             return
         e = discord.Embed(
-            title=f"Profile of {dmember.name}",
+            title=f"Profile of {name}",
             color=discord.Colour(0xdb6ee1)
         )
         e.add_field(
@@ -686,16 +686,16 @@ class MyCog(commands.Cog):
     async def recentme(self, ctx, uid: Optional[int] = None):
         if uid is None:
             uid = ctx.author.id
-        dmember = self.bot.get_user(uid)
+        name = self.bot.get_discord_username(uid)
         rp: Optional[dict, ValueError, fixca.HttpError, fixca.FixcaError] = await self.bot.get_recent(id_=uid)
         if isinstance(rp, self.bot.req.ERRORS):
             await ctx.send(embed=discord.Embed(
-                title=f"Error occurred while loading {dmember.name}'s recent record.",
+                title=f"Error occurred while loading {name}'s recent record.",
                 description=f"{rp}\nCheck the log."
             ))
             return
         e = discord.Embed(
-            title=f"{dmember.name}'(s) recent play info",
+            title=f"{name}'(s) recent play info",
             color=discord.Colour(0x78a94c)
         )
         om: list[osuapi.osu.Beatmap] = await self.bot.osuapi.get_beatmaps(beatmap_hash=rp['mapHash'])
