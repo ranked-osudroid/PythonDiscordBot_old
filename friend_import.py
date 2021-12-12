@@ -301,5 +301,7 @@ def elo_convert_rev(x):
 unplayable_pools_uuid = {
     "462ef3b6-b4ed-3331-96fd-b5c61aa9187c",
     "7cdd9393-1bfa-3f40-a430-563abd9009a4",
-    "578c649c-fd05-3945-9af8-29d282fa2fc0"
+    "578c649c-fd05-3945-9af8-29d282fa2fc0",
+    "1a35a1b2-f118-32d6-9449-fd19c97737f4",
 }
+
