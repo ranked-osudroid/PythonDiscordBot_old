@@ -325,10 +325,10 @@ class Match:
             await calcmsg.edit(content=f"{self.player.mention} {self.opponent.mention}", embed=discord.Embed(
                 title="Mappool successfully initiated!",
                 description=f"If you got ready, chat `rdy`.\n"
-                            f"You have 30 seconds to continue.",
+                            f"You have 1 minute to continue.",
                 color=discord.Colour.blue()
             ))
-            self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_finalready", 30, self.go_next_status)
+            self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_finalready", 60, self.go_next_status)
         elif (self.map_tb is None and self.round > len(self.map_order)) or self.round > self.BO or \
                 self.winfor in set(self.scrim.setscore.values()):
             await self.scrim.end()
@@ -392,10 +392,10 @@ class Match:
             ))
             await self.channel.send(embed=discord.Embed(
                 title=f"Round #{self.round} ready!",
-                description="Chat `rdy` in 3 minutes.",
+                description="Chat `rdy` in 5 minutes.",
                 color=discord.Colour.orange()
             ))
-            self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_{self.round}", 180, self.go_next_status)
+            self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_{self.round}", 300, self.go_next_status)
 
     async def match_start(self):
         try:

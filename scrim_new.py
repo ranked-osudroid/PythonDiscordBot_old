@@ -16,6 +16,10 @@ class Scrim:
         self.loop = self.bot.loop
         self.channel: discord.TextChannel = channel
         self.start_time = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
+        if self.match:
+            self.name = self.match.get_id()
+        else :
+            self.name = self.start_time
 
         self.round_start_time = None
 
@@ -615,7 +619,7 @@ class Scrim:
                 extra_rate = d('1')
                 if self.getmode() == 'DT':
                     extra_rate = d('1') / d('1.5')
-                self.timer = Timer(self.bot, self.channel, f"{self.start_time}_{self.getnumber()}",
+                self.timer = Timer(self.bot, self.channel, f"{self.name}_{self.getnumber()}",
                                    int(self.getmaplength() * extra_rate))
                 await self.timer.task
                 timermessage = await self.channel.send(embed=discord.Embed(

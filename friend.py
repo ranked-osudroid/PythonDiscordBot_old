@@ -30,7 +30,7 @@ class MyCog(commands.Cog):
             try:
                 while True:
                     await self.bot.change_presence(
-                        activity=discord.Game(f"{len(self.bot.matchmaker.players_in_pool)} queued")
+                        activity=discord.Game(f"{len(self.bot.matchmaker.players_in_pool)} queued | ${len(self.bot.matches) // 2} matches")
                     )
                     await asyncio.sleep(5)
             except asyncio.CancelledError:
