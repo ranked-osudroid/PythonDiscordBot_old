@@ -10,9 +10,9 @@ class WaitingPlayer:
         self.bot = bot
         self.loop = bot.loop
         self.player = discord_member
-        self.player_rating = self.bot.ratings[self.bot.uuid[discord_member.id]]
-        self.target_rating_low = self.player_rating
-        self.target_rating_high = self.player_rating
+        self.player_rating = 0
+        self.target_rating_low = 0
+        self.target_rating_high = 0
         self.dr = 10
         self.task = self.loop.create_task(self.expanding())
 
@@ -20,6 +20,15 @@ class WaitingPlayer:
         return self.player.name
 
     async def expanding(self):
+        puuid = self.bot.uuid.get(self.player.id)
+        if puuid is None:
+            self.player_rating = self.bot.ratings[
+                (await self.bot.get_user_info(self.player.id))['uuid']
+            ]
+        else:
+            self.player_rating = self.bot.ratings[puuid]
+        self.target_rating_low = self.player_rating
+        self.target_rating_high = self.player_rating
         try:
             while True:
                 await asyncio.sleep(1)
