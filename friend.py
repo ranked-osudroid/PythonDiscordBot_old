@@ -808,21 +808,39 @@ class MyCog(commands.Cog):
     @commands.command()
     @is_verified()
     async def duel(self, ctx, opponent: Optional[discord.Member] = None):
+        if self.bot.matches.get(ctx.author) is not None:
+            await ctx.channel.send(embed=discord.Embed(
+                title=f"{ctx.author.mention}, you can't duel while joining your match."
+            )
+            return
         if opponent is None:
             if self.bot.duel.get(ctx.author) is None:
                 return
             else:
                 del self.bot.duel[ctx.author]
                 await ctx.channel.send(embed=discord.Embed(
-                    title="Duel cancelled"
+                    title="{ctx.author.mention}'(s) Duel cancelled"
                 ))
         else:
             if self.bot.duel.get(ctx.author) is None:
-                self.bot.duel[ctx.author] = opponent
+                if self.bot.duel.get(opponent) != ctx.author:
+                    self.bot.duel[ctx.author] = opponent
+                    await ctx.channel.send(
+                        content=f"{opponent.mention}",
+                        embed=discord.Embed(
+                            title=f"{ctx.author.mention} is challenging you to duel!",
+                            description=f"If you want to accept the duel, use command `/duel `{ctx.author.mention}!"
+                        )
+                    )
+                else:
+                    del self.bot.duel[ctx.author] and self.bot.duel[opponent]
+                    self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = Match(self.bot, ctx.author, opponent)
+                    await m.do_match_start()
+            else:
                 await ctx.channel.send(embed=discord.Embed(
-                    title="Duel!"
-                ))
-                # still need work
+                    title=f"{ctx.author.mention}, you already challenged another player to a duel."
+                )
+
 
 
 class MyBot(commands.Bot):
