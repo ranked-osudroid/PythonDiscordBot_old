@@ -433,6 +433,7 @@ class Match:
                 title="Error Ocurred",
                 description=f"{ex_}\nCheck the log.\n**This match will be aborted.**",
             ))
+            self.aborted = True
             raise ex_
         finally:
             if self.scrim.match_task is not None and not self.scrim.match_task.done():

@@ -25,6 +25,8 @@ class MyCog(commands.Cog):
         print("==========BOT START==========")
         self.bot.match_place = await self.bot.fetch_channel(823413857036402741)
         self.bot.RANKED_OSUDROID_GUILD = self.bot.get_guild(RANKED_OSUDROID_GUILD_ID)
+        if self.bot.activity_display_task is not None:
+            self.bot.activity_display_task.cancel()
 
         async def work():
             try:
@@ -34,6 +36,9 @@ class MyCog(commands.Cog):
                     )
                     await asyncio.sleep(5)
             except asyncio.CancelledError:
+                raise
+            except Exception as ex:
+                print(f"[@] MyBot.activity_display_task:\n{get_traceback_str(ex)}")
                 raise
         self.bot.activity_display_task = self.bot.loop.create_task(work())
 
@@ -678,11 +683,14 @@ class MyCog(commands.Cog):
             name="Elo",
             value=f"{self.bot.ratings[userinfo['uuid']].quantize(d('.001'), rounding=decimal.ROUND_FLOOR):,.10g}"
         )
+        rankstr = get_elo_rank(self.bot.ratings[userinfo['uuid']])
+        rankimgfile = TIER_IMAGES[rank_str]
         e.add_field(
             name="Tier",
-            value=get_elo_rank(self.bot.ratings[userinfo['uuid']])
+            value=rankstr
         )
-        await ctx.send(embed=e)
+        e.set_image(url=f"attachment://{rankimgfile.filename}")
+        await ctx.send(file=rankimgfile, embed=e)
 
     @commands.command(aliases=['rs'])
     async def recentme(self, ctx, uid: Optional[int] = None):
