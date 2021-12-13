@@ -684,7 +684,7 @@ class MyCog(commands.Cog):
             value=f"{self.bot.ratings[userinfo['uuid']].quantize(d('.001'), rounding=decimal.ROUND_FLOOR):,.10g}"
         )
         rankstr = get_elo_rank(self.bot.ratings[userinfo['uuid']])
-        rankimgfile = TIER_IMAGES[rank_str]
+        rankimgfile = TIER_IMAGES[rankstr]
         e.add_field(
             name="Tier",
             value=rankstr
@@ -811,7 +811,7 @@ class MyCog(commands.Cog):
         if self.bot.matches.get(ctx.author) is not None:
             await ctx.channel.send(embed=discord.Embed(
                 title=f"{ctx.author.mention}, you can't duel while joining your match."
-            )
+            ))
             return
         if opponent is None:
             if self.bot.duel.get(ctx.author) is None:
@@ -833,13 +833,13 @@ class MyCog(commands.Cog):
                         )
                     )
                 else:
-                    del self.bot.duel[ctx.author] and self.bot.duel[opponent]
+                    del self.bot.duel[ctx.author], self.bot.duel[opponent]
                     self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = Match(self.bot, ctx.author, opponent)
                     await m.do_match_start()
             else:
                 await ctx.channel.send(embed=discord.Embed(
                     title=f"{ctx.author.mention}, you already challenged another player to a duel."
-                )
+                ))
 
 
 
