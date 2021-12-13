@@ -649,7 +649,7 @@ class MyCog(commands.Cog):
     async def profileme(self, ctx, did: Optional[int] = None):
         if did is None:
             did = ctx.author.id
-        name = self.bot.get_discord_username(did)
+        name = await self.bot.get_discord_username(did)
         userinfo = await self.bot.get_user_info(did)
         if isinstance(userinfo, Exception):
             await ctx.send(embed=discord.Embed(
@@ -684,7 +684,7 @@ class MyCog(commands.Cog):
             value=f"{self.bot.ratings[userinfo['uuid']].quantize(d('.001'), rounding=decimal.ROUND_FLOOR):,.10g}"
         )
         rankstr = get_elo_rank(self.bot.ratings[userinfo['uuid']])
-        rankimgfile = TIER_IMAGES[rankstr]
+        rankimgfile = discord.File(TIER_IMAGES[rankstr])
         e.add_field(
             name="Tier",
             value=rankstr

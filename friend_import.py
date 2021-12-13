@@ -311,11 +311,11 @@ unplayable_pools_uuid = {
 }
 
 TIER_IMAGES = {
-    "Bronze": discord.File('images/bronze.png'),
-    "Silver": discord.File('images/silver.png'),
-    "Gold": discord.File('images/gold.png'),
-    "Platinum": discord.File('images/platinum.png'),
-    "Diamond": discord.File('images/diamond.png'),
-    "Master": discord.File('images/master.png'),
+    "Bronze": 'images/bronze.png',
+    "Silver": 'images/silver.png',
+    "Gold": 'images/gold.png',
+    "Platinum": 'images/platinum.png',
+    "Diamond": 'images/diamond.png',
+    "Master": 'images/master.png',
 }
 
