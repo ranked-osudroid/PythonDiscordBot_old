@@ -698,7 +698,7 @@ class MyCog(commands.Cog):
     async def recentme(self, ctx, uid: Optional[int] = None):
         if uid is None:
             uid = ctx.author.id
-        name = self.bot.get_discord_username(uid)
+        name = await self.bot.get_discord_username(uid)
         rp: Optional[dict, ValueError, fixca.HttpError, fixca.FixcaError] = await self.bot.get_recent(id_=uid)
         if isinstance(rp, self.bot.req.ERRORS):
             await ctx.send(embed=discord.Embed(
