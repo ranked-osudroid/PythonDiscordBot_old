@@ -735,7 +735,7 @@ class MyCog(commands.Cog):
         )
         e.add_field(
             name="Score Info",
-            value=f"{rp['score']:,d} / {rp['acc']:.2f} / {rp['miss']} :x:\n"
+            value=f"{rp['score']:,d} / {rp['acc']}% / {rp['miss']} :x:\n"
                   f"{RANK_EMOJI[rp['rank']]} ({rp['300']} / {rp['100']} / {rp['50']})",
             inline=False
         )
