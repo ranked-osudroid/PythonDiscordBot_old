@@ -37,6 +37,8 @@ class MyCog(commands.Cog):
                     await asyncio.sleep(5)
             except asyncio.CancelledError:
                 raise
+            except ConnectionResetError:
+                return
             except Exception as ex:
                 print(f"[@] MyBot.activity_display_task:\n{get_traceback_str(ex)}")
                 raise

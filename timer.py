@@ -4,7 +4,7 @@ if TYPE_CHECKING:
     from friend import MyBot
 
 class Timer:
-    __emoji = ":arrows_counterclockwise:"
+    __emoji = "\U0001F504"
 
     def __init__(self,
                  bot: 'MyBot',
@@ -44,10 +44,10 @@ class Timer:
                 await asyncio.sleep(self.seconds)
             else:
                 await asyncio.sleep(self.seconds - 10)
-                await asyncio.gather([
+                await asyncio.gather(
                     asyncio.sleep(10),
                     self.channel.send(f"**:bangbang: | Timer `{self.name}` has 10 seconds remaining!**")
-                ])
+                )
             await self.timeover()
         except asyncio.CancelledError:
             return
@@ -59,15 +59,15 @@ class Timer:
             raise ex_
 
     def __check(self, react, usr):
-        return react.message == self.message and str(react.emoji) == self.__emoji
+        return react.message == self.message and str(react.emoji) == self.__emoji and not usr.bot
 
     async def sub_run(self):
         try:
             while True:
                 done, pending = await asyncio.wait(
                     [
-                        self.bot.wait_for('reaction_add', check=check),
-                        self.bot.wait_for('reaction_remove', check=check)
+                        self.bot.wait_for('reaction_add', check=self.__check),
+                        self.bot.wait_for('reaction_remove', check=self.__check)
                     ], return_when=asyncio.FIRST_COMPLETED
                 )
                 for pt in pending:
