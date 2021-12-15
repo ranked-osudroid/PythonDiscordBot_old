@@ -843,6 +843,11 @@ class MyCog(commands.Cog):
                     title=f"{ctx.author.mention}, you already challenged another player to a duel."
                 ))
 
+    @commands.command()
+    @is_verified()
+    async def surrender(self, ctx):
+        if (m := self.bot.matches.get(ctx.author)) is not None:
+            await m.surrender(ctx.author)
 
 
 class MyBot(commands.Bot):
