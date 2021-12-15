@@ -104,7 +104,7 @@ class Timer:
         ))
         await self.call_back(False)
 
-    async def cancel(self):
+    async def cancel(self, run_call_back=True):
         if self.done: return
         self.done = True
         self.task.cancel()
@@ -116,7 +116,8 @@ class Timer:
                         f"Time Left : {self.left_sec()}",
             color=discord.Colour.dark_red()
         ))
-        await self.call_back(True)
+        if run_call_back:
+            await self.call_back(True)
 
     async def call_back(self, cancelled):
         del self.bot.timers[self.name]

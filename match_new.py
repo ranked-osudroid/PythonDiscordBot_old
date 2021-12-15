@@ -87,6 +87,10 @@ class Match:
 
     def get_id(self):
         return self.__id
+
+    @classmethod
+    def get_max_id(cls):
+        return cls.__id
     
     def get_debug_txt(self):
         if self.match_task.exception() is not None:
@@ -406,13 +410,13 @@ class Match:
                     if self.match_end:
                         await self.channel.send(embed=discord.Embed(
                             title="Match successfully finished",
-                            description="Delete after 600 seconds."
+                            description="Delete after 180 seconds."
                         ))
                         break
                     elif self.aborted:
                         await self.channel.send(embed=discord.Embed(
                             title="Match successfully aborted",
-                            description="Delete after 10 seconds."
+                            description="Delete after 15 seconds."
                         ))
                         break
                     if self.is_all_ready():
@@ -451,7 +455,7 @@ class Match:
                 self.bot,
                 self.channel,
                 f"Match_{self.__id}_delete",
-                10 if self.aborted else 600,
+                15 if self.aborted else 180,
                 do_stuff
             )
 
@@ -464,3 +468,26 @@ class Match:
                 description="Try again after the match ends.",
                 color=discord.Colour.dark_red()
             ))
+
+    async def surrender(self, ctx):
+        player = cxt.author
+        x = 0
+        if player == self.opponent:
+            x = 1
+        elif player != self.player:
+            return
+        def check(msg):
+            return msg.author == player and msg.content== player.name
+        await ctx.send(f"**{player.mention}, if yor really want to surrender, send your name (`{player.name}`) in 30 seconds.**")
+        try:
+            await self.bot.wait_for('message', timeout=30, check=check)
+        except asyncio.TimeoutError:
+            await ctx.send(f"**{player.mention}, time over.**")
+            return
+        await self.channel.send(embed=discord.Embed(
+            title=f"{player.mention} surrendered",
+            description="The match will finish soon..."
+        ))
+        self.scrim.setscore["BLUE" if x else "RED"] = self.winfor
+        self.scrim.match_task.cancel()
+
