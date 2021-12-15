@@ -809,41 +809,58 @@ class MyCog(commands.Cog):
 
     @commands.command()
     @is_verified()
-    async def duel(self, ctx, opponent: Optional[discord.Member] = None):
-        if ctx.author == opponent:
-            return
+    async def duel(self, ctx):
         if self.bot.matches.get(ctx.author) is not None:
             await ctx.channel.send(embed=discord.Embed(
-                title=f"{ctx.author.mention}, you can't duel while joining your match."
+                title=f"{ctx.author.name}, you can't duel while joining your match."
             ))
             return
-        if opponent is None:
-            if self.bot.duel.get(ctx.author) is None:
+                    title=f"{ctx.author.name}'(s) Duel cancelled"
+        if self.bot.duel.get(ctx.author) is None:
+            opponent = None
+            def check(msg):
+                return msg.author == ctx.author and msg.channel == ctx.channel
+            await ctx.send(f"**{ctx.author.mention}, ping your opponent in 30 seconds.**")
+            try:
+                while True:
+                    response = await self.bot.wait_for('message', timeout=30, check=check)
+                    mention = response.mention
+                    if len(mention) == 1:
+                        opponent = mention[0]
+            except asyncio.TimeoutError:
+                await ctx.send(f"**{ctx.author.mention}, time over.**")
                 return
-            else:
-                del self.bot.duel[ctx.author]
-                await ctx.channel.send(embed=discord.Embed(
-                    title="{ctx.author.mention}'(s) Duel cancelled"
-                ))
-        else:
-            if self.bot.duel.get(ctx.author) is None:
-                if self.bot.duel.get(opponent) != ctx.author:
-                    self.bot.duel[ctx.author] = opponent
-                    await ctx.channel.send(
-                        content=f"{opponent.mention}",
-                        embed=discord.Embed(
-                            title=f"{ctx.author.mention} is challenging you to duel!",
-                            description=f"If you want to accept the duel, use command `/duel `{ctx.author.mention}!"
-                        )
+            except asyncio.CancelledError:
+                return
+            assert opponent is not None
+            if self.bot.duel.get(opponent) != ctx.author:
+                self.bot.duel[ctx.author] = opponent
+                await ctx.channel.send(
+                    content=f"{opponent.mention}",
+                    embed=discord.Embed(
+                        title=f"{ctx.author.name} is challenging you to duel!",
+                        description=f"If you want to accept the duel, use command `/duel` to {ctx.author.mention}!"
                     )
-                else:
-                    del self.bot.duel[ctx.author], self.bot.duel[opponent]
-                    self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = Match(self.bot, ctx.author, opponent)
-                    await m.do_match_start()
+                )
             else:
-                await ctx.channel.send(embed=discord.Embed(
-                    title=f"{ctx.author.mention}, you already challenged another player to a duel."
-                ))
+                del self.bot.duel[ctx.author], self.bot.duel[opponent]
+                self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = Match(self.bot, ctx.author, opponent)
+                await m.do_match_start()
+        else:
+            await ctx.channel.send(embed=discord.Embed(
+                title=f"{ctx.author.name}, you already challenged another player to a duel."
+            ))
+    
+    @commands.command(alias=['cancel'])
+    @is_verified()
+    async def cancel_(self, ctx):
+        if self.bot.duel.get(ctx.author) is None:
+            return
+        else:
+            del self.bot.duel[ctx.author]
+            await ctx.channel.send(embed=discord.Embed(
+                title=f"{ctx.author.name}'(s) Duel cancelled"
+            ))
 
     @commands.command()
     @is_verified()
