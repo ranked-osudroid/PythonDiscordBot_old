@@ -823,10 +823,11 @@ class MyCog(commands.Cog):
             try:
                 while True:
                     response = await self.bot.wait_for('message', timeout=30, check=check)
-                    mention = response.mention
+                    mention = response.mentions
                     if len(mention) == 1:
                         opponent = mention[0]
-                        break
+                        if ctx.author != opponent:
+                            break
             except asyncio.TimeoutError:
                 await ctx.send(f"**{ctx.author.mention}, time over.**")
                 return
@@ -851,7 +852,7 @@ class MyCog(commands.Cog):
                 title=f"{ctx.author.name}, you already challenged another player to a duel."
             ))
     
-    @commands.command(alias=['cancel'])
+    @commands.command(aliases=['cancel'])
     @is_verified()
     async def cancel_(self, ctx):
         if self.bot.duel.get(ctx.author) is None:

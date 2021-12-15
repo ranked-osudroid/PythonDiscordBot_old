@@ -470,7 +470,9 @@ class Match:
             ))
 
     async def surrender(self, ctx):
-        player = cxt.author
+        if self.round < 0:
+            return
+        player = ctx.author
         x = 0
         if player == self.opponent:
             x = 1
@@ -488,6 +490,6 @@ class Match:
             title=f"{player.mention} surrendered",
             description="The match will finish soon..."
         ))
-        self.scrim.setscore["BLUE" if x else "RED"] = self.winfor
+        self.scrim.setscore["BLUE" if x else "RED"] = int(self.winfor)
         self.scrim.match_task.cancel()
 
