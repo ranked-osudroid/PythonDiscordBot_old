@@ -815,7 +815,6 @@ class MyCog(commands.Cog):
                 title=f"{ctx.author.name}, you can't duel while joining your match."
             ))
             return
-                    title=f"{ctx.author.name}'(s) Duel cancelled"
         if self.bot.duel.get(ctx.author) is None:
             opponent = None
             def check(msg):
@@ -827,6 +826,7 @@ class MyCog(commands.Cog):
                     mention = response.mention
                     if len(mention) == 1:
                         opponent = mention[0]
+                        break
             except asyncio.TimeoutError:
                 await ctx.send(f"**{ctx.author.mention}, time over.**")
                 return
