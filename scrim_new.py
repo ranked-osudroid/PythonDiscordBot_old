@@ -17,7 +17,7 @@ class Scrim:
         self.channel: discord.TextChannel = channel
         self.start_time = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
         if self.match:
-            self.name = self.match.get_id()
+            self.name = f"m{self.match.get_id()}"
         else :
             self.name = self.start_time
 
