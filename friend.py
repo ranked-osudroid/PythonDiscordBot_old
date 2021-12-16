@@ -815,6 +815,11 @@ class MyCog(commands.Cog):
                 title=f"{ctx.author.name}, you can't duel while joining your match."
             ))
             return
+        if ctx.author.id in self.bot.matchmaker.players_in_pool:
+            await ctx.channel.send(embed=discord.Embed(
+                title=f"{ctx.author.name}, you can't duel while queueing."
+            ))
+            return
         if self.bot.duel.get(ctx.author) is None:
             opponent = None
             def check(msg):
