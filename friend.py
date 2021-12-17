@@ -86,6 +86,8 @@ class MyCog(commands.Cog):
         print('================ ERROR ================')
         print(exceptiontxt)
         print('=======================================')
+        async with aiofiles.open(f"errors/{time.time_ns()}.txt", 'w') as f:
+            await f.write(exceptiontxt)
         await ctx.send(
             embed=discord.Embed(
                 title="Error occurred",
