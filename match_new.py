@@ -495,4 +495,5 @@ class Match:
             self.scrim.match_task.cancel()
         if not self.timer.done:
             await self.timer.cancel(False)
+        await self.do_progress()
 
