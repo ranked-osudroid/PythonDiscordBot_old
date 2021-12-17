@@ -872,7 +872,7 @@ class MyCog(commands.Cog):
     @is_verified()
     async def surrender(self, ctx):
         if (m := self.bot.matches.get(ctx.author)) is not None:
-            await m.surrender(ctx.author)
+            await m.surrender(ctx)
 
 
 class MyBot(commands.Bot):
