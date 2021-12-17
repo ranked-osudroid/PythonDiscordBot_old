@@ -491,5 +491,8 @@ class Match:
             description="The match will finish soon..."
         ))
         self.scrim.setscore["BLUE" if x else "RED"] = int(self.winfor)
-        self.scrim.match_task.cancel()
+        if self.scrim.match_task is not None and not self.scrim.match_task.done():
+            self.scrim.match_task.cancel()
+        if not self.timer.done:
+            await self.timer.cancel(False)
 
