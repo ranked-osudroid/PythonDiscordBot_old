@@ -1,6 +1,6 @@
 import asyncio, aiohttp, \
     datetime, decimal, discord, gspread, random, re, time, \
-    traceback, scoreCalc, os, json, bisect, hashlib, osuapi, aiofiles
+    traceback, scoreCalc, os, json, bisect, hashlib, osuapi, aiofiles, io
 from typing import *
 from collections import defaultdict as dd
 from collections import deque

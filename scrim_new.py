@@ -366,7 +366,18 @@ class Scrim:
             inline=False
         )
         await resultmessage.edit(embed=sendtxt)
+        logtxt = [f'Map         : {self.getmapfull()}', f'MapNick     : {self.map_number}',
+                  f'Winner Team : {desc}']
+        for t in self.team:
+            logtxt.append(f'\nTeam {t} = {teamscore[t]}')
+            for p in self.team[t]:
+                logtxt.append(f"Player {await self.bot.get_discord_username(p)} = {calculatedscores[p]} "
+                              f"({' / '.join(str(self.score[p][x]) for x in ('score', 'acc', 'miss'))} - "
+                              f"{self.score[p]['rank']} - "
+                              f"{inttomode(self.score[p]['mode'])})")
+        self.log.append('\n'.join(logtxt))
         self.resetmap()
+        return teamscore
     
     def resetmap(self):
         self.map_artist = None
@@ -583,7 +594,12 @@ class Scrim:
                   'You can download this file and see the match logs.',
             inline=False
         )
-        await self.channel.send(embed=sendtxt)
+        logtxt = '\n\n====================\n\n'.join(self.log)
+        fp_ = io.BytesIO(bytes(logtxt))
+        await self.channel.send(
+            embed=sendtxt,
+            file=discord.File(fp_, filename=f"{self.name}_{self.start_time}.log")
+        )
         return winnerteam
         
     async def do_match_start(self):
