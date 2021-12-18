@@ -340,6 +340,7 @@ class Tee(object):
 
     def write(self, data):
         self.file.write(data)
+        self.flush()
         self.stdout.write(data)
 
     def flush(self):
