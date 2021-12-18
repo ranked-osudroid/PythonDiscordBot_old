@@ -30,8 +30,12 @@ class Timer:
         self.task: asyncio.Task = self.loop.create_task(self.run())
         self.sub_task: Optional[asyncio.Task] = None
 
+    def __str__(self):
+        return f"Timer({self.name})"
+
     async def run(self):
         try:
+            print(f"[{get_nowtime_str()}] {self}: Timer start.")
             self.message = await self.channel.send(embed=discord.Embed(
                 title="Timer start!",
                 description=f"Timer Name : `{self.name}`\n"
@@ -95,6 +99,7 @@ class Timer:
     async def timeover(self):
         if self.done: return
         self.done = True
+        print(f"[{get_nowtime_str()}] {self}: Timer end. (time over)")
         self.sub_task.cancel()
         await self.message.edit(embed=discord.Embed(
             title="TIME OVER!",
@@ -107,6 +112,7 @@ class Timer:
     async def cancel(self, run_call_back=True):
         if self.done: return
         self.done = True
+        print(f"[{get_nowtime_str()}] {self}: Timer end. (cancelled)")
         self.task.cancel()
         self.sub_task.cancel()
         await self.message.edit(embed=discord.Embed(
@@ -120,6 +126,7 @@ class Timer:
             await self.call_back(True)
 
     async def call_back(self, cancelled):
+        print(f"[{get_nowtime_str()}] {self}: Running call_back.")
         del self.bot.timers[self.name]
         if self.callback is None:
             return

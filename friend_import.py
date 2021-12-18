@@ -1,6 +1,7 @@
 import asyncio, aiohttp, \
     datetime, decimal, discord, gspread, random, re, time, \
-    traceback, scoreCalc, os, json, bisect, hashlib, osuapi, aiofiles, io
+    traceback, scoreCalc, os, json, bisect, hashlib, osuapi, io, sys
+# import logging
 from typing import *
 from collections import defaultdict as dd
 from collections import deque
@@ -79,6 +80,11 @@ CHIMU = "https://api.chimu.moe/v1/download/"
 chimu_params = {'n': '1'}
 
 BEATCONNECT = "https://beatconnect.io/b/"
+
+# logging.basicConfig(
+#     filename=f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}.log",
+#     encoding='utf-8'
+# )
 
 downloadpath = os.path.join('songs', '%s.zip')
 
@@ -297,6 +303,8 @@ def get_elo_rank_entry_cost(elov: Union[d, int]):
 
 ELO_MID_RATING = d('1500')
 
+SELECT_POOL_RANGE = 50
+
 def elo_convert(x):
     return (x - 1000) * d('2.1') + 1200
 
@@ -319,3 +327,31 @@ TIER_IMAGES = {
     "Master": 'images/master.png',
 }
 
+
+class Tee(object):
+    def __init__(self, name, mode):
+        self.file = open(name, mode)
+        self.stdout = sys.stdout
+        sys.stdout = self
+
+    def __del__(self):
+        sys.stdout = self.stdout
+        self.file.close()
+
+    def write(self, data):
+        self.file.write(data)
+        self.stdout.write(data)
+
+    def flush(self):
+        self.file.flush()
+
+
+def elo_show_form(el: d):
+    return f"{el.quantize(d('.001'), rounding=decimal.ROUND_FLOOR):,.3f}"
+
+TEE = Tee(f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}.log", "w")
+
+TIMEFORMAT = '%Y-%m-%d %X.%f'
+
+def get_nowtime_str():
+    return datetime.datetime.now().strftime(TIMEFORMAT)

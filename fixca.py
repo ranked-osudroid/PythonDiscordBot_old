@@ -61,15 +61,15 @@ class RequestManager:
         if data is None:
             data = dict()
         data |= kwargs
-        print(f'[fixca] Sending POST {url}')
+        print(f"[{get_nowtime_str()}] RequestManager: Sending POST {url}")
         print(data)
         async with self.session.post(self.BASEURL+url, data=data) as res:
             if res.status != 200:
-                print(f'[fixca] POST {url} failed (HTTP {res.status})')
+                print(f'[{get_nowtime_str()}] RequestManager: POST {url} failed (HTTP {res.status})')
                 print(await res.text())
                 return HttpError('POST', url, res)
             if not (resdata := await res.json(content_type=None, encoding='utf-8'))['status']:
-                print(f'[fixca] POST {url} failed (Error code {resdata["code"]})')
+                print(f'[{get_nowtime_str()}] RequestManager: POST {url} failed (Error code {resdata["code"]})')
                 print(resdata)
                 return FixcaError('POST', url, resdata)
             return resdata['output']
@@ -78,15 +78,15 @@ class RequestManager:
         if data is None:
             data = dict()
         data |= kwargs
-        print(f'[fixca] Sending GET {url}')
+        print(f'[{get_nowtime_str()}] RequestManager: Sending GET {url}')
         print(data)
         async with self.session.get(self.BASEURL+url, data=data) as res:
             if res.status != 200:
-                print(f'[fixca] GET {url} failed (HTTP {res.status})')
+                print(f'[{get_nowtime_str()}] RequestManager: GET {url} failed (HTTP {res.status})')
                 print(await res.text())
                 return HttpError('GET', url, res)
             if not (resdata := await res.json(content_type=None, encoding='utf-8'))['status']:
-                print(f'[fixca] GET {url} failed (Errorcode {resdata["code"]})')
+                print(f'[{get_nowtime_str()}] RequestManager: GET {url} failed (Errorcode {resdata["code"]})')
                 print(resdata)
                 return FixcaError('GET', url, resdata)
             return resdata['output']

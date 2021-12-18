@@ -18,9 +18,9 @@ class MyCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}]")
-        print("BOT NAME :", self.bot.user.name)
-        print("BOT ID   :", self.bot.user.id)
+        print(f"[{get_nowtime_str()}]")
+        print(f"BOT NAME : {self.bot.user.name}")
+        print(f"BOT ID   : {self.bot.user.id}")
         await self.bot.change_presence(status=discord.Status.online)
         print("==========BOT START==========")
         self.bot.match_place = await self.bot.fetch_channel(823413857036402741)
@@ -32,7 +32,10 @@ class MyCog(commands.Cog):
             try:
                 while True:
                     await self.bot.change_presence(
-                        activity=discord.Game(f"{len(self.bot.matchmaker.players_in_pool)} queued | {len(self.bot.matches) // 2} matches")
+                        activity=discord.Game(
+                            f"{len(self.bot.matchmaker.players_in_pool)} queued | "
+                            f"{len(self.bot.matches) // 2} matches"
+                        )
                     )
                     await asyncio.sleep(5)
             except asyncio.CancelledError:
@@ -40,7 +43,7 @@ class MyCog(commands.Cog):
             except ConnectionResetError:
                 return
             except Exception as ex:
-                print(f"[@] MyBot.activity_display_task:\n{get_traceback_str(ex)}")
+                print(f"[{get_nowtime_str()}] MyBot.activity_display_task:\n{get_traceback_str(ex)}")
                 raise
         self.bot.activity_display_task = self.bot.loop.create_task(work())
 
@@ -50,18 +53,16 @@ class MyCog(commands.Cog):
         p = message.author
         if p == self.bot.user:
             return
-        """
         if isinstance(message.channel, discord.channel.DMChannel):
             print(
-                f"[{message.created_at.strftime('%Y-%m-%d %a %X')}] "
-                f"[DM] <{p.name};{p.id}> {message.content}"
+                f"[{message.created_at.strftime(TIMEFORMAT)}] "
+                f"- DM - <{p.name}> {message.content}"
             )
         else:
             print(
-                f"[{{message.created_at.strftime('%Y-%m-%d %a %X')}] "
-                f"[{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}"
+                f"[{message.created_at.strftime(TIMEFORMAT)}] "
+                f"- {ch.name} - <{p.name}> {message.content}"
             )
-        """
         """
         if credentials.expired:
             gs.login()
@@ -71,7 +72,7 @@ class MyCog(commands.Cog):
             await pm.switch_ready(p)
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx, exception):
+    async def on_command_error(self, ctx: commands.Context, exception):
         if isinstance(exception, commands.errors.CheckFailure):
             await ctx.send(embed=discord.Embed(
                 title="**YOU DON'T HAVE PERMISSION TO USE THIS.**",
@@ -84,13 +85,15 @@ class MyCog(commands.Cog):
                 color=discord.Colour.dark_gray()
             ))"""
             return
+        elif isinstance(exception, commands.errors.CommandInvokeError):
+            exception = exception.original
         exceptiontxt = get_traceback_str(exception)
-
+        print(f"[{get_nowtime_str()}] Mybot.on_command_error()")
         print('================ ERROR ================')
         print(exceptiontxt)
         print('=======================================')
-        async with aiofiles.open(f"errors/{time.time_ns()}.txt", 'w') as f:
-            await f.write(exceptiontxt)
+        # with open(f"errors/{time.time_ns()}.txt", 'w') as f:
+        #     f.write(exceptiontxt)
         await ctx.send(
             embed=discord.Embed(
                 title="Error occurred",
@@ -100,9 +103,10 @@ class MyCog(commands.Cog):
         if isinstance(exception, self.bot.req.ERRORS):
             print('Data :')
             print(exception.data)
+        print('================ E N D ================')
 
     @commands.command(name="help")
-    async def _help(self, ctx):
+    async def _help(self, ctx: commands.Context):
         if isinstance(ctx.channel, discord.channel.DMChannel):
             return
         help_msg: discord.Message = await ctx.send(embed=helptxt_pages[0])
@@ -145,7 +149,7 @@ class MyCog(commands.Cog):
         await help_msg.clear_reactions()
 
     @commands.command()
-    async def ping(self, ctx):
+    async def ping(self, ctx: commands.Context):
         msgtime = ctx.message.created_at
         nowtime = datetime.datetime.utcnow()
         print(msgtime)
@@ -153,7 +157,7 @@ class MyCog(commands.Cog):
         await ctx.send(f"Pong! `{(nowtime - msgtime).total_seconds() * 1000 :.4f}ms`")
 
     @commands.command()
-    async def roll(self, ctx, *dices: str):
+    async def roll(self, ctx: commands.Context, *dices: str):
         sendtxt = []
         for _d in dices:
             x = dice(_d)
@@ -163,36 +167,36 @@ class MyCog(commands.Cog):
         await ctx.send(embed=discord.Embed(title="Dice result", description='\n'.join(sendtxt)))
 
     @commands.command()
-    async def sheetslink(self, ctx):
+    async def sheetslink(self, ctx: commands.Context):
         await ctx.send("https://docs.google.com/spreadsheets/d/1SA2u-KgTsHcXcsGEbrcfqWugY7sgHIYJpPa5fxNEJYc/edit#gid=0")
 
     @commands.command()
     @is_owner()
-    async def say(self, ctx, *, txt: str):
+    async def say(self, ctx: commands.Context, *, txt: str):
         if txt:
             await ctx.send(txt)
 
     @commands.command()
     @is_owner()
-    async def sayresult(self, ctx, *, com: str):
+    async def sayresult(self, ctx: commands.Context, *, com: str):
         res = eval(com)
         await ctx.send('Result : `' + str(res) + '`')
 
     @commands.command()
     @is_owner()
-    async def run(self, ctx, *, com: str):
+    async def run(self, ctx: commands.Context, *, com: str):
         exec(com)
         await ctx.send('Done')
 
     @commands.command()
     @is_owner()
-    async def asyncsayresult(self, ctx, *, com: str):
+    async def asyncsayresult(self, ctx: commands.Context, *, com: str):
         res = await eval(com)
         await ctx.send('Result : `' + str(res) + '`')
 
     @commands.command()
     @is_owner()
-    async def asyncrun(self, ctx, *, com: str):
+    async def asyncrun(self, ctx: commands.Context, *, com: str):
         exec(
             f'async def __ex(): ' +
             ''.join(f'\n    {_l}' for _l in com.split('\n')),
@@ -203,7 +207,7 @@ class MyCog(commands.Cog):
 
     @commands.command()
     @is_owner()
-    async def reload(self, ctx):
+    async def reload(self, ctx: commands.Context):
         global helptxt_pages, Timer, Scrim, Match, MatchMaker, RequestManager
         for module in modules:
             importlib.reload(module)
@@ -217,7 +221,7 @@ class MyCog(commands.Cog):
 
     @commands.command(name="continue")
     @is_owner()
-    async def continue_(self, ctx):
+    async def continue_(self, ctx: commands.Context):
         now_match = self.bot.matches[ctx.author]
         if now_match.match_task.done():
             await now_match.do_match_start()
@@ -230,7 +234,7 @@ class MyCog(commands.Cog):
 
     @commands.command()
     @is_owner()
-    async def showerrormsg(self, ctx):
+    async def showerrormsg(self, ctx: commands.Context):
         now_match = self.bot.matches[ctx.author]
         if (txt := now_match.get_debug_txt()) is not None:
             await ctx.send(embed=discord.Embed(
@@ -244,7 +248,7 @@ class MyCog(commands.Cog):
             ))
 
     @commands.command()
-    async def make(self, ctx):
+    async def make(self, ctx: commands.Context):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             await ctx.send(embed=discord.Embed(
@@ -269,69 +273,69 @@ class MyCog(commands.Cog):
             ))
 
     @commands.command(aliases=['t'])
-    async def teamadd(self, ctx, *, name):
+    async def teamadd(self, ctx: commands.Context, *, name):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             await s['scrim'].maketeam(name)
 
     @commands.command(aliases=['tr'])
-    async def teamremove(self, ctx, *, name):
+    async def teamremove(self, ctx: commands.Context, *, name):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             await s['scrim'].removeteam(name)
 
     @commands.command(name="in")
-    async def _in(self, ctx, *, name):
+    async def _in(self, ctx: commands.Context, *, name):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             await s['scrim'].addplayer(name, ctx.author)
 
     @commands.command()
-    async def out(self, ctx):
+    async def out(self, ctx: commands.Context):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             await s['scrim'].removeplayer(ctx.author)
 
     @commands.command(aliases=['score', 'sc'])
-    async def _score(self, ctx, sc: int, a: float = 0.0, m: int = 0, gr: str = None):
+    async def _score(self, ctx: commands.Context, sc: int, a: float = 0.0, m: int = 0, gr: str = None):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             await s['scrim'].addscore(ctx.author, sc, a, m, gr)
 
     @commands.command(aliases=['scr'])
-    async def scoreremove(self, ctx):
+    async def scoreremove(self, ctx: commands.Context):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             await s['scrim'].removescore(ctx.author)
 
     @commands.command()
-    async def submit(self, ctx, calcmode: Optional[str] = None):
+    async def submit(self, ctx: commands.Context, calcmode: Optional[str] = None):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             await s['scrim'].submit(calcmode)
 
     @commands.command()
-    async def start(self, ctx):
+    async def start(self, ctx: commands.Context):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             await s['scrim'].do_match_start()
 
     @commands.command()
-    async def abort(self, ctx):
+    async def abort(self, ctx: commands.Context):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             if not s['scrim'].match_task.done():
                 s['scrim'].match_task.cancel()
 
     @commands.command()
-    async def end(self, ctx):
+    async def end(self, ctx: commands.Context):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             await s['scrim'].end()
             del self.bot.datas[ctx.guild.id][ctx.channel.id]
     """
     @commands.command()
-    async def verify(self, ctx, uid: Optional[int] = None):
+    async def verify(self, ctx: commands.Context, uid: Optional[int] = None):
         mid = ctx.author.id
         if self.bot.uids[mid] > 0:
             await ctx.send(embed=discord.Embed(
@@ -369,7 +373,7 @@ class MyCog(commands.Cog):
                                 del self.bot.ratings[v.uid]
                                 return
                     await ctx.send(embed=discord.Embed(
-                        title=f'Player {ctx.author.name} binded to UID {v.uid}.',
+                        title=f'Player {ctx.author.display_name} binded to UID {v.uid}.',
                         description=f'Your ELO value set to {self.bot.ratings[v.uid]}',
                         color=discord.Colour(0xfefefe)
                     ))
@@ -398,7 +402,7 @@ class MyCog(commands.Cog):
     """
     
     @commands.command(name="map")
-    async def _map(self, ctx, *, name: str):
+    async def _map(self, ctx: commands.Context, *, name: str):
         await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
         return
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
@@ -448,7 +452,7 @@ class MyCog(commands.Cog):
             ))
 
     @commands.command(aliases=['mm'])
-    async def mapmode(self, ctx, mode: str):
+    async def mapmode(self, ctx: commands.Context, mode: str):
         await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
         return
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
@@ -468,7 +472,7 @@ class MyCog(commands.Cog):
             ))
 
     @commands.command(aliases=['mt'])
-    async def maptime(self, ctx, _time: int):
+    async def maptime(self, ctx: commands.Context, _time: int):
         await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
         return
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
@@ -488,7 +492,7 @@ class MyCog(commands.Cog):
             ))
 
     @commands.command(aliases=['ms'])
-    async def mapscore(self, ctx, sc_or_auto: Union[int, str], *, path: Optional[str] = None):
+    async def mapscore(self, ctx: commands.Context, sc_or_auto: Union[int, str], *, path: Optional[str] = None):
         await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
         return
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
@@ -513,7 +517,7 @@ class MyCog(commands.Cog):
             ))
 
     @commands.command(aliases=['l'])
-    async def onlineload(self, ctx, checkbit: Optional[int] = None):
+    async def onlineload(self, ctx: commands.Context, checkbit: Optional[int] = None):
         await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
         return
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
@@ -521,7 +525,7 @@ class MyCog(commands.Cog):
             await s['scrim'].onlineload(checkbit)
 
     @commands.command()
-    async def form(self, ctx, *, f_: str):
+    async def form(self, ctx: commands.Context, *, f_: str):
         await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
         return
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
@@ -560,7 +564,7 @@ class MyCog(commands.Cog):
             ))
 
     @commands.command(aliases=['mh'])
-    async def maphash(self, ctx, h: str):
+    async def maphash(self, ctx: commands.Context, h: str):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             resultmessage = await ctx.send(embed=discord.Embed(
@@ -579,7 +583,7 @@ class MyCog(commands.Cog):
             ))
 
     @commands.command()
-    async def timer(self, ctx, action: Union[float, str], name: Optional[str] = None):
+    async def timer(self, ctx: commands.Context, action: Union[float, str], name: Optional[str] = None):
         if action == 'now':
             if self.bot.timers.get(name) is None:
                 await ctx.send(embed=discord.Embed(
@@ -615,7 +619,7 @@ class MyCog(commands.Cog):
                 ))
 
     @commands.command()
-    async def calc(self, ctx, kind: str, maxscore: d, score: d, acc: d, miss: d):
+    async def calc(self, ctx: commands.Context, kind: str, maxscore: d, score: d, acc: d, miss: d):
         if kind == "nero2":
             result = neroscorev2(maxscore, score, acc, miss)
         elif kind == "jet2":
@@ -640,7 +644,7 @@ class MyCog(commands.Cog):
         ))
 
     @commands.command()
-    async def now(self, ctx):
+    async def now(self, ctx: commands.Context):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
         if s['valid']:
             scrim = s['scrim']
@@ -653,7 +657,7 @@ class MyCog(commands.Cog):
             await ctx.send(embed=e)
 
     @commands.command(aliases=['pfme'])
-    async def profileme(self, ctx, did: Optional[int] = None):
+    async def profileme(self, ctx: commands.Context, did: Optional[int] = None):
         if did is None:
             did = ctx.author.id
         name = await self.bot.get_discord_username(did)
@@ -688,7 +692,7 @@ class MyCog(commands.Cog):
         )
         e.add_field(
             name="Elo",
-            value=f"{self.bot.ratings[userinfo['uuid']].quantize(d('.001'), rounding=decimal.ROUND_FLOOR):,.10g}"
+            value=f"`{elo_show_form(self.bot.ratings[userinfo['uuid']])}`"
         )
         rankstr = get_elo_rank(self.bot.ratings[userinfo['uuid']])
         rankimgfile = discord.File(TIER_IMAGES[rankstr])
@@ -700,7 +704,7 @@ class MyCog(commands.Cog):
         await ctx.send(file=rankimgfile, embed=e)
 
     @commands.command(aliases=['rs'])
-    async def recentme(self, ctx, uid: Optional[int] = None):
+    async def recentme(self, ctx: commands.Context, uid: Optional[int] = None):
         if uid is None:
             uid = ctx.author.id
         name = await self.bot.get_discord_username(uid)
@@ -754,7 +758,7 @@ class MyCog(commands.Cog):
 
     @commands.command(aliases=['q'])
     @is_queue_channel()
-    async def queue(self, ctx):
+    async def queue(self, ctx: commands.Context):
         if self.bot.matches.get(ctx.author):
             await ctx.send(embed=discord.Embed(
                 title=f"You can't queue while playing match.",
@@ -795,7 +799,7 @@ class MyCog(commands.Cog):
             return"""
         self.bot.matchmaker.add_player(ctx.author)
         await ctx.send(embed=discord.Embed(
-            title=f"{ctx.author.name} queued.",
+            title=f"{ctx.author.display_name} queued.",
             description=f"(If you already in queue, this will be ignored.)\n"
                         f"Now the number of players in queue (except you) : {len(self.bot.matchmaker.pool)}",
             color=discord.Colour(0x78f7fb)
@@ -803,10 +807,10 @@ class MyCog(commands.Cog):
 
     @commands.command(aliases=['uq'])
     @is_queue_channel()
-    async def unqueue(self, ctx):
+    async def unqueue(self, ctx: commands.Context):
         self.bot.matchmaker.remove_player(ctx.author)
         await ctx.send(embed=discord.Embed(
-            title=f"{ctx.author.name} unqueued.",
+            title=f"{ctx.author.display_name} unqueued.",
             description=f"**This request could be ignored.**\n"
                         f"Now the number of players in queue (including you) : {len(self.bot.matchmaker.pool)}",
             color=discord.Colour(0x78f7fb)
@@ -814,15 +818,15 @@ class MyCog(commands.Cog):
 
     @commands.command()
     @is_verified()
-    async def duel(self, ctx):
+    async def duel(self, ctx: commands.Context):
         if self.bot.matches.get(ctx.author) is not None:
             await ctx.channel.send(embed=discord.Embed(
-                title=f"{ctx.author.name}, you can't duel while joining your match."
+                title=f"{ctx.author.display_name}, you can't duel while joining your match."
             ))
             return
         if ctx.author.id in self.bot.matchmaker.players_in_pool:
             await ctx.channel.send(embed=discord.Embed(
-                title=f"{ctx.author.name}, you can't duel while queueing."
+                title=f"{ctx.author.display_name}, you can't duel while queueing."
             ))
             return
         if self.bot.duel.get(ctx.author) is None:
@@ -849,7 +853,7 @@ class MyCog(commands.Cog):
                 await ctx.channel.send(
                     content=f"{opponent.mention}",
                     embed=discord.Embed(
-                        title=f"{ctx.author.name} is challenging you to duel!",
+                        title=f"{ctx.author.display_name} is challenging you to duel!",
                         description=f"If you want to accept the duel, use command `/duel` to {ctx.author.mention}!"
                     )
                 )
@@ -859,23 +863,23 @@ class MyCog(commands.Cog):
                 await m.do_match_start()
         else:
             await ctx.channel.send(embed=discord.Embed(
-                title=f"{ctx.author.name}, you already challenged another player to a duel."
+                title=f"{ctx.author.display_name}, you already challenged another player to a duel."
             ))
     
     @commands.command(aliases=['cancel'])
     @is_verified()
-    async def cancel_(self, ctx):
+    async def cancel_(self, ctx: commands.Context):
         if self.bot.duel.get(ctx.author) is None:
             return
         else:
             del self.bot.duel[ctx.author]
             await ctx.channel.send(embed=discord.Embed(
-                title=f"{ctx.author.name}'(s) Duel cancelled"
+                title=f"{ctx.author.display_name}'(s) Duel cancelled"
             ))
 
     @commands.command()
     @is_verified()
-    async def surrender(self, ctx):
+    async def surrender(self, ctx: commands.Context):
         if (m := self.bot.matches.get(ctx.author)) is not None:
             await m.surrender(ctx)
 
@@ -912,7 +916,7 @@ class MyBot(commands.Bot):
             loop_.default_exception_handler(context)
             exception = context.get('exception')
             if isinstance(exception, Exception):
-                print('Error occurred in the bot loop : ')
+                print(f'[{get_nowtime_str()}] In Mybot.loop:')
                 print(get_traceback_str(exception))
                 print('='*20)
 

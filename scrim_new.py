@@ -81,6 +81,9 @@ class Scrim:
         self.timer: Optional[Timer] = None
         self.PRINT_ON: bool = True
 
+    def __str__(self):
+        return f"Scrim({self.name})"
+
     async def maketeam(self, name: str, do_print: bool = None):
         if do_print is None:
             do_print = self.PRINT_ON
@@ -99,6 +102,7 @@ class Scrim:
                     description=f"Now team list:\n{chr(10).join(self.team.keys())}",
                     color=discord.Colour.blue()
                 ))
+            print(f"[{get_nowtime_str()}] {self}: Team \"{name}\" made.")
 
     async def removeteam(self, name: str, do_print: bool = None):
         if do_print is None:
@@ -119,6 +123,7 @@ class Scrim:
                     description=f"Now team list:\n{chr(10).join(self.team.keys())}",
                     color=discord.Colour.blue()
                 ))
+            print(f"[{get_nowtime_str()}] {self}: Team \"{name}\" removed.")
 
     async def addplayer(self, name: str, member: Optional[discord.Member], do_print: bool=None):
         if do_print is None:
@@ -150,6 +155,7 @@ class Scrim:
                                 f"{chr(10).join([(await self.bot.get_discord_username(pl)) for pl in self.team[name]])}",
                     color=discord.Colour.blue()
                 ))
+            print(f"[{get_nowtime_str()}] {self}: Player \"{member.name}\" participated into Team {name}.")
 
     async def removeplayer(self, member: Optional[discord.Member], do_print: bool = None):
         if do_print is None:
@@ -174,10 +180,11 @@ class Scrim:
                                 f"{chr(10).join([(await self.bot.get_discord_username(pl)) for pl in self.team[temp]])}",
                     color=discord.Colour.blue()
                 ))
+            print(f"[{get_nowtime_str()}] {self}: Player \"{member.name}\" left from Team {temp}.")
 
     async def addscore(self, 
                        member: Optional[discord.Member], 
-                       score: int, acc: float, miss: int,
+                       score: int, acc: str, miss: int,
                        grade: str = None, mode: Union[int, str] = 0):
         if not member:
             return
@@ -190,12 +197,13 @@ class Scrim:
                 description=f"You participate first."
             ))
         else:
-            self.score[mid] = {'score': getd(score), 'acc': getd(acc), 'miss': getd(miss), 'rank': grade, 'mode': mode}
+            self.score[mid] = {'score': getd(score), 'acc': acc, 'miss': getd(miss), 'rank': grade, 'mode': mode}
             await self.channel.send(embed=discord.Embed(
                 title=f"Player {member.name}'(s) score is modified.",
                 description=f"Team {self.findteam[mid]} <== {score}, {acc}%, {miss}xMISS",
                 color=discord.Colour.blue()
             ))
+            print(f"[{get_nowtime_str()}] {self}: Player \"{member.name}\" added score.")
 
     async def removescore(self, member: Optional[discord.Member], do_print: bool = None):
         if do_print is None:
@@ -209,11 +217,12 @@ class Scrim:
                 description=f"You participate first."
             ))
         else:
-            self.score[mid] = None
+            self.score[mid] = {'score': getd(0), 'acc': "00.00", 'miss': getd(0), 'rank': None, 'mode': 0}
             await self.channel.send(embed=discord.Embed(
                 title=f"Player {member.name}'(s) score is deleted.",
                 color=discord.Colour.blue()
             ))
+            print(f"[{get_nowtime_str()}] {self}: Player \"{member.name}\" removed score.")
     
     async def submit(self, calcmode: Optional[str] = None):
         if v2dict.get(calcmode) is None:
@@ -306,6 +315,7 @@ class Scrim:
                               f"{inttomode(self.score[p]['mode'])})")
         self.log.append('\n'.join(logtxt))
         self.resetmap()
+        print(f"[{get_nowtime_str()}] {self}.submit(): Submit progress finished.")
     
     async def submit_fixca(self):
         resultmessage = await self.channel.send(embed=discord.Embed(
@@ -377,6 +387,7 @@ class Scrim:
                               f"{inttomode(self.score[p]['mode'])}")
         self.log.append('\n'.join(logtxt))
         self.resetmap()
+        print(f"[{get_nowtime_str()}] {self}.submit_fixca(): Submit progress finished.")
         return teamscore
     
     def resetmap(self):
@@ -390,7 +401,7 @@ class Scrim:
         self.map_length = None
         self.map_hash = None
         for p in self.score:
-            self.score[p] = {'score': d(0), 'acc': d(0), 'miss': d(0), 'rank': None, 'mode': 0}
+            self.score[p] = {'score': d(0), 'acc': "00.00", 'miss': d(0), 'rank': None, 'mode': 0}
         self.round_start_time = None
     
     def setartist(self, artist: str):
@@ -513,6 +524,8 @@ class Scrim:
                 else:
                     uuid_ = await self.bot.get_user_info(player)
                     if isinstance(uuid_, self.bot.req.ERRORS):
+                        print(f"[{get_nowtime_str()}] {self}.onlineload(): "
+                              f"Failed to load data of {playername} ({uuid_})")
                         print(uuid_.data)
                         desc += f"Failed : " \
                                 f"Error occurred while getting {playername}'s info ({uuid_})"
@@ -520,6 +533,8 @@ class Scrim:
                     player_recent_info = await self.bot.get_recent(
                         id_=uuid_['uuid'])
                 if isinstance(player_recent_info, self.bot.req.ERRORS):
+                    print(f"[{get_nowtime_str()}] {self}.onlineload(): "
+                          f"Failed to load data of {playername} ({player_recent_info})")
                     print(player_recent_info.data)
                     if player_recent_info.data['code'] == fixca.FixcaErrorCode.PLAYER_NO_RECORDS:
                         desc += f"Failed : " \
@@ -531,11 +546,18 @@ class Scrim:
                 if player_recent_info is None:
                     desc += f"Failed : " \
                             f"{playername}'s recent play info can't be parsed."
+                    print(f"[{get_nowtime_str()}] {self}.onlineload(): "
+                          f"Failed to load data of {playername} (parse error)")
                     continue
                 if player_recent_info['mapHash'] != self.getmaphash():
                     desc += f"Failed : " \
-                            f"In {playername}'s recently played info, its hash is different." \
-                            f"\n(Hash of the map : `{self.getmaphash()}` / Your hash : `{player_recent_info['mapHash']}`)"
+                            f"In {playername}'s recently played info, its hash is different.\n" \
+                            f"(Hash of the map : `{self.getmaphash()}` / " \
+                            f"Your hash : `{player_recent_info['mapHash']}`)"
+                    print(f"[{get_nowtime_str()}] {self}.onlineload(): "
+                          f"Failed to load data of {playername} (different hash)\n"
+                          f"Player HASH : {player_recent_info['mapHash']}\n"
+                          f"Map    HASH : {self.getmaphash()}")
                     continue
                 modeint = modetointfunc(re.findall(r'.{1,2}', player_recent_info['modList'], re.DOTALL))
                 if self.map_mode is not None and \
@@ -545,6 +567,10 @@ class Scrim:
                             f"its mode is NOT allowed in now map mode. " \
                             f"(Modes allowed to use in this round : `{self.availablemode[self.map_mode]}` / " \
                             f"Your mode : `{player_recent_info['modList']} = {modeint}`)"
+                    print(f"[{get_nowtime_str()}] {self}.onlineload(): "
+                          f"Failed to load data of {playername} (not allowed mode)\n"
+                          f"Player MODE : {modeint}\n"
+                          f"Map    MODE : {self.availablemode[self.map_mode]}")
                     continue
                 self.score[player] = player_recent_info
                 self.score[player]['score'] = d(self.score[player]['score'])
@@ -558,11 +584,13 @@ class Scrim:
                         f"{self.score[player]['score']}, {self.score[player]['acc']}%, " \
                         f"{self.score[player]['miss']}xMISS / " \
                         f"{self.score[player]['modList']} / {self.score[player]['rank']} rank"
+                print(f"[{get_nowtime_str()}] {self}.onlineload(): Success to load data of {playername}")
         await resultmessage.edit(embed=discord.Embed(
             title="Calculation finished!",
             description=desc,
             color=discord.Colour.green()
         ))
+        print(f"[{get_nowtime_str()}] {self}.onlineload(): Progress finished.")
 
     async def end(self):
         winnerteam = list(filter(
@@ -600,6 +628,7 @@ class Scrim:
             embed=sendtxt,
             file=discord.File(fp_, filename=f"{self.name}_{self.start_time}.log")
         )
+        print(f"[{get_nowtime_str()}] {self}.end(): Scrim finished.")
         return winnerteam
         
     async def do_match_start(self):
