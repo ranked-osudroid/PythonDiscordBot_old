@@ -623,7 +623,7 @@ class Scrim:
             inline=False
         )
         logtxt = '\n\n====================\n\n'.join(self.log)
-        fp_ = io.BytesIO(bytes(logtxt))
+        fp_ = io.BytesIO(bytes(logtxt, 'utf-8'))
         await self.channel.send(
             embed=sendtxt,
             file=discord.File(fp_, filename=f"{self.name}_{self.start_time}.log")

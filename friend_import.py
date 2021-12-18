@@ -330,7 +330,7 @@ TIER_IMAGES = {
 
 class Tee(object):
     def __init__(self, name, mode):
-        self.file = open(name, mode)
+        self.file = open(name, mode, encoding='utf-8')
         self.stdout = sys.stdout
         sys.stdout = self
 
