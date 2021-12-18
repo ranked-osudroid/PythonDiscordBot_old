@@ -487,7 +487,7 @@ class Match:
             await ctx.send(f"**{player.mention}, time over.**")
             return
         await self.channel.send(embed=discord.Embed(
-            title=f"{player.mention} surrendered",
+            title=f"{player.name} surrendered",
             description="The match will finish soon..."
         ))
         self.scrim.setscore["BLUE" if x else "RED"] = int(self.winfor)
