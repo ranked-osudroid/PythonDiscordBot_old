@@ -56,12 +56,12 @@ class MyCog(commands.Cog):
         if isinstance(message.channel, discord.channel.DMChannel):
             print(
                 f"[{message.created_at.strftime(TIMEFORMAT)}] "
-                f"- DM - <{p.name}> {message.content}"
+                f"(DM) <{p.name}> {message.content}"
             )
         else:
             print(
                 f"[{message.created_at.strftime(TIMEFORMAT)}] "
-                f"- {ch.name} - <{p.name}> {message.content}"
+                f"({ch.name}) <{p.name}> {message.content}"
             )
         """
         if credentials.expired:
