@@ -371,10 +371,10 @@ class Scrim:
         for t in self.team:
             logtxt.append(f'\nTeam {t} = {teamscore[t]}')
             for p in self.team[t]:
-                logtxt.append(f"Player {await self.bot.get_discord_username(p)} = {calculatedscores[p]} "
-                              f"({' / '.join(str(self.score[p][x]) for x in ('score', 'acc', 'miss'))} - "
+                logtxt.append(f"Player {await self.bot.get_discord_username(p)} = "
+                              f"{' / '.join(str(self.score[p][x]) for x in ('score', 'acc', 'miss'))} - "
                               f"{self.score[p]['rank']} - "
-                              f"{inttomode(self.score[p]['mode'])})")
+                              f"{inttomode(self.score[p]['mode'])}")
         self.log.append('\n'.join(logtxt))
         self.resetmap()
         return teamscore

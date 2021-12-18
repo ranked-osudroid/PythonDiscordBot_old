@@ -50,16 +50,18 @@ class MyCog(commands.Cog):
         p = message.author
         if p == self.bot.user:
             return
+        """
         if isinstance(message.channel, discord.channel.DMChannel):
             print(
-                f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}] "
+                f"[{message.created_at.strftime('%Y-%m-%d %a %X')}] "
                 f"[DM] <{p.name};{p.id}> {message.content}"
             )
         else:
             print(
-                f"[{time.strftime('%Y-%m-%d %a %X', time.localtime(time.time()))}] "
+                f"[{{message.created_at.strftime('%Y-%m-%d %a %X')}] "
                 f"[{message.guild.name};{ch.name}] <{p.name};{p.id}> {message.content}"
             )
+        """
         """
         if credentials.expired:
             gs.login()
@@ -83,6 +85,7 @@ class MyCog(commands.Cog):
             ))"""
             return
         exceptiontxt = get_traceback_str(exception)
+
         print('================ ERROR ================')
         print(exceptiontxt)
         print('=======================================')
