@@ -349,7 +349,7 @@ class Tee(object):
 def elo_show_form(el: d):
     return f"{el.quantize(d('.001'), rounding=decimal.ROUND_FLOOR):,.3f}"
 
-TEE = Tee(f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}.log", "w")
+TEE = Tee(f"logs/{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}.log", "w")
 
 TIMEFORMAT = '%Y-%m-%d %X.%f'
 

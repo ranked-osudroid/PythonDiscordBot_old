@@ -20,4 +20,4 @@ __pycache__/
 .python-version
 temp.txt
 errors/
-
+logs/
