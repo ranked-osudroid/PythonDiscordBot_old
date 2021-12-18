@@ -450,7 +450,7 @@ class Match:
                     self.match_task.cancel()
                 await self.channel.delete()
                 await self.role.delete()
-                self.bot.finished_matches.remove(self)
+                # self.bot.finished_matches.remove(self)
             self.timer = Timer(
                 self.bot,
                 self.channel,
