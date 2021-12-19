@@ -55,12 +55,12 @@ class MyCog(commands.Cog):
             return
         if isinstance(message.channel, discord.channel.DMChannel):
             print(
-                f"[{message.created_at.strftime(TIMEFORMAT)}] "
+                f"[{message.created_at.strftime(TIMEFORMAT)[:-3]}] "
                 f"(DM) <{p.name}> {message.content}"
             )
         else:
             print(
-                f"[{message.created_at.strftime(TIMEFORMAT)}] "
+                f"[{message.created_at.strftime(TIMEFORMAT)[:-3]}] "
                 f"({ch.name}) <{p.name}> {message.content}"
             )
         """
