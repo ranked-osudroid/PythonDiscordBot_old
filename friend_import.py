@@ -358,3 +358,10 @@ TIMEFORMAT = '%Y-%m-%d %X.%f'
 
 def get_nowtime_str():
     return datetime.datetime.now().strftime(TIMEFORMAT)[:-3]
+
+DISCORD_STATS = [
+    discord.Status.online,
+    discord.Status.offline,
+    discord.Status.idle,
+    discord.Status.dnd
+]

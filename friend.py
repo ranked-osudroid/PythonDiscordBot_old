@@ -31,12 +31,13 @@ class MyCog(commands.Cog):
         async def work():
             try:
                 while True:
-                    await self.bot.change_presence(
-                        activity=discord.Game(
-                            f"{len(self.bot.matchmaker.players_in_pool)} queued | "
-                            f"{len(self.bot.matches) // 2} matches"
+                    if not self.bot.status:
+                        await self.bot.change_presence(
+                            activity=discord.Game(
+                                f"{len(self.bot.matchmaker.players_in_pool)} queued | "
+                                f"{len(self.bot.matches) // 2} matches"
+                            )
                         )
-                    )
                     await asyncio.sleep(5)
             except asyncio.CancelledError:
                 raise
@@ -245,6 +246,20 @@ class MyCog(commands.Cog):
                 title="No error occured... now.",
                 description=f"```{now_match.match_task}```",
             ))
+
+    @commands.command(aliases=['status'])
+    @is_owner()
+    async def status_(self, ctx: commands.Context, status_option: Optional[int], *, status_message: Optional[str]):
+        self.bot.status = (
+            self.bot.status[0] if status_option is None else DISCORD_STATS[status_option],
+            self.bot.status[1] if status_message is None else status_message
+        )
+        await self.bot.change_presence(
+            status=self.bot.status[0],
+            activity=discord.Game(self.bot.status[1])
+        )
+        await ctx.send(f"Applyed ({self.bot.status[0]}, {self.bot.status[1]})")
+
 
     @commands.command()
     async def make(self, ctx: commands.Context):
@@ -908,6 +923,8 @@ class MyBot(commands.Bot):
         self.matchmaker = MatchMaker(self)
 
         self.finished_matches: List['Match'] = []
+
+        self.status: Tuple[Optional[str], Optional[str]] = (None, None)
 
         self.shutdown_datetime = get_shutdown_datetime()
 
