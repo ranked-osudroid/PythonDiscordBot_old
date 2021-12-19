@@ -339,12 +339,14 @@ class Tee(object):
         self.file.close()
 
     def write(self, data):
-        self.file.write(data)
-        self.flush()
+        if not self.file.closed:
+            self.file.write(data)
+            self.flush()
         self.stdout.write(data)
 
     def flush(self):
-        self.file.flush()
+        if not self.file.closed:
+            self.file.flush()
 
 
 def elo_show_form(el: d):
