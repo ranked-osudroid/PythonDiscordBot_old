@@ -355,4 +355,4 @@ TEE = Tee(f"logs/{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}.log", "w")
 TIMEFORMAT = '%Y-%m-%d %X.%f'
 
 def get_nowtime_str():
-    return datetime.datetime.now().strftime(TIMEFORMAT)
+    return datetime.datetime.now().strftime(TIMEFORMAT)[:-3]

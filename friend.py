@@ -91,7 +91,6 @@ class MyCog(commands.Cog):
         print(f"[{get_nowtime_str()}] Mybot.on_command_error()")
         print('================ ERROR ================')
         print(exceptiontxt)
-        print('=======================================')
         # with open(f"errors/{time.time_ns()}.txt", 'w') as f:
         #     f.write(exceptiontxt)
         await ctx.send(
@@ -101,7 +100,7 @@ class MyCog(commands.Cog):
             )
         )
         if isinstance(exception, self.bot.req.ERRORS):
-            print('Data :')
+            print('(i) Data :')
             print(exception.data)
         print('================ E N D ================')
 

@@ -86,7 +86,7 @@ class MatchMaker:
                         if player.id not in self.players_in_pool:
                             self.pool.append(WaitingPlayer(self.bot, player))
                             self.players_in_pool.add(player.id)
-                            print(f"[{get_nowtime_str()}] MatchMaker: {player} queued.")
+                            print(f"[{get_nowtime_str()}] MatchMaker: {player.name} queued.")
                     else:
                         if len(self.pool) == 0:
                             continue
@@ -94,7 +94,7 @@ class MatchMaker:
                             p = self.pool.pop()
                             p.task.cancel()
                             self.players_in_pool.remove(p.player.id)
-                            print(f"[{get_nowtime_str()}] MatchMaker: {player} unqueued.")
+                            print(f"[{get_nowtime_str()}] MatchMaker: {player.name} unqueued.")
                         else:
                             for i in range(len(self.pool) - 1):
                                 p = self.pool.popleft()
@@ -102,7 +102,7 @@ class MatchMaker:
                                     p.task.cancel()
                                     self.pool.remove(p)
                                     self.players_in_pool.remove(p.player.id)
-                                    print(f"[{get_nowtime_str()}] MatchMaker: {player} unqueued.")
+                                    print(f"[{get_nowtime_str()}] MatchMaker: {player.name} unqueued.")
                 await asyncio.sleep(2)
         except asyncio.CancelledError:
             raise

@@ -432,7 +432,7 @@ class Match:
     async def match_start(self):
         try:
             while not self.match_end or self.aborted:
-                print(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} processing.\n")
+                print(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} processing.")
                 await self.do_progress()
                 self.readyable = True
                 while True:
