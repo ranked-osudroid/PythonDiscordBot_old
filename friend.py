@@ -872,7 +872,7 @@ class MyCog(commands.Cog):
                     )
                 )
             else:
-                del self.bot.duel[ctx.author], self.bot.duel[opponent]
+                del self.bot.duel[opponent]
                 self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = Match(self.bot, ctx.author, opponent)
                 await m.do_match_start()
         else:
