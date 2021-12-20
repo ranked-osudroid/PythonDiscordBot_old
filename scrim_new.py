@@ -693,7 +693,7 @@ class Scrim:
         for t in self.setscore:
             self.log.write(f"{t} : {self.setscore[t]}\n")
         self.log.close()
-        with open(self.log.name, 'rb', encoding='utf-8') as fp_:
+        with open(self.log.name, 'rb') as fp_:
             await self.channel.send(
                 embed=sendtxt,
                 file=discord.File(fp_)
