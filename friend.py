@@ -31,7 +31,7 @@ class MyCog(commands.Cog):
         async def work():
             try:
                 while True:
-                    if not self.bot.status:
+                    if self.bot.status == (None, None):
                         await self.bot.change_presence(
                             activity=discord.Game(
                                 f"{len(self.bot.matchmaker.players_in_pool)} queued | "
