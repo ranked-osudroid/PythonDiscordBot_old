@@ -451,7 +451,7 @@ class Match:
                         ))
                         break
                     if self.is_all_ready():
-                        print(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} all_ready detected.\n")
+                        print(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} all_ready detected.")
                         await self.timer.cancel()
                         self.reset_ready()
                         # if self.scrim is not None and not self.scrim.match_task.done():
@@ -505,10 +505,12 @@ class Match:
         if self.round < 0:
             return
         player = ctx.author
-        x = 0
-        if player == self.opponent:
-            x = 1
-        elif player != self.player:
+        tn = None
+        if player == self.player:
+            tn = "RED"
+        elif player == self.opponent:
+            tn = "BLUE"
+        else:
             return
         def check(msg):
             return msg.author == player and msg.content== player.name
@@ -522,7 +524,7 @@ class Match:
             title=f"{player.name} surrendered",
             description="The match will finish soon..."
         ))
-        self.scrim.setscore["BLUE" if x else "RED"] = int(self.winfor)
+        self.scrim.setscore[tn] = int(self.winfor)
         if self.scrim.match_task is not None and not self.scrim.match_task.done():
             self.scrim.match_task.cancel()
         if not self.timer.done:

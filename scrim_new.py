@@ -339,7 +339,7 @@ class Scrim:
         await resultmessage.edit(embed=sendtxt)
         self.resetmap()
         print(f"[{get_nowtime_str()}] {self}.submit(): Submit progress finished.")
-        self.log.write(f"\n[{get_nowtime_str()}] Submit finished.\n")
+        self.log.write(f"[{get_nowtime_str()}] Submit finished.\n")
     
     async def submit_fixca(self):
         self.log.write(f"[{get_nowtime_str()}] Submit running... (calcmode : FIXCA)\n")
@@ -418,7 +418,7 @@ class Scrim:
         await resultmessage.edit(embed=sendtxt)
         self.resetmap()
         print(f"[{get_nowtime_str()}] {self}.submit_fixca(): Submit progress finished.")
-        self.log.write(f"\n[{get_nowtime_str()}] Submit finished.\n")
+        self.log.write(f"[{get_nowtime_str()}] Submit finished.\n")
         return teamscore
     
     def resetmap(self):
