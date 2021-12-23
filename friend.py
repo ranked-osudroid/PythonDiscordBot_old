@@ -29,8 +29,8 @@ class MyCog(commands.Cog):
             self.bot.activity_display_task.cancel()
 
         async def work():
-            try:
-                while True:
+            while True:
+                try:
                     if self.bot.status == (None, None):
                         await self.bot.change_presence(
                             activity=discord.Game(
@@ -39,13 +39,13 @@ class MyCog(commands.Cog):
                             )
                         )
                     await asyncio.sleep(5)
-            except asyncio.CancelledError:
-                raise
-            except ConnectionResetError:
-                return
-            except Exception as ex:
-                print(f"[{get_nowtime_str()}] MyBot.activity_display_task:\n{get_traceback_str(ex)}")
-                raise
+                except asyncio.CancelledError:
+                    raise
+                except ConnectionResetError:
+                    pass
+                except Exception as ex:
+                    print(f"[{get_nowtime_str()}] MyBot.activity_display_task:\n{get_traceback_str(ex)}")
+                    raise
         self.bot.activity_display_task = self.bot.loop.create_task(work())
 
     @commands.Cog.listener()
