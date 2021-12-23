@@ -437,14 +437,14 @@ class Match:
                 self.readyable = True
                 while True:
                     if self.match_end:
-                        print(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} match_end detected.\n")
+                        print(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} match_end detected.")
                         await self.channel.send(embed=discord.Embed(
                             title="Match successfully finished",
                             description="Delete after 180 seconds."
                         ))
                         break
                     elif self.aborted:
-                        print(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} aborted detected.\n")
+                        print(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} aborted detected.")
                         await self.channel.send(embed=discord.Embed(
                             title="Match successfully aborted",
                             description="Delete after 15 seconds."
