@@ -77,7 +77,7 @@ class Scrim:
             'id'    : self.getmapid,
         }
 
-        self.log: IO = open(f'logs/scrim_{self.name}.log', 'w', encoding='utf-8')
+        self.log: IO = open(f'logs/scrim_{self.name}_{self.start_time}.log', 'w', encoding='utf-8')
         self.log.write(f"[{get_nowtime_str()}] Scrim initiated.\n"
                        f"Guild   : {self.channel.guild.name}"
                        f"Channel : {self.channel.name}\n"
