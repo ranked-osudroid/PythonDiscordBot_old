@@ -52,7 +52,7 @@ intents.reactions = True
 
 d = decimal.Decimal
 
-def ftod(n: Optional[int, float]):
+def ftod(n: Union[int, float]):
     return d(str(n))
 
 with open("key.txt", 'r') as f:
