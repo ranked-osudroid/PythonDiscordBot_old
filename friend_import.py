@@ -6,6 +6,7 @@ from typing import *
 from collections import defaultdict as dd
 from collections import deque
 from discord.ext import commands, tasks
+from enum import IntEnum
 
 """
 from bs4 import BeautifulSoup
@@ -50,6 +51,9 @@ intents.members = True
 intents.reactions = True
 
 d = decimal.Decimal
+
+def ftod(n: Optional[int, float]):
+    return d(str(n))
 
 with open("key.txt", 'r') as f:
     token = f.read().strip()

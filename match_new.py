@@ -65,6 +65,7 @@ class Match:
         self.map_infos: Dict[str, osuapi.osu.Beatmap] = dict()
         self.map_order: List[str] = []
         self.map_tb: Optional[str] = None
+        self.match_id: Optional[str] = None
 
         self.scrim: Optional[Scrim] = None
         self.role: Optional[discord.Role] = None
@@ -95,7 +96,7 @@ class Match:
     @classmethod
     def get_max_id(cls):
         return cls.__id
-    
+
     def get_debug_txt(self):
         if self.match_task.exception() is not None:
             return get_traceback_str(self.match_task.exception())
@@ -118,13 +119,13 @@ class Match:
         else:
             return
         if r_:
-            print(f"[{get_nowtime_str()}] {self}: {subj.name} readyed.")
+            self.scrim.log.write(f"[{get_nowtime_str()}] {self}: {subj.name} readyed.\n")
             await self.channel.send(embed=discord.Embed(
                 title=f"{subj.name} ready!",
                 color=discord.Colour.green()
             ))
         else:
-            print(f"[{get_nowtime_str()}] {self}: {subj.name} unreadyed.")
+            self.scrim.log.write(f"[{get_nowtime_str()}] {self}: {subj.name} unreadyed.\n")
             await self.channel.send(embed=discord.Embed(
                 title=f"{subj.name} unready!",
                 color=discord.Colour.green()
@@ -136,7 +137,7 @@ class Match:
     def reset_ready(self):
         self.player_ready = False
         self.opponent_ready = False
-        print(f"[{get_nowtime_str()}] {self}: Ready status reset.")
+        self.scrim.log.write(f"[{get_nowtime_str()}] {self}: Ready status reset.\n")
 
     async def go_next_status(self, timer_cancelled):
         self.readyable = False
@@ -207,14 +208,14 @@ class Match:
                         color=discord.Colour.purple()
                     )), asyncio.sleep(1))
             await self.scrim.do_match_start()
-            mid, msid = self.scrim.getmapid()
-            self.playID = {self.player.id: await self.bot.req.create_playID(self.uuid[self.player.id], mid, msid),
-                           self.opponent.id: await self.bot.req.create_playID(self.uuid[self.opponent.id], mid, msid)}
+            mid = self.scrim.getmapid()[0]
+            self.playID = {self.player.id: await self.bot.req.create_playID(self.uuid[self.player.id], mid),
+                           self.opponent.id: await self.bot.req.create_playID(self.uuid[self.opponent.id], mid)}
             if isinstance(pl := self.playID[self.player.id], self.bot.req.ERRORS):
-                print(pl.data)
+                self.scrim.log.write(str(pl.data) + '\n')
                 raise pl
             if isinstance(op := self.playID[self.opponent.id], self.bot.req.ERRORS):
-                print(op.data)
+                self.scrim.log.write(str(op.data) + '\n')
                 raise op
             if (mh := pl['mapHash']) == op['mapHash']:
                 self.scrim.setmaphash(mh)
@@ -222,7 +223,7 @@ class Match:
                 self.player_ready = True
                 self.opponent_ready = True
         self.round += 1
-    
+
     async def do_progress(self):
         if self.match_end or self.aborted:
             return
@@ -250,7 +251,7 @@ class Match:
                         description=f"{self.player_info}\nCheck the log."
                     )
                 )
-                print(self.player_info.data)
+                self.scrim.log.write(str(self.player_info.data) + '\n')
                 raise self.player_info
             self.opponent_info = await self.bot.get_user_info(self.opponent.id)
             if isinstance(self.opponent_info, self.bot.req.ERRORS):
@@ -260,12 +261,12 @@ class Match:
                         description=f"{self.opponent_info}\nCheck the log."
                     )
                 )
-                print(self.opponent_info.data)
+                self.scrim.log.write(str(self.opponent_info.data) + '\n')
                 raise self.opponent_info
             self.uuid[self.player.id] = self.player_info['uuid']
             self.uuid[self.opponent.id] = self.opponent_info['uuid']
-            self.elo_manager.set_player_rating(self.bot.ratings[self.player_info['uuid']])
-            self.elo_manager.set_opponent_rating(self.bot.ratings[self.opponent_info['uuid']])
+            self.elo_manager.set_player_rating(ftod(self.player_info['elo']))
+            self.elo_manager.set_opponent_rating(ftod(self.opponent_info['elo']))
             await self.channel.send(
                 f"{self.player.mention} {self.opponent.mention}",
                 embed=discord.Embed(
@@ -274,20 +275,30 @@ class Match:
                 )
             )
             self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_invite", 120, self.go_next_status)
-            print(f"[{get_nowtime_str()}] {self}: Match initiated\n"
-                  f"Player   ID : {self.player.id}\n"
-                  f"              {self.uuid[self.player.id]}\n"
-                  f"Opponent ID : {self.opponent.id}\n"
-                  f"              {self.uuid[self.opponent.id]}\n"
-                  f"Channel  ID : {self.channel.id}\n"
-                  f"Role     ID : {self.role.id}")
+            self.scrim.log.write(f"[{get_nowtime_str()}] {self}: Match initiated\n"
+                                 f"Player   ID : {self.player.id}\n"
+                                 f"              {self.uuid[self.player.id]}\n"
+                                 f"Opponent ID : {self.opponent.id}\n"
+                                 f"              {self.uuid[self.opponent.id]}\n"
+                                 f"Channel  ID : {self.channel.id}\n"
+                                 f"Role     ID : {self.role.id}\n")
         elif self.round == 0:
+            # TODO: create_match here
+            """
+            res = await self.bot.req.create_match(*self.uuid.values())
+            if isinstance(res, self.bot.req.ERRORS):
+                self.scrim.log.write(res.data)
+                raise
+            self.match_id = res["matchId"]
+            selected_pool = res["mappool"]
+            self.mappool_uuid = selected_pool['uuid']
+            """
             rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
-            # print('Before select_pool_mmr_range :', rate_lower, rate_highter)
+            # self.scrim.log.write('Before select_pool_mmr_range :', rate_lower, rate_highter)
             # 1000 ~ 2000 => 1200 ~ 3300
             rate_lower = elo_convert(rate_lower)
             rate_highter = elo_convert(rate_highter)
-            # print('After  select_pool_mmr_range :', rate_lower, rate_highter)
+            # self.scrim.log.write('After  select_pool_mmr_range :', rate_lower, rate_highter)
             pool_pools = list(filter(
                 lambda po: rate_lower - SELECT_POOL_RANGE <= po['averageMMR'] <= rate_highter + SELECT_POOL_RANGE,
                 maidbot_pools
@@ -296,28 +307,31 @@ class Match:
             while selected_pool['uuid'] in unplayable_pools_uuid:
                 selected_pool = random.choice(pool_pools)
             self.mappool_uuid = selected_pool['uuid']
-            # print('Selected pool :', selected_pool['name'])
+            # self.scrim.log.write('Selected pool :', selected_pool['name'])
             await self.channel.send(embed=discord.Embed(
                 title="Mappool is selected!",
                 description=f"Mappool Name : `{selected_pool['name']}`\n"
-                            f"Mappool MMR (modified) : "
-                            f"{elo_convert_rev(selected_pool['averageMMR']).quantize(d('.0001'))}\n"
+                            f"Mappool MMR (not modified) : "
+                            f"{selected_pool['averageMMR']}\n"
                             f"Mappool UUID : `{self.mappool_uuid}`",
                 color=discord.Colour(0x0ef37c)
             ))
-            print(f"[{get_nowtime_str()}] {self}.do_progress(): Mappool selected\n"
-                  f"Pool name : {selected_pool['name']}\n"
-                  f"Pool UUID : {self.mappool_uuid}")
+            self.scrim.log.write(f"[{get_nowtime_str()}] {self}.do_progress(): Mappool selected\n"
+                                 f"Pool name : {selected_pool['name']}\n"
+                                 f"Pool UUID : {self.mappool_uuid}\n")
 
             calcmsg = await self.channel.send(embed=discord.Embed(
                 title="Mappool initiating...",
                 color=discord.Colour.blurple()
             ))
 
-            for md in selected_pool['maps']:
+            maps = selected_pool['maps']
+            # maps = await self.bot.req.get_mappool(self.mappool_uuid)
+            for md in maps:
                 tempmap = await self.bot.osuapi.get_beatmaps(beatmap_id=md['mapId'])
                 if len(tempmap) == 0:
-                    print(f"[{get_nowtime_str()}] {self}.do_progress(): UNPLAYABLE MAP FOUND - {md['mapId']}")
+                    self.scrim.log.write(f"[{get_nowtime_str()}] {self}.do_progress(): "
+                                         f"UNPLAYABLE MAP FOUND - {md['mapId']}\n")
                     await calcmsg.edit(content=f"{self.player.mention} {self.opponent.mention}", embed=discord.Embed(
                         title="There's unplayable map in the mappool!",
                         description=f"Map id = {md['mapId']}\n"
@@ -327,6 +341,7 @@ class Match:
                     self.aborted = True
                     continue
                 self.map_infos[md['sheetId']] = tempmap[0]
+                # self.map_infos[fixca.FixcaMapMode(md['mods']).name + md['sheetId']] = tempmap[0]
             if self.aborted:
                 return
 
@@ -352,7 +367,7 @@ class Match:
                 color=discord.Colour.blue()
             ))
             self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_finalready", 60, self.go_next_status)
-            print(f"[{get_nowtime_str()}] {self}.do_progress(): Mappool successfully initiated.")
+            self.scrim.log.write(f"[{get_nowtime_str()}] {self}.do_progress(): Mappool successfully initiated.\n")
         elif (self.map_tb is None and self.round > len(self.map_order)) or self.round > self.BO or \
                 self.winfor in set(self.scrim.setscore.values()):
             await self.scrim.end()
@@ -377,11 +392,14 @@ class Match:
             ))
             self.match_end = True
             namelen = max(len(self.player.name), len(self.opponent.name))
-            print(f"[{get_nowtime_str()}] {self}.do_progress(): Match finished.\n"
-                  f"{self.player.name:{namelen}s} Before ELO : {prate_bef}\n"
-                  f"{self.player.name:{namelen}s} After  ELO : {prate_aft}\n"
-                  f"{self.opponent.name:{namelen}s} Before ELO : {orate_bef}\n"
-                  f"{self.opponent.name:{namelen}s} After  ELO : {orate_aft}\n")
+            temptxt = f"[{get_nowtime_str()}] {self}.do_progress(): Match finished.\n" \
+                      f"{self.player.name:{namelen}s} Before ELO : {prate_bef}\n" \
+                      f"{self.player.name:{namelen}s} After  ELO : {prate_aft}\n" \
+                      f"{self.opponent.name:{namelen}s} Before ELO : {orate_bef}\n" \
+                      f"{self.opponent.name:{namelen}s} After  ELO : {orate_aft}\n"
+            print(temptxt.rstrip())
+            with open(self.scrim.log.name, 'a', encoding='utf-8') as f:
+                f.write(temptxt)
         else:
             if self.round == self.BO and self.map_tb is not None:
                 now_mapnum = self.map_tb
@@ -423,35 +441,38 @@ class Match:
                 color=discord.Colour.orange()
             ))
             self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_{self.round}", 300, self.go_next_status)
-            print(f"[{get_nowtime_str()}] {self}.do_progress(): Round #{self.round} prepared.\n"
-                  f"Map info : {self.scrim.getmapfull()}\n"
-                  f"Map hash : {self.scrim.getmaphash()}\n"
-                  f"Map ID   : {self.scrim.getmapid()}\n"
-                  f"Map mode : {self.scrim.getnumber()}")
+            self.scrim.log.write(f"[{get_nowtime_str()}] {self}.do_progress(): Round #{self.round} prepared.\n"
+                                 f"Map info : {self.scrim.getmapfull()}\n"
+                                 f"Map hash : {self.scrim.getmaphash()}\n"
+                                 f"Map ID   : {self.scrim.getmapid()}\n"
+                                 f"Map mode : {self.scrim.getnumber()}\n")
 
     async def match_start(self):
         try:
             while not self.match_end or self.aborted:
-                print(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} processing.")
+                self.scrim.log.write(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} processing.\n")
                 await self.do_progress()
                 self.readyable = True
                 while True:
                     if self.match_end:
-                        print(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} match_end detected.")
+                        self.scrim.log.write(
+                            f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} match_end detected.\n")
                         await self.channel.send(embed=discord.Embed(
                             title="Match successfully finished",
                             description="Delete after 180 seconds."
                         ))
                         break
                     elif self.aborted:
-                        print(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} aborted detected.")
+                        self.scrim.log.write(
+                            f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} aborted detected.\n")
                         await self.channel.send(embed=discord.Embed(
                             title="Match successfully aborted",
                             description="Delete after 15 seconds."
                         ))
                         break
                     if self.is_all_ready():
-                        print(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} all_ready detected.")
+                        self.scrim.log.write(
+                            f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} all_ready detected.")
                         await self.timer.cancel()
                         self.reset_ready()
                         # if self.scrim is not None and not self.scrim.match_task.done():
@@ -459,12 +480,14 @@ class Match:
                             await self.scrim.match_task
                         break
                     await asyncio.sleep(1)
-                if self.match_end or self.aborted:
-                    # player_updated_elo, opponent_updated_elo = self.elo_manager.get_ratings()
+                if self.match_end:
+                    # TODO: await self.bot.req.upload_elo(self)
+                    break
+                if self.aborted:
                     break
         except BaseException as ex_:
-            print(f'[{get_nowtime_str()}] {self}.match_task:')
-            print(get_traceback_str(ex_))
+            self.scrim.log.write(f'[{get_nowtime_str()}] {self}.match_task:\n')
+            self.scrim.log.write(get_traceback_str(ex_)+'\n')
             await self.channel.send(embed=discord.Embed(
                 title="Error Ocurred",
                 description=f"{ex_}\nCheck the log.\n**This match will be aborted.**",
@@ -472,6 +495,8 @@ class Match:
             self.aborted = True
             raise ex_
         finally:
+            if not self.scrim.log.closed:
+                self.scrim.log.close()
             if self.scrim.match_task is not None and not self.scrim.match_task.done():
                 self.scrim.match_task.cancel()
             self.bot.finished_matches.append(self)
@@ -483,6 +508,7 @@ class Match:
                 await self.channel.delete()
                 await self.role.delete()
                 # self.bot.finished_matches.remove(self)
+
             self.timer = Timer(
                 self.bot,
                 self.channel,
@@ -512,9 +538,12 @@ class Match:
             tn = "BLUE"
         else:
             return
+
         def check(msg):
-            return msg.author == player and msg.content== player.name
-        await ctx.send(f"**{player.mention}, if yor really want to surrender, send your name (`{player.name}`) in 30 seconds.**")
+            return msg.author == player and msg.content == player.name
+
+        await ctx.send(
+            f"**{player.mention}, if yor really want to surrender, send your name (`{player.name}`) in 30 seconds.**")
         try:
             await self.bot.wait_for('message', timeout=30, check=check)
         except asyncio.TimeoutError:
@@ -531,4 +560,3 @@ class Match:
             await self.timer.cancel(False)
         self.round = self.BO + 1
         await self.do_progress()
-

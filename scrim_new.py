@@ -89,7 +89,14 @@ class Scrim:
         return f"Scrim({self.name})"
 
     def __del__(self):
-        pass
+        if not self.log.closed:
+            self.log.close()
+
+    def get_player_team(self, member: discord.Member):
+        mid = member.id
+        if mid not in self.players:
+            return
+        return self.findteam[mid]
 
     async def maketeam(self, name: str, do_print: bool = None):
         if do_print is None:
@@ -304,7 +311,6 @@ class Scrim:
         logtxt = [
             f'Map         : {self.getmapfull()}\n',
             f'Map mode    : {self.getnumber()}\n',
-            f'MapNick     : {self.map_number}\n',
             f'CalcFormula : {calcmode if calcmode else "V1"}\n',
             f'Winner Team : {desc}\n\n'
         ]
@@ -689,7 +695,7 @@ class Scrim:
             inline=False
         )
         self.log.write(f"[{get_nowtime_str()}] Scrim END\n"
-                       f"Team scores:\n")
+                       f"Team score:\n")
         for t in self.setscore:
             self.log.write(f"{t} : {self.setscore[t]}\n")
         self.log.close()

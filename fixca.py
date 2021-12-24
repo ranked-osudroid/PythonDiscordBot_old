@@ -1,5 +1,8 @@
 from friend_import import *
 
+if TYPE_CHECKING:
+    import match_new
+
 
 class HttpError(Exception):
     def __init__(self, method: str, url: str, data=None):
@@ -22,10 +25,19 @@ class FixcaError(Exception):
 
     def __str__(self):
         return f"Failed gettng datas from {self.method} {self.url} " \
-               f"(FixcaError : {FixcaErrorCode.desc[self.data['code']]})"
+               f"(FixcaError : {FixcaErrorCode(self.data['code']).name})"
 
 
-class FixcaErrorCode:
+class FixcaMapMode(IntEnum):
+    NM = 0
+    HD = 1
+    HR = 2
+    DT = 3
+    FM = 4
+    TB = 5
+
+
+class FixcaErrorCode(IntEnum):
     INVALID_KEY = 0
     INVALID_QUERY = 1
     INVALID_SECURE = 2
@@ -41,21 +53,20 @@ class FixcaErrorCode:
     TOKEN_LOCKED = 12
     TOKEN_EXPIRED = 13
     ILLEGAL_LOGIN = 14
-    desc = ['INVALID_KEY', 'INVALID_QUERY', 'INVALID_SECURE', 'DATABASE_ERROR', 'INTERNAL_SERVER_ERROR',
-            'USER_NOT_EXIST', 'EXPIRED_PLAYID', 'PLAYID_NOT_FOUND', 'ALREADY_REGISTERED', 'PLAYER_NO_RECORDS',
-            'MAP_NOT_EXIST', 'TOKEN_NOT_EXIST', 'TOKEN_LOCKED', 'TOKEN_EXPIRED', 'ILLEGAL_LOGIN']
 
 
 class RequestManager:
     BASEURL = "https://ranked-osudroid.ml/api/"
     ERRORS = (HttpError, FixcaError)
     with open("fixca_api_key.txt", 'r') as f:
-        key = f.read().strip()
+        __key = f.read().strip()
 
     def __init__(self, bot):
         self.bot = bot
         if bot is not None:
             self.session = bot.session
+        else:
+            raise AttributeError("bot.session")
 
     async def _post(self, url, data=None, **kwargs):
         if data is None:
@@ -92,18 +103,61 @@ class RequestManager:
             return resdata['output']
     
     async def recent_record(self, name):
-        return await self._post('recentRecord', 
-                                key=self.key, name=name)
+        return await self._post('recentRecord', data={
+            'key': self.__key,
+            'name': name,
+        })
     
-    async def create_playID(self, uuid, mapid, mapsetid):
-        return await self._post('createPlayId',
-                                key=self.key, uuid=uuid, mapid=mapid)
+    async def create_playID(self, uuid, mapid):
+        return await self._post('createPlayId', data={
+            'key': self.__key,
+            'uuid': uuid,
+            'mapid': mapid,
+        })
 
     async def get_user_byuuid(self, uuid):
-        return await self._post('userInfo', 
-                                key=self.key, uuid=uuid)
+        return await self._post('userInfo', data={
+            'key': self.__key,
+            'uuid': uuid,
+        })
 
     async def get_user_bydiscord(self, d_id):
-        return await self._post('userInfo',
-                                key=self.key, discordid=d_id)
+        return await self._post('userInfo', data={
+            'key': self.__key,
+            'discordid': d_id,
+        })
 
+    async def upload_elo(self, match: 'match_new.Match', force: bool = False):
+        if match is None:
+            raise ValueError("match is None")
+        if not match.match_end and not force:
+            raise Exception("Not allowed to change elo before finishing match.")
+        puid, ouid = match.uuid.values()
+        prating, orating = match.elo_manager.get_ratings()
+        if match.scrim.setscore["RED"] >= match.winfor:
+            wu, lu = puid, ouid
+            wr, lr = prating, orating
+        else:
+            wu, lu = ouid, puid
+            wr, lr = orating, prating
+        return await self._post('changeElo', data={
+            'key': self.__key,
+            'draw': match.scrim.setscore["RED"] == match.scrim.setscore["BLUE"],
+            'uuid1': wu,
+            'uuid2': lu,
+            'elo1': wr,
+            'elo2': lr,
+        })
+
+    async def get_mappool(self, uuid: str):
+        return await self._post('getMappool', data={
+            'key': self.__key,
+            'uuid': uuid,
+        })
+
+    async def create_match(self, player_uuid: str, opponent_uuid: str):
+        return await self._post('createMatch', data={
+            'key': self.__key,
+            'uuid1': player_uuid,
+            'uuid2': opponent_uuid,
+        })
