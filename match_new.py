@@ -212,10 +212,10 @@ class Match:
             self.playID = {self.player.id: await self.bot.req.create_playID(self.uuid[self.player.id], mid),
                            self.opponent.id: await self.bot.req.create_playID(self.uuid[self.opponent.id], mid)}
             if isinstance(pl := self.playID[self.player.id], self.bot.req.ERRORS):
-                self.scrim.log.write(str(pl.data) + '\n')
+                self.scrim.log.write(self.bot.req.censor(str(pl.data)) + '\n')
                 raise pl
             if isinstance(op := self.playID[self.opponent.id], self.bot.req.ERRORS):
-                self.scrim.log.write(str(op.data) + '\n')
+                self.scrim.log.write(self.bot.req.censor(str(op.data)) + '\n')
                 raise op
             if (mh := pl['mapHash']) == op['mapHash']:
                 self.scrim.setmaphash(mh)
@@ -251,7 +251,7 @@ class Match:
                         description=f"{self.player_info}\nCheck the log."
                     )
                 )
-                self.scrim.log.write(str(self.player_info.data) + '\n')
+                self.scrim.log.write(self.bot.req.censor(str(self.player_info.data)) + '\n')
                 raise self.player_info
             self.opponent_info = await self.bot.get_user_info(self.opponent.id)
             if isinstance(self.opponent_info, self.bot.req.ERRORS):
@@ -261,7 +261,7 @@ class Match:
                         description=f"{self.opponent_info}\nCheck the log."
                     )
                 )
-                self.scrim.log.write(str(self.opponent_info.data) + '\n')
+                self.scrim.log.write(self.bot.req.censor(str(self.opponent_info.data)) + '\n')
                 raise self.opponent_info
             self.uuid[self.player.id] = self.player_info['uuid']
             self.uuid[self.opponent.id] = self.opponent_info['uuid']
@@ -287,7 +287,7 @@ class Match:
             """
             res = await self.bot.req.create_match(*self.uuid.values())
             if isinstance(res, self.bot.req.ERRORS):
-                self.scrim.log.write(res.data)
+                self.scrim.log.write(self.bot.req.censor(str(res.data)) + '\n')
                 raise
             self.match_id = res["matchId"]
             selected_pool = res["mappool"]

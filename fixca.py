@@ -60,6 +60,7 @@ class RequestManager:
     ERRORS = (HttpError, FixcaError)
     with open("fixca_api_key.txt", 'r') as f:
         __key = f.read().strip()
+    __base_data = {'key': __key}
 
     def __init__(self, bot):
         self.bot = bot
@@ -68,13 +69,17 @@ class RequestManager:
         else:
             raise AttributeError("bot.session")
 
+    @staticmethod
+    def censor(s: str):
+        return s.replace(RequestManager.__key, 'key')
+
     async def _post(self, url, data=None, **kwargs):
         if data is None:
             data = dict()
         data |= kwargs
         print(f"[{get_nowtime_str()}] RequestManager: Sending POST {url}")
         print(data)
-        async with self.session.post(self.BASEURL+url, data=data) as res:
+        async with self.session.post(self.BASEURL+url, data=data|self.__base_data) as res:
             if res.status != 200:
                 print(f'[{get_nowtime_str()}] RequestManager: POST {url} failed (HTTP {res.status})')
                 print(await res.text())
@@ -91,7 +96,7 @@ class RequestManager:
         data |= kwargs
         print(f'[{get_nowtime_str()}] RequestManager: Sending GET {url}')
         print(data)
-        async with self.session.get(self.BASEURL+url, data=data) as res:
+        async with self.session.get(self.BASEURL+url, data=data|self.__base_data) as res:
             if res.status != 200:
                 print(f'[{get_nowtime_str()}] RequestManager: GET {url} failed (HTTP {res.status})')
                 print(await res.text())
@@ -104,26 +109,22 @@ class RequestManager:
     
     async def recent_record(self, name):
         return await self._post('recentRecord', data={
-            'key': self.__key,
             'name': name,
         })
     
     async def create_playID(self, uuid, mapid):
         return await self._post('createPlayId', data={
-            'key': self.__key,
             'uuid': uuid,
             'mapid': mapid,
         })
 
     async def get_user_byuuid(self, uuid):
         return await self._post('userInfo', data={
-            'key': self.__key,
             'uuid': uuid,
         })
 
     async def get_user_bydiscord(self, d_id):
         return await self._post('userInfo', data={
-            'key': self.__key,
             'discordid': d_id,
         })
 
@@ -141,7 +142,6 @@ class RequestManager:
             wu, lu = ouid, puid
             wr, lr = orating, prating
         return await self._post('changeElo', data={
-            'key': self.__key,
             'draw': match.scrim.setscore["RED"] == match.scrim.setscore["BLUE"],
             'uuid1': wu,
             'uuid2': lu,
@@ -151,13 +151,11 @@ class RequestManager:
 
     async def get_mappool(self, uuid: str):
         return await self._post('getMappool', data={
-            'key': self.__key,
             'uuid': uuid,
         })
 
     async def create_match(self, player_uuid: str, opponent_uuid: str):
         return await self._post('createMatch', data={
-            'key': self.__key,
             'uuid1': player_uuid,
             'uuid2': opponent_uuid,
         })
