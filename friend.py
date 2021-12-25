@@ -929,7 +929,6 @@ class MyBot(commands.Bot):
         self.osuapi = osuapi.OsuApi(api_key, connector=osuapi.AHConnector())
 
         self.uuid: dd[int, str] = dd(str)
-        self.ratings: dd[str, d] = dd(lambda: d(1500))
 
         self.timers: dd[str, Optional['Timer']] = dd(lambda: None)
         self.timer_count = 0
