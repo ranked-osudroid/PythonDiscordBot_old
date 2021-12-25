@@ -22,11 +22,9 @@ class WaitingPlayer:
     async def expanding(self):
         puuid = self.bot.uuid.get(self.player.id)
         if puuid is None:
-            self.player_rating = self.bot.ratings[
-                (await self.bot.get_user_info(self.player.id))['uuid']
-            ]
+            self.player_rating = (await self.bot.get_user_info(self.player.id))['elo']
         else:
-            self.player_rating = self.bot.ratings[puuid]
+            self.player_rating = (await self.bot.get_user_info(puuid))['elo']
         self.target_rating_low = self.player_rating
         self.target_rating_high = self.player_rating
         try:

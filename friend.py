@@ -16,6 +16,7 @@ class MyCog(commands.Cog):
     def __init__(self, bot: 'MyBot'):
         self.bot = bot
         self.temp: List['MatchScrim'] = []
+        self.last: Any = None
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -180,8 +181,8 @@ class MyCog(commands.Cog):
     @commands.command()
     @is_owner()
     async def sayresult(self, ctx: commands.Context, *, com: str):
-        res = eval(com)
-        await ctx.send('Result : ```' + str(res) + '```')
+        self.last = eval(com)
+        await ctx.send('Result : ```' + str(self.last) + '```')
 
     @commands.command()
     @is_owner()
@@ -192,8 +193,8 @@ class MyCog(commands.Cog):
     @commands.command()
     @is_owner()
     async def asyncsayresult(self, ctx: commands.Context, *, com: str):
-        res = await eval(com)
-        await ctx.send('Result : ```' + str(res) + '```')
+        self.last = await eval(com)
+        await ctx.send('Result : ```' + str(self.last) + '```')
 
     @commands.command()
     @is_owner()
@@ -720,11 +721,12 @@ class MyCog(commands.Cog):
             value=datetime.datetime.utcfromtimestamp(userinfo['verified_time']).strftime("%Y-%m-%d %H:%M:%S"),
             inline=False
         )
+        elor = d(str(userinfo['elo']))
         e.add_field(
             name="Elo",
-            value=f"`{elo_show_form(self.bot.ratings[userinfo['uuid']])}`"
+            value=f"`{elo_show_form(elor)}`"
         )
-        rankstr = get_elo_rank(self.bot.ratings[userinfo['uuid']])
+        rankstr = get_elo_rank(elor)
         rankimgfile = discord.File(TIER_IMAGES[rankstr])
         e.add_field(
             name="Tier",
@@ -766,7 +768,7 @@ class MyCog(commands.Cog):
                       f"Download link :\n"
                       f"Osu!\t: https://osu.ppy.sh/beatmapsets/{rp['mapSetId']}#osu/{rp['mapId']}\n"
                       f"Chimu\t: https://chimu.moe/en/d/{rp['mapSetId']}\n"
-                      f"Beatconnect\t: ~~Not avaliable now~~",
+                      f"Beatconnect\t: https://beatconnect.io/b/{rp['mapSetId']}",
                 inline=False
             )
         e.add_field(
