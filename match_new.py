@@ -328,8 +328,7 @@ class MatchScrim:
                 color=discord.Colour.blurple()
             ))
 
-            maps = selected_pool['maps']
-            # maps = await self.bot.req.get_mappool(self.mappool_uuid)
+            maps = await self.bot.req.get_mappool(self.mappool_uuid)
             for md in maps:
                 tempmap = await self.bot.osuapi.get_beatmaps(beatmap_id=md['mapId'])
                 if len(tempmap) == 0:
@@ -343,8 +342,7 @@ class MatchScrim:
                     ))
                     self.aborted = True
                     continue
-                self.map_infos[md['sheetId']] = tempmap[0]
-                # self.map_infos[fixca.FixcaMapMode(md['mods']).name + md['sheetId']] = tempmap[0]
+                self.map_infos[fixca.FixcaMapMode(md['mods']).name + md['sheetId']] = tempmap[0]
             if self.aborted:
                 return
 
