@@ -7,7 +7,7 @@ from friend_import import *
 helptxt_pages = help_texts.helptxt_pages
 Timer = timer.Timer
 Scrim = scrim_new.Scrim
-Match = match_new.Match
+MatchScrim = match_new.MatchScrim
 MatchMaker = matchmaker.MatchMaker
 RequestManager = fixca.RequestManager
 
@@ -15,6 +15,7 @@ RequestManager = fixca.RequestManager
 class MyCog(commands.Cog):
     def __init__(self, bot: 'MyBot'):
         self.bot = bot
+        self.temp: List['MatchScrim'] = []
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -180,7 +181,7 @@ class MyCog(commands.Cog):
     @is_owner()
     async def sayresult(self, ctx: commands.Context, *, com: str):
         res = eval(com)
-        await ctx.send('Result : `' + str(res) + '`')
+        await ctx.send('Result : ```' + str(res) + '```')
 
     @commands.command()
     @is_owner()
@@ -192,7 +193,7 @@ class MyCog(commands.Cog):
     @is_owner()
     async def asyncsayresult(self, ctx: commands.Context, *, com: str):
         res = await eval(com)
-        await ctx.send('Result : `' + str(res) + '`')
+        await ctx.send('Result : ```' + str(res) + '```')
 
     @commands.command()
     @is_owner()
@@ -207,14 +208,26 @@ class MyCog(commands.Cog):
 
     @commands.command()
     @is_owner()
+    async def showmatches(self, ctx: commands.Context, id: Optional[int], name: Optional[str]):
+        def filt(m: 'MatchScrim'):
+            return (id is None or m.get_id() == id) and (name is None or m.scrim.name == name)
+        self.temp = self.bot.get_matches(filt)
+        temptxt = "Filtered matches :```"
+        for t in self.temp:
+            temptxt += '\n' + repr(t)
+        temptxt += '```'
+        await ctx.send(temptxt)
+
+    @commands.command()
+    @is_owner()
     async def reload(self, ctx: commands.Context):
-        global helptxt_pages, Timer, Scrim, Match, MatchMaker, RequestManager
+        global helptxt_pages, Timer, Scrim, MatchScrim, MatchMaker, RequestManager
         for module in modules:
             importlib.reload(module)
         helptxt_pages = help_texts.helptxt_pages
         Timer = timer.Timer
         Scrim = scrim_new.Scrim
-        Match = match_new.Match
+        MatchScrim = match_new.MatchScrim
         MatchMaker = matchmaker.MatchMaker
         RequestManager = fixca.RequestManager
         await ctx.send('Reload success')
@@ -873,7 +886,7 @@ class MyCog(commands.Cog):
                 )
             else:
                 del self.bot.duel[opponent]
-                self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = Match(self.bot, ctx.author, opponent)
+                self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = MatchScrim(self.bot, ctx.author, opponent)
                 await m.do_match_start()
         else:
             await ctx.channel.send(embed=discord.Embed(
@@ -916,13 +929,13 @@ class MyBot(commands.Bot):
         self.timers: dd[str, Optional['Timer']] = dd(lambda: None)
         self.timer_count = 0
 
-        self.matches: Dict[discord.Member, 'Match'] = dict()
+        self.matches: Dict[discord.Member, 'MatchScrim'] = dict()
         self.duel: Dict[discord.Member, discord.Member] = dict()
         self.match_place: Optional[discord.CategoryChannel, discord.Guild] = None
         self.RANKED_OSUDROID_GUILD: Optional[discord.Guild] = None
         self.matchmaker = MatchMaker(self)
 
-        self.finished_matches: List['Match'] = []
+        self.finished_matches: List['MatchScrim'] = []
 
         self.status: Tuple[Optional[str], Optional[str]] = (None, None)
 
@@ -939,6 +952,13 @@ class MyBot(commands.Bot):
         self.loop.set_exception_handler(custon_exception_handler)
 
         self.activity_display_task: Optional[asyncio.Task] = None
+
+    def get_matches(self, func: Callable[MatchScrim, bool]) -> List[MatchScrim]:
+        r = set()
+        for x in self.matches.values():
+            if getattr(func, '__call__', None) is not None and func(x):
+                r.add(x)
+        return list(r)
 
     async def get_discord_username(self, x: int) -> str:
         if self.member_names.get(x) is None:

@@ -4,13 +4,13 @@ from timer import Timer
 
 if TYPE_CHECKING:
     from friend import MyBot
-    from match_new import Match
+    from match_new import MatchScrim
 
 class Scrim:
     def __init__(self,
                  bot: 'MyBot',
                  channel: discord.TextChannel,
-                 match_: Optional['Match'] = None):
+                 match_: Optional['MatchScrim'] = None):
         self.bot = bot
         self.match = match_
         self.loop = self.bot.loop

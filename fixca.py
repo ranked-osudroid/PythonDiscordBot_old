@@ -128,7 +128,7 @@ class RequestManager:
             'discordid': d_id,
         })
 
-    async def upload_elo(self, match: 'match_new.Match', force: bool = False):
+    async def upload_elo(self, match: 'match_new.MatchScrim', force: bool = False):
         if match is None:
             raise ValueError("match is None")
         if not match.match_end and not force:

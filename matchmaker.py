@@ -1,5 +1,5 @@
 from friend_import import *
-from match_new import Match
+from match_new import MatchScrim
 
 if TYPE_CHECKING:
     from friend import MyBot
@@ -68,7 +68,7 @@ class MatchMaker:
                         opponent = min(opponents, key=lambda o: abs(o.player_rating - p.player_rating))
                         self.pool.remove(opponent)
                         self.bot.matches[p.player] = self.bot.matches[opponent.player] = m = \
-                            Match(self.bot, p.player, opponent.player)
+                            MatchScrim(self.bot, p.player, opponent.player)
                         await m.do_match_start()
                         self.players_in_pool.remove(p.player.id)
                         self.players_in_pool.remove(opponent.player.id)

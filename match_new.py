@@ -40,7 +40,7 @@ each mappool has this dict
 """
 
 
-class Match:
+class MatchScrim:
     __id = 0
 
     def __init__(self,
@@ -54,8 +54,8 @@ class Match:
         self.player_info = None
         self.opponent_info = None
         self.BO = bo
-        self.__id = Match.__id
-        Match.__id += 1
+        self.__id = MatchScrim.__id
+        MatchScrim.__id += 1
         self.channel: Optional[discord.TextChannel] = None
         self.made_time = datetime.datetime.utcnow()
         self.playID: Dict[int, Optional[dict]] = {self.player.id: None, self.opponent.id: None}
@@ -89,6 +89,9 @@ class Match:
 
     def __str__(self):
         return f"Match_{self.get_id()}({self.player.name}, {self.opponent.name})"
+
+    def __repr__(self):
+        return f"MatchScrim(ID={self.get_id()})({self.player}, {self.opponent})"
 
     def get_id(self):
         return self.__id
@@ -450,7 +453,8 @@ class Match:
     async def match_start(self):
         try:
             while not self.match_end or self.aborted:
-                self.scrim.log.write(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} processing.\n")
+                if self.scrim is not None:
+                    self.scrim.log.write(f"[{get_nowtime_str()}] {self}.match_task: Round #{self.round} processing.\n")
                 await self.do_progress()
                 self.readyable = True
                 while True:
@@ -486,8 +490,12 @@ class Match:
                 if self.aborted:
                     break
         except BaseException as ex_:
-            self.scrim.log.write(f'[{get_nowtime_str()}] {self}.match_task:\n')
-            self.scrim.log.write(get_traceback_str(ex_)+'\n')
+            if self.scrim is None or self.scrim.log.closed:
+                stream = print
+            else:
+                stream = self.scrim.log
+            stream.write(f'[{get_nowtime_str()}] {self}.match_task (Round #{self.round}):\n')
+            stream.write(get_traceback_str(ex_)+'\n')
             await self.channel.send(embed=discord.Embed(
                 title="Error Ocurred",
                 description=f"{ex_}\nCheck the log.\n**This match will be aborted.**",
@@ -495,10 +503,11 @@ class Match:
             self.aborted = True
             raise ex_
         finally:
-            if not self.scrim.log.closed:
-                self.scrim.log.close()
-            if self.scrim.match_task is not None and not self.scrim.match_task.done():
-                self.scrim.match_task.cancel()
+            if self.scrim is not None:
+                if not self.scrim.log.closed:
+                    self.scrim.log.close()
+                if self.scrim.match_task is not None and not self.scrim.match_task.done():
+                    self.scrim.match_task.cancel()
             self.bot.finished_matches.append(self)
             del self.bot.matches[self.player], self.bot.matches[self.opponent]
 
