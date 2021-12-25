@@ -381,8 +381,6 @@ class MatchScrim:
             prate_bef, orate_bef = self.elo_manager.get_ratings()
             pdrate, odrate = self.elo_manager.update(rate, True)
             prate_aft, orate_aft = self.elo_manager.get_ratings()
-            self.bot.ratings[self.player_info['uuid']], self.bot.ratings[self.opponent_info['uuid']] = \
-                prate_aft, orate_aft
             await self.channel.send(embed=discord.Embed(
                 title="MATCH FINISHED",
                 description=f"__{self.player.display_name}__ : "
@@ -485,7 +483,7 @@ class MatchScrim:
                         break
                     await asyncio.sleep(1)
                 if self.match_end:
-                    # TODO: await self.bot.req.upload_elo(self)
+                    await self.bot.req.upload_elo(self)
                     break
                 if self.aborted:
                     break
