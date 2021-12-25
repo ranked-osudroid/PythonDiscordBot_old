@@ -688,11 +688,11 @@ class MyCog(commands.Cog):
             await ctx.send(embed=e)
 
     @commands.command(aliases=['pfme'])
-    async def profileme(self, ctx: commands.Context, did: Optional[int] = None):
-        if did is None:
-            did = ctx.author.id
-        name = await self.bot.get_discord_username(did)
-        userinfo = await self.bot.get_user_info(did)
+    async def profileme(self, ctx: commands.Context, targ: Optional[discord.Member] = None):
+        if targ is None:
+            targ = ctx.author
+        name = targ.display_name
+        userinfo = await self.bot.get_user_info(targ.id)
         if isinstance(userinfo, Exception):
             await ctx.send(embed=discord.Embed(
                 title=f"{name} didn't registered!",
@@ -736,11 +736,11 @@ class MyCog(commands.Cog):
         await ctx.send(file=rankimgfile, embed=e)
 
     @commands.command(aliases=['rs'])
-    async def recentme(self, ctx: commands.Context, uid: Optional[int] = None):
-        if uid is None:
-            uid = ctx.author.id
-        name = await self.bot.get_discord_username(uid)
-        rp: Optional[dict, ValueError, fixca.HttpError, fixca.FixcaError] = await self.bot.get_recent(id_=uid)
+    async def recentme(self, ctx: commands.Context, targ: Optional[discord.Member] = None):
+        if targ is None:
+            targ = ctx.author
+        name = targ.display_name
+        rp: Optional[dict, ValueError, fixca.HttpError, fixca.FixcaError] = await self.bot.get_recent(id_=targ)
         if isinstance(rp, self.bot.req.ERRORS):
             await ctx.send(embed=discord.Embed(
                 title=f"Error occurred while loading {name}'s recent record.",
