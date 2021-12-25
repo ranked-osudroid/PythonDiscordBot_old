@@ -721,7 +721,7 @@ class MyCog(commands.Cog):
             value=datetime.datetime.utcfromtimestamp(userinfo['verified_time']).strftime("%Y-%m-%d %H:%M:%S"),
             inline=False
         )
-        elor = d(str(userinfo['elo']))
+        elor = userinfo['elo']
         e.add_field(
             name="Elo",
             value=f"`{elo_show_form(elor)}`"

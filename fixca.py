@@ -84,7 +84,8 @@ class RequestManager:
                 print(f'[{get_nowtime_str()}] RequestManager: POST {url} failed (HTTP {res.status})')
                 print(await res.text())
                 return HttpError('POST', url, res)
-            if not (resdata := await res.json(content_type=None, encoding='utf-8'))['status']:
+            if not (resdata := await res.json(
+                    content_type=None, encoding='utf-8', loads=lambda dt: json.loads(dt, parse_float=d)))['status']:
                 print(f'[{get_nowtime_str()}] RequestManager: POST {url} failed (Error code {resdata["code"]})')
                 print(resdata)
                 return FixcaError('POST', url, resdata)
@@ -101,7 +102,8 @@ class RequestManager:
                 print(f'[{get_nowtime_str()}] RequestManager: GET {url} failed (HTTP {res.status})')
                 print(await res.text())
                 return HttpError('GET', url, res)
-            if not (resdata := await res.json(content_type=None, encoding='utf-8'))['status']:
+            if not (resdata := await res.json(
+                    content_type=None, encoding='utf-8', loads=lambda dt: json.loads(dt, parse_float=d)))['status']:
                 print(f'[{get_nowtime_str()}] RequestManager: GET {url} failed (Errorcode {resdata["code"]})')
                 print(resdata)
                 return FixcaError('GET', url, resdata)
