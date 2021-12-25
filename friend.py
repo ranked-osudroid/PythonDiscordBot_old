@@ -107,7 +107,7 @@ class MyCog(commands.Cog):
             print(exception.data)
         print('================ E N D ================')
 
-    @commands.command(name="help")
+    @commands.command(aliases=['help', '/help'])
     async def _help(self, ctx: commands.Context):
         if isinstance(ctx.channel, discord.channel.DMChannel):
             return
