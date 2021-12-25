@@ -212,6 +212,9 @@ class MyCog(commands.Cog):
         def filt(m: 'MatchScrim'):
             return (id is None or m.get_id() == id) and (name is None or m.scrim.name == name)
         self.temp = self.bot.get_matches(filt)
+        if len(self.temp) == 0:
+            await ctx.send("No filtered matches.")
+            return
         temptxt = "Filtered matches :```"
         for t in self.temp:
             temptxt += '\n' + repr(t)

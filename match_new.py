@@ -490,16 +490,16 @@ class MatchScrim:
                 if self.aborted:
                     break
         except BaseException as ex_:
+            await self.channel.send(embed=discord.Embed(
+                title="Error Ocurred",
+                description=f"{ex_}\nCheck the log.\n**This match will be aborted.**",
+            ))
             if self.scrim is None or self.scrim.log.closed:
                 stream = print
             else:
                 stream = self.scrim.log
             stream.write(f'[{get_nowtime_str()}] {self}.match_task (Round #{self.round}):\n')
             stream.write(get_traceback_str(ex_)+'\n')
-            await self.channel.send(embed=discord.Embed(
-                title="Error Ocurred",
-                description=f"{ex_}\nCheck the log.\n**This match will be aborted.**",
-            ))
             self.aborted = True
             raise ex_
         finally:
