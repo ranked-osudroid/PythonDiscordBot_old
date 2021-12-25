@@ -304,7 +304,7 @@ class MatchScrim:
             # self.scrim.log.write('After  select_pool_mmr_range :', rate_lower, rate_highter)
             pool_pools = list(filter(
                 lambda po: rate_lower - SELECT_POOL_RANGE <= po['averageMMR'] <= rate_highter + SELECT_POOL_RANGE,
-                maidbot_pools
+                maidbot_pools.values()
             ))
             selected_pool = random.choice(pool_pools)
             while selected_pool['uuid'] in unplayable_pools_uuid:
