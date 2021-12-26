@@ -806,11 +806,6 @@ class MyCog(commands.Cog):
                 color=discord.Colour.dark_red()
             ))
             return"""
-        if 823415179177885706 not in {r.id for r in ctx.author.roles}:
-            await ctx.send(embed=discord.Embed(
-                title=f"You didn't registered!",
-                color=discord.Colour.dark_red()
-            ))
         """userinfo = await self.bot.get_user_info(ctx.author.id)
         if isinstance(userinfo, self.bot.req.ERRORS):
             if isinstance(userinfo, fixca.HttpError):
