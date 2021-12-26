@@ -851,7 +851,7 @@ class MyCog(commands.Cog):
 
     @commands.command()
     @is_verified()
-    async def duel(self, ctx: commands.Context, mmr: Union[int, d] = -1):
+    async def duel(self, ctx: commands.Context, opponent: discord.Member, mmr: Union[int, d] = -1):
         if self.bot.matches.get(ctx.author) is not None:
             await ctx.channel.send(embed=discord.Embed(
                 title=f"{ctx.author.display_name}, you can't duel while joining your match."
@@ -862,43 +862,33 @@ class MyCog(commands.Cog):
                 title=f"{ctx.author.display_name}, you can't duel while queueing."
             ))
             return
-        if self.bot.duel.get(ctx.author) is None:
-            opponent = None
-            def check(msg):
-                return msg.author == ctx.author and msg.channel == ctx.channel
-            await ctx.send(f"**{ctx.author.mention}, ping your opponent in 30 seconds.**")
-            try:
-                while True:
-                    response = await self.bot.wait_for('message', timeout=30, check=check)
-                    mention = response.mentions
-                    if len(mention) == 1:
-                        opponent = mention[0]
-                        if ctx.author != opponent:
-                            break
-            except asyncio.TimeoutError:
-                await ctx.send(f"**{ctx.author.mention}, time over.**")
-                return
-            except asyncio.CancelledError:
-                return
-            assert opponent is not None
-            if self.bot.duel.get(opponent) != ctx.author:
-                self.bot.duel[ctx.author] = opponent
-                await ctx.channel.send(
-                    content=f"{opponent.mention}",
-                    embed=discord.Embed(
-                        title=f"{ctx.author.display_name} is challenging you to duel!",
-                        description=f"If you want to accept the duel, use command `/duel` to {ctx.author.mention}!"
-                    )
-                )
-            else:
-                del self.bot.duel[opponent]
-                self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = \
-                    MatchScrim(self.bot, ctx.author, opponent, mmr)
-                await m.do_match_start()
-        else:
+        if ctx.author.id in self.bot.duel:
             await ctx.channel.send(embed=discord.Embed(
-                title=f"{ctx.author.display_name}, you already challenged another player to a duel."
+                title=f"{ctx.author.display_name}, you can duel to only one player."
             ))
+            return
+
+        self.bot.duel.add(ctx.author.id)
+        duel_message = await ctx.send(content=opponent.mention, embed=discord.Embed(
+            title=f"{ctx.author.display_name} is challenging you to duel!",
+            description=f"If you want to accept the duel, react with :handshake: in 2 minutes."
+        ))
+        handshake = "\U0001F91D"
+        await duel_message.add_reaction(handshake)
+        def check(react, usr):
+            return usr.id == opponent.id and str(react) == handshake
+        try:
+            await self.bot.wait_for('reaction_add', timeout=120, check=check)
+        except asyncio.TimeoutError:
+            await ctx.send(f"**Duel accept TIME OVER.**")
+            return
+        except asyncio.CancelledError:
+            return
+        self.bot.duel.remove(ctx.author.id)
+        await duel_message.delete()
+        self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = \
+            MatchScrim(self.bot, ctx.author, opponent, mmr)
+        await m.do_match_start()
     
     @commands.command(aliases=['cancel'])
     @is_verified()
@@ -936,7 +926,7 @@ class MyBot(commands.Bot):
         self.timer_count = 0
 
         self.matches: Dict[discord.Member, 'MatchScrim'] = dict()
-        self.duel: Dict[discord.Member, discord.Member] = dict()
+        self.duel: Set[int] = set()
         self.match_place: Optional[discord.CategoryChannel, discord.Guild] = None
         self.match_place_id: int = 823413857036402741
         self.RANKED_OSUDROID_GUILD: Optional[discord.Guild] = None
