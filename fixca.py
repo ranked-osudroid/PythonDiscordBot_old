@@ -152,9 +152,10 @@ class RequestManager:
         })
 
     async def get_mappool(self, uuid: str):
-        return await self._post('getMappool', data={
+        res = await self._post('getMappool', data={
             'uuid': uuid,
         })
+        return res["maps"]
 
     async def create_match(self, player_uuid: str, opponent_uuid: str):
         return await self._post('createMatch', data={
