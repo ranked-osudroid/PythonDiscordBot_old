@@ -43,12 +43,12 @@ class MyCog(commands.Cog):
                         )
                     await asyncio.sleep(5)
                 except asyncio.CancelledError:
-                    raise
+                    return
                 except ConnectionResetError:
                     pass
                 except Exception as ex:
                     print(f"[{get_nowtime_str()}] MyBot.activity_display_task:\n{get_traceback_str(ex)}")
-                    raise
+                    return
         self.bot.activity_display_task = self.bot.loop.create_task(work())
 
     @commands.Cog.listener()
@@ -1035,7 +1035,7 @@ class MyBot(commands.Bot):
 async def _main(token_, **kwargs):
     PREFIX = '/'
     app = MyBot(ses=aiohttp.ClientSession(), command_prefix=PREFIX, help_command=None, intents=intents)
-    for attr, val in kwargs:
+    for attr, val in kwargs.items():
         setattr(app, attr, val)
     app.add_cog(MyCog(app))
 
