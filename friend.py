@@ -740,8 +740,8 @@ class MyCog(commands.Cog):
         if targ is None:
             targ = ctx.author
         name = targ.display_name
-        rp: Optional[dict, ValueError, fixca.HttpError, fixca.FixcaError] = await self.bot.get_recent(id_=targ)
-        if isinstance(rp, self.bot.req.ERRORS):
+        rp: Optional[dict, ValueError, fixca.HttpError, fixca.FixcaError] = await self.bot.get_recent(id_=targ.id)
+        if isinstance(rp, self.bot.req.ERRORS + (ValueError,)):
             await ctx.send(embed=discord.Embed(
                 title=f"Error occurred while loading {name}'s recent record.",
                 description=f"{rp}\nCheck the log."
@@ -850,7 +850,7 @@ class MyCog(commands.Cog):
 
     @commands.command()
     @is_verified()
-    async def duel(self, ctx: commands.Context):
+    async def duel(self, ctx: commands.Context, mmr: Optional[Union[int, d]] = None):
         if self.bot.matches.get(ctx.author) is not None:
             await ctx.channel.send(embed=discord.Embed(
                 title=f"{ctx.author.display_name}, you can't duel while joining your match."
@@ -891,7 +891,8 @@ class MyCog(commands.Cog):
                 )
             else:
                 del self.bot.duel[opponent]
-                self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = MatchScrim(self.bot, ctx.author, opponent)
+                self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = \
+                    MatchScrim(self.bot, ctx.author, opponent, mmr)
                 await m.do_match_start()
         else:
             await ctx.channel.send(embed=discord.Embed(

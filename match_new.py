@@ -47,7 +47,8 @@ class MatchScrim:
                  bot: 'MyBot',
                  player: discord.Member,
                  opponent: discord.Member,
-                 bo: int = 7):
+                 bo: int = 7,
+                 duel: Optional[Union[int, d]] = None):
         self.bot = bot
         self.player = player
         self.opponent = opponent
@@ -86,6 +87,9 @@ class MatchScrim:
 
         self.match_task: Optional[asyncio.Task] = None
         self.readyable: bool = False
+
+        self.is_duel = duel is not None
+        self.duel_fixed_poolMMR = duel if self.is_duel else None
 
     def __str__(self):
         return f"Match_{self.get_id()}({self.player.name}, {self.opponent.name})"
@@ -286,31 +290,36 @@ class MatchScrim:
                                  f"Channel  ID : {self.channel.id}\n"
                                  f"Role     ID : {self.role.id}\n")
         elif self.round == 0:
-            # TODO: create_match here
-            """
-            res = await self.bot.req.create_match(*self.uuid.values())
-            if isinstance(res, self.bot.req.ERRORS):
-                self.scrim.log.write(self.bot.req.censor(str(res.data)) + '\n')
-                raise
-            self.match_id = res["matchId"]
-            selected_pool = res["mappool"]
-            self.mappool_uuid = selected_pool['uuid']
-            """
             rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
-            # self.scrim.log.write('Before select_pool_mmr_range :', rate_lower, rate_highter)
-            # 1000 ~ 2000 => 1200 ~ 3300
-            rate_lower = elo_convert(rate_lower)
-            rate_highter = elo_convert(rate_highter)
-            # self.scrim.log.write('After  select_pool_mmr_range :', rate_lower, rate_highter)
-            pool_pools = list(filter(
-                lambda po: rate_lower - SELECT_POOL_RANGE <= po['averageMMR'] <= rate_highter + SELECT_POOL_RANGE,
-                maidbot_pools.values()
-            ))
-            selected_pool = random.choice(pool_pools)
-            while selected_pool['uuid'] in unplayable_pools_uuid:
+            if self.duel_fixed_poolMMR:
+                selected_pool = min(filter(lambda x: x['uuid'] not in unplayable_pools_uuid, maidbot_pools.values()),
+                                    key=lambda x: abs(x['averageMMR'] - self.duel_fixed_poolMMR))
+                self.mappool_uuid = selected_pool['uuid']
+            else:
+                # TODO: create_match here
+                """
+                res = await self.bot.req.create_match(*self.uuid.values())
+                if isinstance(res, self.bot.req.ERRORS):
+                    self.scrim.log.write(self.bot.req.censor(str(res.data)) + '\n')
+                    raise
+                self.match_id = res["matchId"]
+                selected_pool = res["mappool"]
+                self.mappool_uuid = selected_pool['uuid']
+                """
+                # self.scrim.log.write('Before select_pool_mmr_range :', rate_lower, rate_highter)
+                # 1000 ~ 2000 => 1200 ~ 3300
+                # rate_lower = elo_convert(rate_lower)
+                # rate_highter = elo_convert(rate_highter)
+                # self.scrim.log.write('After  select_pool_mmr_range :', rate_lower, rate_highter)
+                pool_pools = list(filter(
+                    lambda po: rate_lower - SELECT_POOL_RANGE <= po['averageMMR'] <= rate_highter + SELECT_POOL_RANGE,
+                    maidbot_pools.values()
+                ))
                 selected_pool = random.choice(pool_pools)
-            self.mappool_uuid = selected_pool['uuid']
-            # self.scrim.log.write('Selected pool :', selected_pool['name'])
+                while selected_pool['uuid'] in unplayable_pools_uuid:
+                    selected_pool = random.choice(pool_pools)
+                self.mappool_uuid = selected_pool['uuid']
+                # self.scrim.log.write('Selected pool :', selected_pool['name'])
             await self.channel.send(embed=discord.Embed(
                 title="Mappool is selected!",
                 description=f"Mappool Name : `{selected_pool['name']}`\n"
@@ -379,16 +388,22 @@ class MatchScrim:
             prate_bef, orate_bef = self.elo_manager.get_ratings()
             pdrate, odrate = self.elo_manager.update(rate, True)
             prate_aft, orate_aft = self.elo_manager.get_ratings()
-            await self.channel.send(embed=discord.Embed(
-                title="MATCH FINISHED",
-                description=f"__{self.player.display_name}__ : "
-                            f"{elo_show_form(prate_bef)} => **{elo_show_form(prate_aft)}** "
-                            f"({pdrate:+.3f})\n"
-                            f"__{self.opponent.display_name}__ : "
-                            f"{elo_show_form(orate_bef)} => **{elo_show_form(orate_aft)}** "
-                            f"({pdrate:+.3f})\n",
-                color=discord.Colour(0xcaf32a)
-            ))
+            if self.is_duel:
+                await self.channel.send(embed=discord.Embed(
+                    title="MATCH FINISHED",
+                    color=discord.Colour(0xcaf32a)
+                ))
+            else:
+                await self.channel.send(embed=discord.Embed(
+                    title="MATCH FINISHED",
+                    description=f"__{self.player.display_name}__ : "
+                                f"{elo_show_form(prate_bef)} => **{elo_show_form(prate_aft)}** "
+                                f"({pdrate:+.3f})\n"
+                                f"__{self.opponent.display_name}__ : "
+                                f"{elo_show_form(orate_bef)} => **{elo_show_form(orate_aft)}** "
+                                f"({pdrate:+.3f})\n",
+                    color=discord.Colour(0xcaf32a)
+                ))
             self.match_end = True
             namelen = max(len(self.player.name), len(self.opponent.name))
             temptxt = f"[{get_nowtime_str()}] {self}.do_progress(): Match finished.\n" \
@@ -481,7 +496,8 @@ class MatchScrim:
                         break
                     await asyncio.sleep(1)
                 if self.match_end:
-                    await self.bot.req.upload_elo(self)
+                    if not self.is_duel:
+                        await self.bot.req.upload_elo(self)
                     break
                 if self.aborted:
                     break
