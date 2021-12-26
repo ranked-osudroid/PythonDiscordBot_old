@@ -98,6 +98,13 @@ class Scrim:
             return
         return self.findteam[mid]
 
+    def write_log(self, s: Anystr):
+        if self.log.closed:
+            with open(self.log.name, 'a', encoding='utf-8') as f_:
+                f_.write(s)
+        else:
+            self.log.write(s)
+
     async def maketeam(self, name: str, do_print: bool = None):
         if do_print is None:
             do_print = self.PRINT_ON
