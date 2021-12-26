@@ -20,6 +20,7 @@ class MyCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        self.bot.tee = Tee(f"logs/{self.bot.user.name}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.log", "w")
         print(f"[{get_nowtime_str()}]")
         print(f"BOT NAME : {self.bot.user.name}")
         print(f"BOT ID   : {self.bot.user.id}")
@@ -949,7 +950,7 @@ class MyBot(commands.Bot):
         self.shutdown_datetime = get_shutdown_datetime()
 
         self.RANK_EMOJI = RANK_EMOJI
-        self.tee = Tee(f"logs/{self.user.name}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.log", "w")
+        self.tee = None
 
         def custon_exception_handler(loop_, context):
             loop_.default_exception_handler(context)
