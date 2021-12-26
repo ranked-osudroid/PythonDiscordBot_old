@@ -297,7 +297,7 @@ class MatchScrim:
                                  f"Role     ID : {self.role.id}\n")
         elif self.round == 0:
             rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
-            if self.duel_fixed_poolMMR is None or self.duel_fixed_poolMMR > 0:
+            if self.duel_fixed_poolMMR is not None and self.duel_fixed_poolMMR > 0:
                 selected_pool = min(filter(lambda x: x['uuid'] not in unplayable_pools_uuid, maidbot_pools.values()),
                                     key=lambda x: abs(x['averageMMR'] - self.duel_fixed_poolMMR))
                 self.mappool_uuid = selected_pool['uuid']
