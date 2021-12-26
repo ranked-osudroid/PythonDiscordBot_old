@@ -49,6 +49,12 @@ helptxt_page1.add_field(
 )
 
 helptxt_page1.add_field(
+    name="/duel __<*mention|discordID*>__ (*mmr*)",
+    value="Challenges to duel. You can set mappool by entering *mmr*, then closest mappool to *mmr* will be selected.",
+    inline=False
+)
+
+helptxt_page1.add_field(
     name="/ping",
     value="Pong!",
     inline=False
