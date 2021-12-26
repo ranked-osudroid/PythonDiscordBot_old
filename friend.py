@@ -1034,14 +1034,13 @@ async def _main(token_, **kwargs):
         await bot_task
     except asyncio.CancelledError:
         print('_main() : Cancelled')
-        raise
+        return
     except Exception as _ex:
         raise
     finally:
         app.osuapi.close()
         await app.change_presence(status=discord.Status.offline)
         await app.loop.shutdown_asyncgens()
-        await app.logout()
         await app.close()
         if not bot_task.done():
             bot_task.cancel()
@@ -1053,20 +1052,3 @@ async def _main(token_, **kwargs):
             except asyncio.CancelledError:
                 pass
         print('_main() : finally done')
-
-if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    main_run = loop.create_task(_main(token_=token))
-    try:
-        loop.run_until_complete(main_run)
-    except KeyboardInterrupt:
-        print('Ctrl+C')
-    except BaseException as ex:
-        print(get_traceback_str(ex))
-    finally:
-        main_run.cancel()
-        loop.run_until_complete(loop.shutdown_asyncgens())
-        print('Shutdown asyncgens done / close after 3 sec.')
-        loop.run_until_complete(asyncio.sleep(3))
-        loop.close()
-        print('loop closed')

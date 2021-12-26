@@ -12,6 +12,11 @@ except BaseException as ex:
 finally:
     main_run.cancel()
     loop.run_until_complete(loop.shutdown_asyncgens())
+    for t in asyncio.all_tasks(loop):
+        try:
+            t.cancel()
+        except asyncio.CancelledError:
+            pass
     print('Shutdown asyncgens done / close after 3 sec.')
     loop.run_until_complete(asyncio.sleep(3))
     loop.close()
