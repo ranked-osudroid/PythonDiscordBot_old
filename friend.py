@@ -888,7 +888,7 @@ class MyCog(commands.Cog):
         self.bot.duel.remove(ctx.author.id)
         await duel_message.delete()
         self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = \
-            MatchScrim(self.bot, ctx.author, opponent, mmr)
+            MatchScrim(self.bot, ctx.author, opponent, duel=mmr)
         await m.do_match_start()
     
     @commands.command(aliases=['cancel'])
