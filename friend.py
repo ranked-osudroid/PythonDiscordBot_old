@@ -850,7 +850,7 @@ class MyCog(commands.Cog):
 
     @commands.command()
     @is_verified()
-    async def duel(self, ctx: commands.Context, mmr: Optional[Union[int, d]] = None):
+    async def duel(self, ctx: commands.Context, mmr: Union[int, d] = -1):
         if self.bot.matches.get(ctx.author) is not None:
             await ctx.channel.send(embed=discord.Embed(
                 title=f"{ctx.author.display_name}, you can't duel while joining your match."
