@@ -240,14 +240,20 @@ class MatchScrim:
             self.role = await guild.create_role(name=chname, color=discord.Colour.random())
             await self.player.add_roles(self.role)
             await self.opponent.add_roles(self.role)
-            overwrites = {
-                guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                guild.get_role(823415179177885706):
-                    discord.PermissionOverwrite(read_messages=True, send_messages=False),  # verified
-                guild.get_role(823730690058354688):
-                    discord.PermissionOverwrite(read_messages=True, send_messages=True),  # Staff member
-                self.role: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-            }
+            if guild.id == RANKED_OSUDROID_GUILD_ID:
+                overwrites = {
+                    guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                    guild.get_role(823415179177885706):
+                        discord.PermissionOverwrite(read_messages=True, send_messages=False),  # verified
+                    guild.get_role(823730690058354688):
+                        discord.PermissionOverwrite(read_messages=True, send_messages=True),  # Staff member
+                    self.role: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                }
+            else:
+                overwrites = {
+                    guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=False),
+                    self.role: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                }
             self.channel = await self.bot.match_place.create_text_channel(chname, overwrites=overwrites)
             self.scrim = Scrim(self.bot, self.channel, self)
             self.player_info = await self.bot.get_user_info(self.player.id)

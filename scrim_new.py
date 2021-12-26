@@ -77,7 +77,7 @@ class Scrim:
             'id'    : self.getmapid,
         }
 
-        self.log: IO = open(f'logs/scrim_{self.name}_{self.start_time}.log', 'w', encoding='utf-8')
+        self.log: IO = open(f'logs/{self.bot.user.name}_scrim_{self.name}_{self.start_time}.log', 'w', encoding='utf-8')
         self.log.write(f"[{get_nowtime_str()}] Scrim initiated.\n"
                        f"Guild   : {self.channel.guild.name}"
                        f"Channel : {self.channel.name}\n"
@@ -319,7 +319,7 @@ class Scrim:
             self.log.write(f"Team {t} : {teamscore[t]}\n")
             temptxt = ""
             for p in self.team[t]:
-                temptxt += f"{await self.bot.get_discord_username(p)} - {RANK_EMOJI[self.score[p]['rank']]} " \
+                temptxt += f"{await self.bot.get_discord_username(p)} - {self.bot.RANK_EMOJI[self.score[p]['rank']]} " \
                            f"({inttomode(self.score[p]['mode'])}) : " \
                            f"{self.score[p]['score']} / {self.score[p]['acc']}% / {self.score[p]['miss']} :x:" + \
                            (f" = {calculatedscores[p]}" if calcmode is not None else "") + "\n"
@@ -397,7 +397,7 @@ class Scrim:
             self.log.write(f"Team {t} : {teamscore[t]}\n")
             temptxt = ""
             for p in self.team[t]:
-                temptxt += f"{await self.bot.get_discord_username(p)} - {RANK_EMOJI[self.score[p]['rank']]} " \
+                temptxt += f"{await self.bot.get_discord_username(p)} - {self.bot.RANK_EMOJI[self.score[p]['rank']]} " \
                            f"({inttomode(self.score[p]['mode'])}) : " \
                            f"{self.score[p]['score']} / {self.score[p]['acc']}% / {self.score[p]['miss']} :x:\n" \
                            f"({self.score[p].get('300')}, {self.score[p].get('100')}, {self.score[p].get('50')})" \

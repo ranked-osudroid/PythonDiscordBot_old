@@ -25,8 +25,8 @@ class MyCog(commands.Cog):
         print(f"BOT ID   : {self.bot.user.id}")
         await self.bot.change_presence(status=discord.Status.online)
         print("==========BOT START==========")
-        self.bot.match_place = await self.bot.fetch_channel(823413857036402741)
-        self.bot.RANKED_OSUDROID_GUILD = self.bot.get_guild(RANKED_OSUDROID_GUILD_ID)
+        self.bot.match_place = await self.bot.fetch_channel(self.bot.match_place_id)
+        self.bot.RANKED_OSUDROID_GUILD = self.bot.get_guild(self.bot.RANKED_OSUDROID_GUILD_ID)
         if self.bot.activity_display_task is not None:
             self.bot.activity_display_task.cancel()
 
@@ -779,7 +779,7 @@ class MyCog(commands.Cog):
         e.add_field(
             name="Score Info",
             value=f"{rp['score']:,d} / {rp['acc']} / {rp['miss']} :x:\n"
-                  f"{RANK_EMOJI[rp['rank']]} ({rp['300']} / {rp['100']} / {rp['50']})",
+                  f"{self.bot.RANK_EMOJI[rp['rank']]} ({rp['300']} / {rp['100']} / {rp['50']})",
             inline=False
         )
         e.add_field(
@@ -937,7 +937,9 @@ class MyBot(commands.Bot):
         self.matches: Dict[discord.Member, 'MatchScrim'] = dict()
         self.duel: Dict[discord.Member, discord.Member] = dict()
         self.match_place: Optional[discord.CategoryChannel, discord.Guild] = None
+        self.match_place_id: int = 823413857036402741
         self.RANKED_OSUDROID_GUILD: Optional[discord.Guild] = None
+        self.RANKED_OSUDROID_GUILD_ID: int = 823413857036402739
         self.matchmaker = MatchMaker(self)
 
         self.finished_matches: List['MatchScrim'] = []
@@ -945,6 +947,9 @@ class MyBot(commands.Bot):
         self.status: Tuple[Optional[str], Optional[str]] = (None, None)
 
         self.shutdown_datetime = get_shutdown_datetime()
+
+        self.RANK_EMOJI = RANK_EMOJI
+        self.tee = Tee(f"logs/{self.user.name}_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.log", "w")
 
         def custon_exception_handler(loop_, context):
             loop_.default_exception_handler(context)
@@ -1026,12 +1031,14 @@ class MyBot(commands.Bot):
             return ValueError(f"Wrong type of argument : {id_} ({type(id_).__name__!r})")
 
 
-async def _main():
+async def _main(token_, **kwargs):
     PREFIX = '/'
     app = MyBot(ses=aiohttp.ClientSession(), command_prefix=PREFIX, help_command=None, intents=intents)
+    for attr, val in kwargs:
+        setattr(app, attr, val)
     app.add_cog(MyCog(app))
 
-    bot_task = asyncio.create_task(app.start(token))
+    bot_task = asyncio.create_task(app.start(token_))
     try:
         await bot_task
     except asyncio.CancelledError:
@@ -1052,7 +1059,7 @@ async def _main():
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
-    main_run = loop.create_task(_main())
+    main_run = loop.create_task(_main(token_=token))
     try:
         loop.run_until_complete(main_run)
     except KeyboardInterrupt:

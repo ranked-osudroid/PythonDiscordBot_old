@@ -160,22 +160,26 @@ def dice(s: str):
         return None
     return tuple(str(random.randint(1, int(s[2]))) for _ in range(int(s[0])))
 
+RANKED_OSUDROID_GUILD_ID = 823413857036402739
+TEST_GUILD_ID = 637659003735900161
+
 def is_owner():
     async def predicate(ctx):
-        return 823414751689441331 in {r.id for r in ctx.author.roles} or ctx.author.id == 327835849142173696
+        roleids = {r.id for r in ctx.author.roles}
+        return 823414751689441331 in roleids or 829370083653713971 in roleids or ctx.author.id == 327835849142173696
     return commands.check(predicate)
 
 def is_verified():
     async def predicate(ctx):
-        return 823415179177885706 in {r.id for r in ctx.author.roles}
+        return 823415179177885706 in {r.id for r in ctx.author.roles} or ctx.guild.id == TEST_GUILD_ID
     return commands.check(predicate)
 
 def is_queue_channel():
     async def predicate(ctx):
-        return ctx.channel.id in {823459553529692200, 829369406487265302, 824986021539741747}
+        return (ctx.guild.id == RANKED_OSUDROID_GUILD_ID and
+                ctx.channel.id in {823459553529692200, 829369406487265302, 824986021539741747}) or \
+               (ctx.guild.id == TEST_GUILD_ID)
     return commands.check(predicate)
-
-RANKED_OSUDROID_GUILD_ID = 823413857036402739
 
 visibleinfo = ['artist', 'title', 'author', 'diff']
 modes = ['NM', 'HD', 'HR', 'DT', 'FM', 'TB']
@@ -268,14 +272,14 @@ async def auto_off(shutdown_datetime):
         raise
 
 RANK_EMOJI = {
-    'A': "<:rankingA:829276952649138186>",
-    'B': "<:rankingB:829276952728174612>",
-    'C': "<:rankingC:829276952229052488>",
-    'D': "<:rankingD:829276952778113044>",
-    'S': "<:rankingS:829276952748883998>",
-    'SH': "<:rankingSH:829276952622923786>",
-    'X': "<:rankingX:829276952841158656>",
-    'XH': "<:rankingXH:829276952430772255>",
+    'A': "<:rankingA:924468249578577980>",
+    'B': "<:rankingB:924468249607934013>",
+    'C': "<:rankingC:924468249679253534>",
+    'D': "<:rankingD:924468249549226015>",
+    'S': "<:rankingS:924468249675063328>",
+    'SH': "<:rankingSH:924468249339498557>",
+    'X': "<:rankingX:924468249620525147>",
+    'XH': "<:rankingXH:924468249763147846>",
     None: ":question:"
 }
 
@@ -355,8 +359,6 @@ class Tee(object):
 
 def elo_show_form(el: d):
     return f"{el.quantize(d('.001'), rounding=decimal.ROUND_FLOOR):,.4f}"
-
-TEE = Tee(f"logs/{datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')}.log", "w")
 
 TIMEFORMAT = '%Y-%m-%d %X.%f'
 
