@@ -1041,11 +1041,17 @@ async def _main(token_, **kwargs):
         app.osuapi.close()
         await app.change_presence(status=discord.Status.offline)
         await app.loop.shutdown_asyncgens()
+        await app.logout()
         await app.close()
         if not bot_task.done():
             bot_task.cancel()
         await app.session.close()
         app.matchmaker.close()
+        for t in asyncio.Task.all_tasks(app.loop):
+            try:
+                t.cancel()
+            except asyncio.CancelledError:
+                pass
         print('_main() : finally done')
 
 if __name__ == '__main__':
