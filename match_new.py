@@ -407,7 +407,7 @@ class MatchScrim:
                                 f"({pdrate:+.3f})\n"
                                 f"__{self.opponent.display_name}__ : "
                                 f"{elo_show_form(orate_bef)} => **{elo_show_form(orate_aft)}** "
-                                f"({pdrate:+.3f})\n",
+                                f"({odrate:+.3f})\n",
                     color=discord.Colour(0xcaf32a)
                 ))
             self.match_end = True
