@@ -876,7 +876,7 @@ class MyCog(commands.Cog):
             await self.bot.wait_for('reaction_add', timeout=120, check=check)
         except asyncio.TimeoutError:
             await ctx.send(f"**Duel accept TIME OVER.**")
-            await dual_message.delete()
+            await duel_message.delete()
             return
         except asyncio.CancelledError:
             return

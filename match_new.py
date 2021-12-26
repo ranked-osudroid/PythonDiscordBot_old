@@ -517,7 +517,7 @@ class MatchScrim:
             else:
                 stream = self.scrim.write_log
             stream(f'[{get_nowtime_str()}] {self}.match_task (Round #{self.round}):\n')
-            stream.write(get_traceback_str(ex_)+'\n')
+            stream(get_traceback_str(ex_)+'\n')
             self.aborted = True
             raise ex_
         finally:

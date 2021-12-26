@@ -98,7 +98,7 @@ class Scrim:
             return
         return self.findteam[mid]
 
-    def write_log(self, s: Anystr):
+    def write_log(self, s: AnyStr):
         if self.log.closed:
             with open(self.log.name, 'a', encoding='utf-8') as f_:
                 f_.write(s)
