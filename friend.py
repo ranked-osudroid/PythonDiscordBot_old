@@ -1046,7 +1046,7 @@ async def _main(token_, **kwargs):
             bot_task.cancel()
         await app.session.close()
         app.matchmaker.close()
-        for t in asyncio.Task.all_tasks(app.loop):
+        for t in asyncio.all_tasks(app.loop):
             try:
                 t.cancel()
             except asyncio.CancelledError:
