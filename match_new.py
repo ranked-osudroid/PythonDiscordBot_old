@@ -357,7 +357,7 @@ class MatchScrim:
                     ))
                     self.aborted = True
                     continue
-                self.map_infos[fixca.FixcaMapMode(md['mods']).name + md['sheetId']] = tempmap[0]
+                self.map_infos[fixca.FixcaMapMode(md['mods']).name + int(md['sheetId'])] = tempmap[0]
             if self.aborted:
                 return
 
