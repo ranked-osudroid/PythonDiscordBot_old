@@ -1,5 +1,3 @@
-import asyncio
-
 import fixca
 from friend_import import *
 from scrim_new import Scrim
