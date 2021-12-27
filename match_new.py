@@ -1,3 +1,5 @@
+import asyncio
+
 import fixca
 from friend_import import *
 from scrim_new import Scrim
@@ -510,6 +512,8 @@ class MatchScrim:
                     break
                 if self.aborted:
                     break
+        except asyncio.CancelledError:
+            raise
         except BaseException as ex_:
             await self.channel.send(embed=discord.Embed(
                 title="Error Ocurred",
