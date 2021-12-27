@@ -10,14 +10,17 @@ except KeyboardInterrupt:
 except BaseException as ex:
     print(get_traceback_str(ex))
 finally:
+    print('finally')
     main_run.cancel()
     loop.run_until_complete(loop.shutdown_asyncgens())
     for t in asyncio.all_tasks(loop):
         try:
             t.cancel()
+            t.result()
         except asyncio.CancelledError:
             pass
-    print('Shutdown asyncgens done / close after 3 sec.')
-    loop.run_until_complete(asyncio.sleep(3))
+        except Exception as ex:
+            print(t, ex)
+    print('Shutdown asyncgens done.')
     loop.close()
     print('loop closed')

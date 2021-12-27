@@ -522,7 +522,6 @@ class MatchScrim:
             stream(f'[{get_nowtime_str()}] {self}.match_task (Round #{self.round}):\n')
             stream(get_traceback_str(ex_) + '\n')
             self.aborted = True
-            raise ex_
         finally:
             if self.scrim is not None:
                 if not self.scrim.log.closed:

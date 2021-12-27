@@ -1030,7 +1030,7 @@ async def _main(token_, **kwargs):
         await bot_task
     except asyncio.CancelledError:
         print('_main() : Cancelled')
-        return
+        raise
     except Exception as _ex:
         raise
     finally:
@@ -1043,8 +1043,12 @@ async def _main(token_, **kwargs):
         await app.session.close()
         app.matchmaker.close()
         for t in asyncio.all_tasks(app.loop):
+            t.cancel()
             try:
-                t.cancel()
+                await t
             except asyncio.CancelledError:
                 pass
+            except Exception as ex:
+                print(t, ex)
         print('_main() : finally done')
+
