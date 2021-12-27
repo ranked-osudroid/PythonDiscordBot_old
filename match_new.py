@@ -301,13 +301,20 @@ class MatchScrim:
                 if isinstance(self.duel_mappool_targ, int):
                     selected_pool = min(filter(lambda x: x['uuid'] not in unplayable_pools_uuid, maidbot_pools.values()),
                                         key=lambda x: abs(x['averageMMR'] - self.duel_mappool_targ))
-                    self.mappool_uuid = selected_pool['uuid']
                 elif isinstance(self.duel_mappool_targ, str):
-                    self.mappool_uuid = self.duel_mappool_targ
+                    selected_pool = maidbot_pools.get(self.duel_mappool_targ)
+                    if selected_pool is None:
+                        await self.channel.send(embed=discord.Embed(
+                            title="Wrong UUID!",
+                            description=f"Mappool of uuid {self.duel_mappool_targ} not existing! "
+                                        f"Choosing random mappool...",
+                            color=discord.Colour(0x0ef37c)
+                        ))
+                        self.duel_mappool_targ = None
                 else:
                     raise ValueError(f"Wrong type of duel-specified-mappool data: "
                                      f"{type(self.duel_mappool_targ).__name__!r}")
-            else:
+            if self.duel_mappool_targ is None:
                 # TODO: create_match here
                 """
                 res = await self.bot.req.create_match(*self.uuid.values())
@@ -333,8 +340,8 @@ class MatchScrim:
                 selected_pool = random.choice(pool_pools)
                 while selected_pool['uuid'] in unplayable_pools_uuid:
                     selected_pool = random.choice(pool_pools)
-                self.mappool_uuid = selected_pool['uuid']
-                # self.scrim.write_log('Selected pool :', selected_pool['name'])
+            self.mappool_uuid = selected_pool['uuid']
+            # self.scrim.write_log('Selected pool :', selected_pool['name'])
             await self.channel.send(embed=discord.Embed(
                 title="Mappool is selected!",
                 description=f"Mappool Name : `{selected_pool['name']}`\n"
