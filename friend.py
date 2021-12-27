@@ -846,7 +846,7 @@ class MyCog(commands.Cog):
 
     @commands.command()
     @is_verified()
-    async def duel(self, ctx: commands.Context, opponent: discord.Member, mmr: Union[int, d] = -1):
+    async def duel(self, ctx: commands.Context, opponent: discord.Member, mmr: Optional[str] = 'None'):
         if self.bot.matches.get(ctx.author) is not None:
             await ctx.channel.send(embed=discord.Embed(
                 title=f"{ctx.author.display_name}, you can't duel while joining your match."
@@ -882,6 +882,8 @@ class MyCog(commands.Cog):
             return
         self.bot.duel.remove(ctx.author.id)
         await duel_message.delete()
+        if mmr.isdecimal():
+            mmr = int(mmr)
         self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = \
             MatchScrim(self.bot, ctx.author, opponent, duel=mmr)
         await m.do_match_start()

@@ -48,7 +48,7 @@ class MatchScrim:
                  player: discord.Member,
                  opponent: discord.Member,
                  bo: int = 7,
-                 duel: Optional[Union[int, d]] = None):
+                 duel: Optional[Union[int, d, str]] = None):
         self.bot = bot
         self.player = player
         self.opponent = opponent
@@ -89,7 +89,7 @@ class MatchScrim:
         self.readyable: bool = False
 
         self.is_duel = duel is not None
-        self.duel_fixed_poolMMR = duel if self.is_duel else None
+        self.duel_mappool_targ = duel if self.is_duel and duel != 'None' else None
 
     def __str__(self):
         return f"Match_{self.get_id()}({self.player.name}, {self.opponent.name})"
@@ -297,10 +297,16 @@ class MatchScrim:
                                  f"Role     ID : {self.role.id}\n")
         elif self.round == 0:
             rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
-            if self.duel_fixed_poolMMR is not None and self.duel_fixed_poolMMR > 0:
-                selected_pool = min(filter(lambda x: x['uuid'] not in unplayable_pools_uuid, maidbot_pools.values()),
-                                    key=lambda x: abs(x['averageMMR'] - self.duel_fixed_poolMMR))
-                self.mappool_uuid = selected_pool['uuid']
+            if self.duel_mappool_targ is not None:
+                if isinstance(self.duel_mappool_targ, int):
+                    selected_pool = min(filter(lambda x: x['uuid'] not in unplayable_pools_uuid, maidbot_pools.values()),
+                                        key=lambda x: abs(x['averageMMR'] - self.duel_mappool_targ))
+                    self.mappool_uuid = selected_pool['uuid']
+                elif isinstance(self.duel_mappool_targ, str):
+                    self.mappool_uuid = self.duel_mappool_targ
+                else:
+                    raise ValueError(f"Wrong type of duel-specified-mappool data: "
+                                     f"{type(self.duel_mappool_targ).__name__!r}")
             else:
                 # TODO: create_match here
                 """

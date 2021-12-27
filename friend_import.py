@@ -286,7 +286,7 @@ RANK_EMOJI = {
 rankFilenameR = re.compile('assets/images/ranking-(.+)-small[.]png')
 
 ELO_RANK_NAMES = ['Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master']
-ELO_RANK_SCORE_BOUNDARY = [1500, 2000, 2500, 3000, 3500]
+ELO_RANK_SCORE_BOUNDARY = [1500, 1800, 2100, 2500, 3000]
 ELO_INITIAL_RANK_BOUNDARY = [0, 100, 300, 700, 1500, 6500]
 ELO_INITIAL_RANK_RATE = [d('2'), d('1'), d('.5'), d('.25'), d('.04')]
 
