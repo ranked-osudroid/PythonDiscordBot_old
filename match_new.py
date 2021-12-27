@@ -318,7 +318,10 @@ class MatchScrim:
                 # rate_highter = elo_convert(rate_highter)
                 # self.scrim.write_log('After  select_pool_mmr_range :', rate_lower, rate_highter)
                 pool_pools = list(filter(
-                    lambda po: rate_lower - SELECT_POOL_RANGE <= po['averageMMR'] <= rate_highter + SELECT_POOL_RANGE,
+                    lambda po:
+                    min(rate_lower, SELECT_POOL_HIGHEST) - SELECT_POOL_RANGE
+                    <= po['averageMMR']
+                    <= max(rate_highter, SELECT_POOL_LOWEST) + SELECT_POOL_RANGE,
                     maidbot_pools.values()
                 ))
                 selected_pool = random.choice(pool_pools)
@@ -517,7 +520,7 @@ class MatchScrim:
             else:
                 stream = self.scrim.write_log
             stream(f'[{get_nowtime_str()}] {self}.match_task (Round #{self.round}):\n')
-            stream(get_traceback_str(ex_)+'\n')
+            stream(get_traceback_str(ex_) + '\n')
             self.aborted = True
             raise ex_
         finally:
@@ -560,9 +563,9 @@ class MatchScrim:
         player = ctx.author
         tn = None
         if player == self.player:
-            tn = "RED"
-        elif player == self.opponent:
             tn = "BLUE"
+        elif player == self.opponent:
+            tn = "RED"
         else:
             return
 

@@ -311,7 +311,9 @@ def get_elo_rank_entry_cost(elov: Union[d, int]):
 
 ELO_MID_RATING = d('1500')
 
-SELECT_POOL_RANGE = 50
+SELECT_POOL_RANGE = 150
+SELECT_POOL_LOWEST = 1200
+SELECT_POOL_HIGHEST = 3300
 
 def elo_convert(x):
     return (x - 1000) * d('2.1') + 1200

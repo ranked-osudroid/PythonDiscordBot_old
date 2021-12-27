@@ -79,7 +79,7 @@ class Scrim:
 
         self.log: IO = open(f'logs/{self.bot.user.name}_scrim_{self.name}_{self.start_time}.log', 'w', encoding='utf-8')
         self.log.write(f"[{get_nowtime_str()}] Scrim initiated.\n"
-                       f"Guild   : {self.channel.guild.name}"
+                       f"Guild   : {self.channel.guild.name}\n"
                        f"Channel : {self.channel.name}\n"
                        f"Name    : {self.name}\n")
         self.timer: Optional[Timer] = None
