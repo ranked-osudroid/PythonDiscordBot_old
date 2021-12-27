@@ -1,6 +1,9 @@
 from friend import *
 from friend import _main
+import platform
 
+if platform.system() == 'Windows':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 loop = asyncio.get_event_loop()
 main_run = loop.create_task(_main(token_=token))
 try:
@@ -16,11 +19,14 @@ finally:
     for t in asyncio.all_tasks(loop):
         try:
             t.cancel()
-            t.result()
+            loop.run_until_complete(t)
         except asyncio.CancelledError:
-            pass
+            print("cancelled:", t)
         except Exception as ex:
-            print(t, ex)
+            print('Error:', ex, t)
     print('Shutdown asyncgens done.')
-    loop.close()
-    print('loop closed')
+    try:
+        loop.close()
+    except RuntimeError:
+        pass
+    print('loop close')
