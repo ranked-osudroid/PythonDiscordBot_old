@@ -296,6 +296,7 @@ class MatchScrim:
                                  f"Channel  ID : {self.channel.id}\n"
                                  f"Role     ID : {self.role.id}\n")
         elif self.round == 0:
+            selected_pool = None
             rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
             if self.duel_mappool_targ is not None:
                 if isinstance(self.duel_mappool_targ, int):
@@ -340,6 +341,7 @@ class MatchScrim:
                 selected_pool = random.choice(pool_pools)
                 while selected_pool['uuid'] in unplayable_pools_uuid:
                     selected_pool = random.choice(pool_pools)
+            assert selected_pool is not None
             self.mappool_uuid = selected_pool['uuid']
             # self.scrim.write_log('Selected pool :', selected_pool['name'])
             await self.channel.send(embed=discord.Embed(

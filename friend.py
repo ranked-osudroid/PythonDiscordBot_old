@@ -887,17 +887,6 @@ class MyCog(commands.Cog):
         self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = \
             MatchScrim(self.bot, ctx.author, opponent, duel=mmr)
         await m.do_match_start()
-    
-    @commands.command(aliases=['cancel'])
-    @is_verified()
-    async def cancel_(self, ctx: commands.Context):
-        if self.bot.duel.get(ctx.author) is None:
-            return
-        else:
-            del self.bot.duel[ctx.author]
-            await ctx.channel.send(embed=discord.Embed(
-                title=f"{ctx.author.display_name}'(s) Duel cancelled"
-            ))
 
     @commands.command()
     @is_verified()
