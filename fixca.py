@@ -1,7 +1,7 @@
 from friend_import import *
 
 if TYPE_CHECKING:
-    import match_new
+    from match_new import MatchScrim
 
 
 class HttpError(Exception):
@@ -130,7 +130,7 @@ class RequestManager:
             'discordid': d_id,
         })
 
-    async def upload_elo(self, match: 'match_new.MatchScrim', force: bool = False):
+    async def upload_elo(self, match: 'MatchScrim', force: bool = False):
         if match is None:
             raise ValueError("match is None")
         if not match.match_end and not force:
@@ -162,3 +162,22 @@ class RequestManager:
             'uuid1': player_uuid,
             'uuid2': opponent_uuid,
         })
+
+    async def end_match(self, match_id: str, aborted: bool):
+        return await self._post('endMatch', data={
+            'matchId': match_id,
+            'aborted': aborted
+        })
+
+    async def upload_record(self, match: 'MatchScrim'):
+        # TODO: not finished (None)
+        return await self._post('addRound', data={
+            'draw': None,
+            'startedTime': None,
+            'matchId': match.match_id,
+            'mapid': None,
+            'mapset': None,
+            'redPlayID': match.playID[self.player.id],
+            'bluePlayID': match.playID[self.opponent.id],
+        })
+
