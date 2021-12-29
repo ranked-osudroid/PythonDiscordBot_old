@@ -177,7 +177,7 @@ class RequestManager:
             'matchId': match.match_id,
             'mapid': None,
             'mapset': None,
-            'redPlayID': match.playID[self.player.id],
-            'bluePlayID': match.playID[self.opponent.id],
+            'redPlayID': match.playID[match.player.id],
+            'bluePlayID': match.playID[match.opponent.id],
         })
 
