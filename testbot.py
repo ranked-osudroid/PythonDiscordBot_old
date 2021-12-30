@@ -36,15 +36,16 @@ finally:
     print('finally')
     main_run.cancel()
     loop.run_until_complete(loop.shutdown_asyncgens())
+    print('Shutdown asyncgens done.')
     for t in asyncio.all_tasks(loop):
         try:
             t.cancel()
             loop.run_until_complete(t)
         except asyncio.CancelledError:
-            print("cancelled:", t)
+            pass
         except Exception as ex:
             print('Error:', ex, t)
-    print('Shutdown asyncgens done.')
+    print("Cancelling tasks done.")
     try:
         loop.close()
     except RuntimeError:
