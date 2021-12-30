@@ -171,12 +171,19 @@ class RequestManager:
 
     async def upload_record(self, match: 'MatchScrim'):
         # TODO: not finished (None)
+        winnerteam = match.scrim.winning_log[-1]
+        if len(winnerteam) > 1:
+            draw = 0
+        elif winnerteam[0] == "BLUE":
+            draw = 1
+        else:
+            draw = -1
         return await self._post('addRound', data={
-            'draw': None,
-            'startedTime': None,
+            'draw': draw,
+            'startedTime': match.scrim.round_start_time,
             'matchId': match.match_id,
-            'mapid': None,
-            'mapset': None,
+            'mapid': match.scrim.getmapid()[0],
+            'mapset': match.scrim.getmode(),
             'redPlayID': match.playID[match.player.id],
             'bluePlayID': match.playID[match.opponent.id],
         })

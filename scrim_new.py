@@ -84,6 +84,7 @@ class Scrim:
                        f"Name    : {self.name}\n")
         self.timer: Optional[Timer] = None
         self.PRINT_ON: bool = True
+        self.winning_log: List[List[AnyStr]] = []
 
     def __str__(self):
         return f"Scrim({self.name})"
@@ -350,9 +351,9 @@ class Scrim:
         for t in teamscore:
             self.log.write(f"{t} : {self.setscore[t]}\n")
         await resultmessage.edit(embed=sendtxt)
-        self.resetmap()
         print(f"[{get_nowtime_str()}] {self}.submit(): Submit progress finished.")
         self.log.write(f"[{get_nowtime_str()}] Submit finished.\n")
+        return winnerteam
     
     async def submit_fixca(self):
         self.log.write(f"[{get_nowtime_str()}] Submit running... (calcmode : FIXCA)\n")
@@ -429,10 +430,9 @@ class Scrim:
         for t in teamscore:
             self.log.write(f"{t} : {self.setscore[t]}\n")
         await resultmessage.edit(embed=sendtxt)
-        self.resetmap()
         print(f"[{get_nowtime_str()}] {self}.submit_fixca(): Submit progress finished.")
         self.log.write(f"[{get_nowtime_str()}] Submit finished.\n")
-        return teamscore
+        return winnerteam
     
     def resetmap(self):
         self.map_artist = None
@@ -777,11 +777,17 @@ class Scrim:
                 self.log.write(f"[{get_nowtime_str()}] match_start(): "
                                f"onlineload() done, submit() calling...\n")
                 if self.match is None:
-                    await self.submit()
+                    w = await self.submit()
                 else:
-                    await self.submit_fixca()
+                    w = await self.submit_fixca()
                 self.log.write(f"[{get_nowtime_str()}] match_start(): "
                                f"submit() done.\n")
+                self.winning_log.append(w)
+                if self.match is not None and not self.match.is_duel:
+                    response = await self.bot.req.upload_record(self.match)
+                    assert response['redScore'] == self.setscore["RED"]
+                    assert response['blueScore'] == self.setscore["BLUE"]
+                self.resetmap()
             except asyncio.CancelledError:
                 await self.channel.send(embed=discord.Embed(
                     title="Match Aborted!",
@@ -795,3 +801,4 @@ class Scrim:
             print(f'[{get_nowtime_str()}] {self}.match_start() :')
             print(get_traceback_str(ex_))
             raise ex_
+

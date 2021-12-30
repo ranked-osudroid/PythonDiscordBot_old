@@ -316,31 +316,30 @@ class MatchScrim:
                     raise ValueError(f"Wrong type of duel-specified-mappool data: "
                                      f"{type(self.duel_mappool_targ).__name__!r}")
             if self.duel_mappool_targ is None:
-                # TODO: create_match here
-                """
-                res = await self.bot.req.create_match(*self.uuid.values())
-                if isinstance(res, self.bot.req.ERRORS):
-                    self.scrim.write_log(self.bot.req.censor(str(res.data)) + '\n')
-                    raise
-                self.match_id = res["matchId"]
-                selected_pool = res["mappool"]
-                self.mappool_uuid = selected_pool['uuid']
-                """
+                if not self.is_duel:
+                    res = await self.bot.req.create_match(*self.uuid.values())
+                    if isinstance(res, self.bot.req.ERRORS):
+                        self.scrim.write_log(self.bot.req.censor(str(res.data)) + '\n')
+                        raise
+                    self.match_id = res["matchId"]
+                    self.mappool_uuid = selected_pool['mappool']
+                    selected_pool = maidbot_pools[self.mappool_uuid]
                 # self.scrim.write_log('Before select_pool_mmr_range :', rate_lower, rate_highter)
                 # 1000 ~ 2000 => 1200 ~ 3300
                 # rate_lower = elo_convert(rate_lower)
                 # rate_highter = elo_convert(rate_highter)
                 # self.scrim.write_log('After  select_pool_mmr_range :', rate_lower, rate_highter)
-                pool_pools = list(filter(
-                    lambda po:
-                    min(rate_lower, SELECT_POOL_HIGHEST) - SELECT_POOL_RANGE
-                    <= po['averageMMR']
-                    <= max(rate_highter, SELECT_POOL_LOWEST) + SELECT_POOL_RANGE,
-                    maidbot_pools.values()
-                ))
-                selected_pool = random.choice(pool_pools)
-                while selected_pool['uuid'] in unplayable_pools_uuid:
+                else:
+                    pool_pools = list(filter(
+                        lambda po:
+                        min(rate_lower, SELECT_POOL_HIGHEST) - SELECT_POOL_RANGE
+                        <= po['averageMMR']
+                        <= max(rate_highter, SELECT_POOL_LOWEST) + SELECT_POOL_RANGE,
+                        maidbot_pools.values()
+                    ))
                     selected_pool = random.choice(pool_pools)
+                    while selected_pool['uuid'] in unplayable_pools_uuid:
+                        selected_pool = random.choice(pool_pools)
             assert selected_pool is not None
             self.mappool_uuid = selected_pool['uuid']
             # self.scrim.write_log('Selected pool :', selected_pool['name'])
@@ -540,6 +539,8 @@ class MatchScrim:
             stream(get_traceback_str(ex_) + '\n')
             self.aborted = True
         finally:
+            if not self.is_duel:
+                await self.bot.req.end_match(self.match_id, self.aborted)
             if self.scrim is not None:
                 if not self.scrim.log.closed:
                     self.scrim.log.close()
