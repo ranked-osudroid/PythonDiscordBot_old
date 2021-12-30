@@ -320,7 +320,7 @@ class MatchScrim:
                     res = await self.bot.req.create_match(*self.uuid.values())
                     if isinstance(res, self.bot.req.ERRORS):
                         self.scrim.write_log(self.bot.req.censor(str(res.data)) + '\n')
-                        raise
+                        raise res
                     self.match_id = res["matchId"]
                     selected_pool = res['mappool']
                     self.mappool_uuid = selected_pool['uuid']
@@ -540,7 +540,10 @@ class MatchScrim:
             self.aborted = True
         finally:
             if not self.is_duel:
-                await self.bot.req.end_match(self.match_id, self.aborted)
+                res = await self.bot.req.end_match(self.match_id, self.aborted)
+                if isinstance(res, self.bot.req.ERRORS):
+                    self.scrim.write_log(self.bot.req.censor(str(res.data)) + '\n')
+                    raise res
             if self.scrim is not None:
                 if not self.scrim.log.closed:
                     self.scrim.log.close()

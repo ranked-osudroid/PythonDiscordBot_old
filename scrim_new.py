@@ -785,6 +785,9 @@ class Scrim:
                 self.winning_log.append(w)
                 if self.match is not None and not self.match.is_duel:
                     response = await self.bot.req.upload_record(self.match)
+                    if isinstance(response, self.bot.req.ERRORS):
+                        self.log.write(self.bot.req.censor(str(response.data)) + '\n')
+                        raise response
                     assert response['redScore'] == self.setscore["RED"]
                     assert response['blueScore'] == self.setscore["BLUE"]
                 self.resetmap()

@@ -184,7 +184,7 @@ class RequestManager:
             'matchId': match.match_id,
             'mapid': match.scrim.getmapid()[0],
             'mapset': match.scrim.getmode(),
-            'redPlayID': match.playID[match.player.id],
-            'bluePlayID': match.playID[match.opponent.id],
+            'redPlayID': match.playID[match.player.id]['playId'],
+            'bluePlayID': match.playID[match.opponent.id]['playId'],
         })
 
