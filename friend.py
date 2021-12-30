@@ -1038,7 +1038,7 @@ async def _main(token_, **kwargs):
             try:
                 await t
             except asyncio.CancelledError:
-                print("cancelled:", t)
+                pass
             except Exception as ex:
                 print('Error:', ex, t)
         print('_main() : finally done')
