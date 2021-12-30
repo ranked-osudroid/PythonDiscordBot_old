@@ -365,7 +365,7 @@ def elo_show_form(el: d):
 TIMEFORMAT = '%Y-%m-%d %X.%f'
 
 def get_nowtime_str():
-    return datetime.datetime.now().strftime(TIMEFORMAT)[:-3]
+    return datetime.datetime.utcnow().strftime(TIMEFORMAT)[:-3]
 
 DISCORD_STATS = [
     discord.Status.online,
