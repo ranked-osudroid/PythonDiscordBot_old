@@ -480,7 +480,6 @@ class MatchScrim:
             self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_{self.round}", 300, self.go_next_status)
             self.scrim.write_log(f"[{get_nowtime_str()}] {self}.do_progress(): Round #{self.round} prepared.\n"
                                  f"Map info : {self.scrim.getmapfull()}\n"
-                                 f"Map hash : {self.scrim.getmaphash()}\n"
                                  f"Map ID   : {self.scrim.getmapid()}\n"
                                  f"Map mode : {self.scrim.getnumber()}\n")
 
