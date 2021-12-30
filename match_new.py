@@ -516,6 +516,8 @@ class MatchScrim:
                         # if self.scrim is not None and not self.scrim.match_task.done():
                         if self.round > 1 and not (self.match_end or self.aborted):
                             await self.scrim.match_task
+                            for playid in self.playID.values():
+                                await self.bot.req.expire_playid(playid['playId'])
                         break
                     await asyncio.sleep(1)
                 if self.match_end:
@@ -610,3 +612,4 @@ class MatchScrim:
             await self.timer.cancel(False)
         self.round = self.BO + 1
         await self.do_progress()
+

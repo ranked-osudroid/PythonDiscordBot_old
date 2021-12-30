@@ -53,6 +53,9 @@ class FixcaErrorCode(IntEnum):
     TOKEN_LOCKED = 12
     TOKEN_EXPIRED = 13
     ILLEGAL_LOGIN = 14
+    PLAYER_NO_TOKENS = 15
+    ALREADY_BANNED = 16
+    MAPPOOL_NOT_EXIST = 17
 
 
 class RequestManager:
@@ -186,5 +189,10 @@ class RequestManager:
             'mapset': match.scrim.getmode(),
             'redPlayID': match.playID[match.player.id]['playId'],
             'bluePlayID': match.playID[match.opponent.id]['playId'],
+        })
+
+    async def expire_playid(self, playid):
+        return await self._post('expirePlayId', data={
+            'playId': playid
         })
 
