@@ -428,7 +428,7 @@ class Scrim:
         )
         self.log.write("Team score:\n")
         for t in teamscore:
-            self.log.write(f"{t} : {self.setscore[t]}\n")ㅡ
+            self.log.write(f"{t} : {self.setscore[t]}\n")
         await resultmessage.edit(embed=sendtxt)
         print(f"[{get_nowtime_str()}] {self}.submit_fixca(): Submit progress finished.")
         self.log.write(f"[{get_nowtime_str()}] Submit finished.\n")
