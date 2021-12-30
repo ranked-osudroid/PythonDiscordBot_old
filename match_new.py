@@ -322,8 +322,8 @@ class MatchScrim:
                         self.scrim.write_log(self.bot.req.censor(str(res.data)) + '\n')
                         raise
                     self.match_id = res["matchId"]
-                    self.mappool_uuid = selected_pool['mappool']
-                    selected_pool = maidbot_pools[self.mappool_uuid]
+                    selected_pool = res['mappool']
+                    self.mappool_uuid = selected_pool['uuid']
                 # self.scrim.write_log('Before select_pool_mmr_range :', rate_lower, rate_highter)
                 # 1000 ~ 2000 => 1200 ~ 3300
                 # rate_lower = elo_convert(rate_lower)
