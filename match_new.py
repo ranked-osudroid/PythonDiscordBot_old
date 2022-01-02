@@ -239,6 +239,48 @@ class MatchScrim:
         if self.match_end or self.aborted:
             return
         elif self.round == -1:
+            chname = f"match-{self.__id}"
+            guild = self.bot.RANKED_OSUDROID_GUILD
+            self.role = await guild.create_role(name=chname, color=discord.Colour.random())
+            await self.player.add_roles(self.role)
+            await self.opponent.add_roles(self.role)
+            if guild.id == RANKED_OSUDROID_GUILD_ID:
+                overwrites = {
+                    guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                    guild.get_role(823415179177885706):
+                        discord.PermissionOverwrite(read_messages=True, send_messages=False),  # verified
+                    guild.get_role(823730690058354688):
+                        discord.PermissionOverwrite(read_messages=True, send_messages=True),  # Staff member
+                    self.role: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                }
+            else:
+                overwrites = {
+                    guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=False),
+                    self.role: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                }
+            self.channel = await self.bot.match_place.create_text_channel(chname, overwrites=overwrites)
+            self.player_info = await self.bot.get_user_info(self.player.id)
+            if isinstance(self.player_info, self.bot.req.ERRORS):
+                await self.channel.send(
+                    embed=discord.Embed(
+                        title="Error occured",
+                        description=f"{self.player_info}\nCheck the log."
+                    )
+                )
+                self.scrim.write_log(self.bot.req.censor(str(self.player_info.data)) + '\n')
+                raise self.player_info
+            self.opponent_info = await self.bot.get_user_info(self.opponent.id)
+            if isinstance(self.opponent_info, self.bot.req.ERRORS):
+                await self.channel.send(
+                    embed=discord.Embed(
+                        title="Error occured",
+                        description=f"{self.opponent_info}\nCheck the log."
+                    )
+                )
+                self.scrim.write_log(self.bot.req.censor(str(self.opponent_info.data)) + '\n')
+                raise self.opponent_info
+            self.uuid[self.player.id] = self.player_info['uuid']
+            self.uuid[self.opponent.id] = self.opponent_info['uuid']
             # rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
             if self.duel_mappool_targ is not None:
                 if isinstance(self.duel_mappool_targ, int):
@@ -266,6 +308,9 @@ class MatchScrim:
                 self.scrim.write_log(self.bot.req.censor(str(res.data)) + '\n')
                 raise res
             self.match_id = res["matchId"]
+            tempname = f"match-{self.match_id}"
+            await self.role.edit(name=tempname)
+            await self.channel.edit(name=tempname)
             self.mappool_info = res['mappool']
             self.mappool_uuid = self.mappool_info['uuid']
             # self.scrim.write_log('Before select_pool_mmr_range :', rate_lower, rate_highter)
@@ -287,52 +332,7 @@ class MatchScrim:
             # assert selected_pool is not None
             # self.mappool_uuid = selected_pool['uuid']
             # self.scrim.write_log('Selected pool :', selected_pool['name'])
-            if self.match_id == 'None':
-                chname = f"match-{self.__id}"
-            else:
-                chname = f"match-{self.match_id}"
-            guild = self.bot.RANKED_OSUDROID_GUILD
-            self.role = await guild.create_role(name=chname, color=discord.Colour.random())
-            await self.player.add_roles(self.role)
-            await self.opponent.add_roles(self.role)
-            if guild.id == RANKED_OSUDROID_GUILD_ID:
-                overwrites = {
-                    guild.default_role: discord.PermissionOverwrite(read_messages=False),
-                    guild.get_role(823415179177885706):
-                        discord.PermissionOverwrite(read_messages=True, send_messages=False),  # verified
-                    guild.get_role(823730690058354688):
-                        discord.PermissionOverwrite(read_messages=True, send_messages=True),  # Staff member
-                    self.role: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-                }
-            else:
-                overwrites = {
-                    guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-                    self.role: discord.PermissionOverwrite(read_messages=True, send_messages=True)
-                }
-            self.channel = await self.bot.match_place.create_text_channel(chname, overwrites=overwrites)
             self.scrim = Scrim(self.bot, self.channel, self)
-            self.player_info = await self.bot.get_user_info(self.player.id)
-            if isinstance(self.player_info, self.bot.req.ERRORS):
-                await self.channel.send(
-                    embed=discord.Embed(
-                        title="Error occured",
-                        description=f"{self.player_info}\nCheck the log."
-                    )
-                )
-                self.scrim.write_log(self.bot.req.censor(str(self.player_info.data)) + '\n')
-                raise self.player_info
-            self.opponent_info = await self.bot.get_user_info(self.opponent.id)
-            if isinstance(self.opponent_info, self.bot.req.ERRORS):
-                await self.channel.send(
-                    embed=discord.Embed(
-                        title="Error occured",
-                        description=f"{self.opponent_info}\nCheck the log."
-                    )
-                )
-                self.scrim.write_log(self.bot.req.censor(str(self.opponent_info.data)) + '\n')
-                raise self.opponent_info
-            self.uuid[self.player.id] = self.player_info['uuid']
-            self.uuid[self.opponent.id] = self.opponent_info['uuid']
             self.elo_manager.set_player_rating(ftod(self.player_info['elo']))
             self.elo_manager.set_opponent_rating(ftod(self.opponent_info['elo']))
             await self.channel.send(
@@ -352,14 +352,14 @@ class MatchScrim:
                                  f"Role     ID : {self.role.id}\n")
         elif self.round == 0:
             await self.channel.send(embed=discord.Embed(
-                title="Mappool is selected!",
+                title="Mappool is...",
                 description=f"Mappool Name : `{self.mappool_info['name']}`\n"
                             f"Mappool MMR (not modified) : "
                             f"{self.mappool_info['averageMMR']}\n"
                             f"Mappool UUID : `{self.mappool_uuid}`",
                 color=discord.Colour(0x0ef37c)
             ))
-            self.scrim.write_log(f"[{get_nowtime_str()}] {self}.do_progress(): Mappool selected\n"
+            self.scrim.write_log(f"[{get_nowtime_str()}] {self}.do_progress(): Mappool info\n"
                                  f"Pool name : {self.mappool_info['name']}\n"
                                  f"Pool UUID : {self.mappool_uuid}\n")
 
