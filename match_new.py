@@ -63,6 +63,7 @@ class MatchScrim:
         self.uuid: Dict[int, Optional[str]] = {self.player.id: None, self.opponent.id: None}
 
         self.mappool_uuid: Optional[str] = None
+        self.mappool_info: Optional[dict] = None
         self.map_infos: Dict[str, osuapi.osu.Beatmap] = dict()
         self.map_order: List[str] = []
         self.map_tb: Optional[str] = None
@@ -92,13 +93,16 @@ class MatchScrim:
         self.duel_mappool_targ = duel if self.is_duel and duel != 'None' else None
 
     def __str__(self):
-        return f"Match_{self.get_id()}({self.player.name}, {self.opponent.name})"
+        return f"Match_{self.get_match_id()}({self.player.name}, {self.opponent.name})"
 
     def __repr__(self):
         return f"MatchScrim(ID={self.get_id()})({self.player}, {self.opponent})"
 
     def get_id(self):
         return self.__id
+    
+    def get_match_id(self):
+        return self.match_id
 
     @classmethod
     def get_max_id(cls):
@@ -235,7 +239,58 @@ class MatchScrim:
         if self.match_end or self.aborted:
             return
         elif self.round == -1:
-            chname = f"match-{self.__id}"
+            # rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
+            if self.duel_mappool_targ is not None:
+                if isinstance(self.duel_mappool_targ, int):
+                    self.duel_mappool_targ = min(
+                        filter(
+                            lambda x: x['uuid'] not in unplayable_pools_uuid, 
+                            maidbot_pools.values()
+                        ),
+                        key=lambda x: abs(x['averageMMR'] - self.duel_mappool_targ)
+                    )['uuid']
+                elif isinstance(self.duel_mappool_targ, str):
+                    if maidbot_pools.get(self.duel_mappool_targ) is None:
+                        await self.channel.send(embed=discord.Embed(
+                            title="Wrong UUID!",
+                            description=f"Mappool of uuid {self.duel_mappool_targ} not existing! "
+                                        f"Choosing random mappool...",
+                            color=discord.Colour(0x0ef37c)
+                        ))
+                        self.duel_mappool_targ = None
+                else:
+                    raise ValueError(f"Wrong type of duel-specified-mappool data: "
+                                     f"{type(self.duel_mappool_targ).__name__!r}")
+            res = await self.bot.req.create_match(*self.uuid.values(), self.duel_mappool_targ)
+            if isinstance(res, self.bot.req.ERRORS):
+                self.scrim.write_log(self.bot.req.censor(str(res.data)) + '\n')
+                raise res
+            self.match_id = res["matchId"]
+            self.mappool_info = res['mappool']
+            self.mappool_uuid = self.mappool_info['uuid']
+            # self.scrim.write_log('Before select_pool_mmr_range :', rate_lower, rate_highter)
+            # 1000 ~ 2000 => 1200 ~ 3300
+            # rate_lower = elo_convert(rate_lower)
+            # rate_highter = elo_convert(rate_highter)
+            # self.scrim.write_log('After  select_pool_mmr_range :', rate_lower, rate_highter)
+            #
+            #    pool_pools = list(filter(
+            #        lambda po:
+            #        min(rate_lower, SELECT_POOL_HIGHEST) - SELECT_POOL_RANGE
+            #        <= po['averageMMR']
+            #        <= max(rate_highter, SELECT_POOL_LOWEST) + SELECT_POOL_RANGE,
+            #        maidbot_pools.values()
+            #    ))
+            #    selected_pool = random.choice(pool_pools)
+            #    while selected_pool['uuid'] in unplayable_pools_uuid:
+            #        selected_pool = random.choice(pool_pools)
+            # assert selected_pool is not None
+            # self.mappool_uuid = selected_pool['uuid']
+            # self.scrim.write_log('Selected pool :', selected_pool['name'])
+            if self.match_id == 'None':
+                chname = f"match-{self.__id}"
+            else:
+                chname = f"match-{self.match_id}"
             guild = self.bot.RANKED_OSUDROID_GUILD
             self.role = await guild.create_role(name=chname, color=discord.Colour.random())
             await self.player.add_roles(self.role)
@@ -296,63 +351,16 @@ class MatchScrim:
                                  f"Channel  ID : {self.channel.id}\n"
                                  f"Role     ID : {self.role.id}\n")
         elif self.round == 0:
-            selected_pool = None
-            rate_lower, rate_highter = sorted(self.elo_manager.get_ratings())
-            if self.duel_mappool_targ is not None:
-                if isinstance(self.duel_mappool_targ, int):
-                    selected_pool = min(filter(lambda x: x['uuid'] not in unplayable_pools_uuid, maidbot_pools.values()),
-                                        key=lambda x: abs(x['averageMMR'] - self.duel_mappool_targ))
-                elif isinstance(self.duel_mappool_targ, str):
-                    selected_pool = maidbot_pools.get(self.duel_mappool_targ)
-                    if selected_pool is None:
-                        await self.channel.send(embed=discord.Embed(
-                            title="Wrong UUID!",
-                            description=f"Mappool of uuid {self.duel_mappool_targ} not existing! "
-                                        f"Choosing random mappool...",
-                            color=discord.Colour(0x0ef37c)
-                        ))
-                        self.duel_mappool_targ = None
-                else:
-                    raise ValueError(f"Wrong type of duel-specified-mappool data: "
-                                     f"{type(self.duel_mappool_targ).__name__!r}")
-            if self.duel_mappool_targ is None:
-                if not self.is_duel:
-                    res = await self.bot.req.create_match(*self.uuid.values())
-                    if isinstance(res, self.bot.req.ERRORS):
-                        self.scrim.write_log(self.bot.req.censor(str(res.data)) + '\n')
-                        raise res
-                    self.match_id = res["matchId"]
-                    selected_pool = res['mappool']
-                    self.mappool_uuid = selected_pool['uuid']
-                # self.scrim.write_log('Before select_pool_mmr_range :', rate_lower, rate_highter)
-                # 1000 ~ 2000 => 1200 ~ 3300
-                # rate_lower = elo_convert(rate_lower)
-                # rate_highter = elo_convert(rate_highter)
-                # self.scrim.write_log('After  select_pool_mmr_range :', rate_lower, rate_highter)
-                else:
-                    pool_pools = list(filter(
-                        lambda po:
-                        min(rate_lower, SELECT_POOL_HIGHEST) - SELECT_POOL_RANGE
-                        <= po['averageMMR']
-                        <= max(rate_highter, SELECT_POOL_LOWEST) + SELECT_POOL_RANGE,
-                        maidbot_pools.values()
-                    ))
-                    selected_pool = random.choice(pool_pools)
-                    while selected_pool['uuid'] in unplayable_pools_uuid:
-                        selected_pool = random.choice(pool_pools)
-            assert selected_pool is not None
-            self.mappool_uuid = selected_pool['uuid']
-            # self.scrim.write_log('Selected pool :', selected_pool['name'])
             await self.channel.send(embed=discord.Embed(
                 title="Mappool is selected!",
-                description=f"Mappool Name : `{selected_pool['name']}`\n"
+                description=f"Mappool Name : `{self.mappool_info['name']}`\n"
                             f"Mappool MMR (not modified) : "
-                            f"{selected_pool['averageMMR']}\n"
+                            f"{self.mappool_info['averageMMR']}\n"
                             f"Mappool UUID : `{self.mappool_uuid}`",
                 color=discord.Colour(0x0ef37c)
             ))
             self.scrim.write_log(f"[{get_nowtime_str()}] {self}.do_progress(): Mappool selected\n"
-                                 f"Pool name : {selected_pool['name']}\n"
+                                 f"Pool name : {self.mappool_info['name']}\n"
                                  f"Pool UUID : {self.mappool_uuid}\n")
 
             calcmsg = await self.channel.send(embed=discord.Embed(
@@ -540,11 +548,10 @@ class MatchScrim:
             stream(get_traceback_str(ex_) + '\n')
             self.aborted = True
         finally:
-            if not self.is_duel and self.match_id != 'None':
+            if self.match_id != 'None':
                 res = await self.bot.req.end_match(self.match_id, self.aborted)
                 if isinstance(res, self.bot.req.ERRORS):
                     self.scrim.write_log(self.bot.req.censor(str(res.data)) + '\n')
-                    raise res
             if self.scrim is not None:
                 if not self.scrim.log.closed:
                     self.scrim.log.close()
