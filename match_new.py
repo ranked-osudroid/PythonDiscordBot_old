@@ -540,7 +540,7 @@ class MatchScrim:
             stream(get_traceback_str(ex_) + '\n')
             self.aborted = True
         finally:
-            if not self.is_duel:
+            if not self.is_duel and self.match_id != 'None':
                 res = await self.bot.req.end_match(self.match_id, self.aborted)
                 if isinstance(res, self.bot.req.ERRORS):
                     self.scrim.write_log(self.bot.req.censor(str(res.data)) + '\n')

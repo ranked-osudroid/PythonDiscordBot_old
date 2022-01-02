@@ -160,10 +160,12 @@ class RequestManager:
         })
         return res["maps"]
 
-    async def create_match(self, player_uuid: str, opponent_uuid: str):
+    async def create_match(self, player_uuid: str, opponent_uuid: str, pool_uuid: Optional[str] = None):
         return await self._post('createMatch', data={
             'uuid1': player_uuid,
             'uuid2': opponent_uuid,
+        } | {
+            _a: _b for _a, _b in [('mappoolUUID', pool_uuid)] if pool_uuid is not None
         })
 
     async def end_match(self, match_id: str, aborted: bool):
@@ -173,7 +175,6 @@ class RequestManager:
         })
 
     async def upload_record(self, match: 'MatchScrim'):
-        # TODO: not finished (None)
         winnerteam = match.scrim.winning_log[-1]
         if len(winnerteam) > 1:
             draw = 0
