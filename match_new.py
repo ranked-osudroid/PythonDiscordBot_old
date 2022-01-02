@@ -311,8 +311,8 @@ class MatchScrim:
             tempname = f"match-{self.match_id}"
             await self.role.edit(name=tempname)
             await self.channel.edit(name=tempname)
-            self.mappool_info = res['mappool']
-            self.mappool_uuid = self.mappool_info['uuid']
+            self.mappool_uuid = res['mappool']
+            self.mappool_info = maidbot_pools.get(self.mappool_uuid)
             # self.scrim.write_log('Before select_pool_mmr_range :', rate_lower, rate_highter)
             # 1000 ~ 2000 => 1200 ~ 3300
             # rate_lower = elo_convert(rate_lower)
