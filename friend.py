@@ -235,6 +235,9 @@ class MyCog(commands.Cog):
         MatchScrim = match_new.MatchScrim
         MatchMaker = matchmaker.MatchMaker
         RequestManager = fixca.RequestManager
+        _temp = self.bot.req
+        self.bot.req = RequestManager(self)
+        del _temp
         await ctx.send('Reload success')
 
     @commands.command(name="continue")
@@ -896,14 +899,13 @@ class MyCog(commands.Cog):
 
 
 class MyBot(commands.Bot):
-    def __init__(self, ses, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.member_names: Dict[int, str] = dict()
         self.datas: dd[Dict[int, dd[Dict[int, Dict[str, Union[int, 'Scrim']]], Callable[[], Dict]]]] = \
             dd(lambda: dd(lambda: {'valid': False, 'scrim': None}))
 
-        self.session: Optional[aiohttp.ClientSession] = ses
         self.req = RequestManager(self)
         self.osuapi = osuapi.OsuApi(api_key, connector=osuapi.AHConnector())
 
@@ -1011,7 +1013,7 @@ class MyBot(commands.Bot):
 
 async def _main(token_, **kwargs):
     PREFIX = '/'
-    app = MyBot(ses=aiohttp.ClientSession(), command_prefix=PREFIX, help_command=None, intents=intents)
+    app = MyBot(command_prefix=PREFIX, help_command=None, intents=intents)
     for attr, val in kwargs.items():
         setattr(app, attr, val)
     app.add_cog(MyCog(app))
@@ -1026,7 +1028,7 @@ async def _main(token_, **kwargs):
         raise
     finally:
         app.osuapi.close()
-        await app.session.close()
+        del app.req
         if not bot_task.done():
             bot_task.cancel()
         app.matchmaker.close()

@@ -67,10 +67,23 @@ class RequestManager:
 
     def __init__(self, bot):
         self.bot = bot
-        if bot is not None:
-            self.session = bot.session
-        else:
-            raise AttributeError("bot.session")
+        self.session = aiohttp.ClientSession()
+        self.__close_task = None
+
+    def __del__(self):
+        try:
+            loop = asyncio.get_event_loop()
+            self.__close_task = loop.create_task(self._close())
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(self._close())
+
+    async def _close(self):
+        if not self.session.closed:
+            await self.session.close()
+
+    async def _await_close_task(self):
+        await self.__close_task
 
     @staticmethod
     def censor(s: str):
