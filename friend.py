@@ -809,10 +809,10 @@ class MyCog(commands.Cog):
                 color=discord.Colour.dark_red()
             ))
             return"""
-        """userinfo = await self.bot.get_user_info(ctx.author.id)
+        userinfo = await self.bot.get_user_info(ctx.author.id)
         if isinstance(userinfo, self.bot.req.ERRORS):
             if isinstance(userinfo, fixca.HttpError):
-                print(userinfo.data)
+                print(self.bot.req.censor(userinfo.data))
                 await ctx.send(embed=discord.Embed(
                     title=f"Error occurred",
                     description=f"{userinfo}\nCheck the log."
@@ -827,7 +827,14 @@ class MyCog(commands.Cog):
                     title="Error occurred",
                     description=f"{userinfo}\nCheck the log."
                 ))
-            return"""
+            return
+        if not userinfo['hasToken']:
+            await ctx.send(embed=discord.Embed(
+                title="You has no token available!",
+                description=f"You should make one."
+                color=discord.Colour.dark_red()
+            ))
+            return
         self.bot.matchmaker.add_player(ctx.author)
         await ctx.send(embed=discord.Embed(
             title=f"{ctx.author.display_name} queued.",
