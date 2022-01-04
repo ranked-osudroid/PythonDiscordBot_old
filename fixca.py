@@ -187,6 +187,7 @@ class RequestManager:
             'startedTime': match.scrim.round_start_time,
             'matchId': match.match_id,
             'mapid': match.scrim.getmapid()[0],
+            'mapsetid': match.scrim.getmapid()[1],
             'mapset': FixcaMapMode[match.scrim.getmode()].value,
             'redPlayID': match.playID[match.player.id]['playId'],
             'bluePlayID': match.playID[match.opponent.id]['playId'],
