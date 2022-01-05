@@ -810,7 +810,7 @@ class MyCog(commands.Cog):
             ))
             return"""
         userinfo = await self.bot.get_user_info(ctx.author.id)
-        if isinstance(userinfo, self.bot.req.ERRORS):
+        if isinstance(userinfo, (self.bot.req.ERRORS, Exception)):
             if isinstance(userinfo, fixca.HttpError):
                 print(self.bot.req.censor(userinfo.data))
                 await ctx.send(embed=discord.Embed(
@@ -830,8 +830,8 @@ class MyCog(commands.Cog):
             return
         if not userinfo['hasToken']:
             await ctx.send(embed=discord.Embed(
-                title="You don't have any available token!", # <- 영어 문법 수정 by fixca
-                description=f"You should make one.\nHow about reading #faq ?", # <- 콤마 누락 변경 및 faq 채널 안내 문장 추가 by fixca
+                title="You don't have any available token!",
+                description=f"You should make one.\nHow about reading #faq ?",
                 color=discord.Colour.dark_red()
             ))
             return

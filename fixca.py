@@ -102,6 +102,7 @@ class RequestManager:
                 return HttpError('POST', url, res)
             if not (resdata := await res.json(
                     content_type=None, encoding='utf-8', loads=lambda dt: json.loads(dt, parse_float=d)))['status']:
+                del resdata['body']['key']
                 print(f'[{get_nowtime_str()}] RequestManager: POST {url} failed (Error code {resdata["code"]})')
                 print(resdata)
                 return FixcaError('POST', url, resdata)
@@ -120,6 +121,7 @@ class RequestManager:
                 return HttpError('GET', url, res)
             if not (resdata := await res.json(
                     content_type=None, encoding='utf-8', loads=lambda dt: json.loads(dt, parse_float=d)))['status']:
+                del resdata['body']['key']
                 print(f'[{get_nowtime_str()}] RequestManager: GET {url} failed (Errorcode {resdata["code"]})')
                 print(resdata)
                 return FixcaError('GET', url, resdata)

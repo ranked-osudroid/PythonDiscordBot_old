@@ -442,7 +442,6 @@ class MatchScrim:
                       f"{self.player.name:{namelen}s} After  ELO : {prate_aft}\n" \
                       f"{self.opponent.name:{namelen}s} Before ELO : {orate_bef}\n" \
                       f"{self.opponent.name:{namelen}s} After  ELO : {orate_aft}\n"
-            print(temptxt.rstrip())
             with open(self.scrim.log.name, 'a', encoding='utf-8') as f:
                 f.write(temptxt)
         else:

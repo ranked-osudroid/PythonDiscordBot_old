@@ -81,10 +81,12 @@ class Scrim:
         }
 
         self.log: IO = open(f'logs/{self.bot.user.name}_scrim_{self.name}_{self.start_time}.log', 'w', encoding='utf-8')
-        self.log.write(f"[{get_nowtime_str()}] Scrim initiated.\n"
-                       f"Guild   : {self.channel.guild.name}\n"
-                       f"Channel : {self.channel.name}\n"
-                       f"Name    : {self.name}\n")
+        init_text = f"[{get_nowtime_str()}] Scrim initiated.\n" \
+                    f"Guild   : {self.channel.guild.name}\n" \
+                    f"Channel : {self.channel.name}\n" \
+                    f"Name    : {self.name}"
+        print(init_text)
+        self.log.write(init_text+"\n")
         self.timer: Optional[Timer] = None
         self.PRINT_ON: bool = True
         self.winning_log: List[List[AnyStr]] = []
@@ -127,7 +129,6 @@ class Scrim:
                     description=f"Now team list:\n{chr(10).join(self.team.keys())}",
                     color=discord.Colour.blue()
                 ))
-            print(f"[{get_nowtime_str()}] {self}: Team \"{name}\" made.")
             self.log.write(f"[{get_nowtime_str()}] Team \"{name}\" made.\n")
 
     async def removeteam(self, name: str, do_print: bool = None):
@@ -149,7 +150,6 @@ class Scrim:
                     description=f"Now team list:\n{chr(10).join(self.team.keys())}",
                     color=discord.Colour.blue()
                 ))
-            print(f"[{get_nowtime_str()}] {self}: Team \"{name}\" removed.")
             self.log.write(f"[{get_nowtime_str()}] Team \"{name}\" removed.\n")
 
     async def addplayer(self, name: str, member: Optional[discord.Member], do_print: bool=None):
@@ -182,7 +182,6 @@ class Scrim:
                                 f"{chr(10).join([(await self.bot.get_discord_username(pl)) for pl in self.team[name]])}",
                     color=discord.Colour.blue()
                 ))
-            print(f"[{get_nowtime_str()}] {self}: Player \"{member.name}\" participated into Team {name}.")
             self.log.write(f"[{get_nowtime_str()}] Player \"{member.name}\" participated into Team {name}.\n")
 
     async def removeplayer(self, member: Optional[discord.Member], do_print: bool = None):
@@ -208,7 +207,6 @@ class Scrim:
                                 f"{chr(10).join([(await self.bot.get_discord_username(pl)) for pl in self.team[temp]])}",
                     color=discord.Colour.blue()
                 ))
-            print(f"[{get_nowtime_str()}] {self}: Player \"{member.name}\" left from Team {temp}.")
             self.log.write(f"[{get_nowtime_str()}] Player \"{member.name}\" left from Team {temp}.\n")
 
     async def addscore(self, 
@@ -232,7 +230,6 @@ class Scrim:
                 description=f"Team {self.findteam[mid]} <== {score}, {acc}%, {miss}xMISS",
                 color=discord.Colour.blue()
             ))
-            print(f"[{get_nowtime_str()}] {self}: Player \"{member.name}\" added score.")
             self.log.write(f"[{get_nowtime_str()}] Player \"{member.name}\" added score.\n"
                            f"Score : {self.score[mid]['score']:,d}\n"
                            f"Acc   : {self.score[mid]['acc']}%\n"
@@ -257,7 +254,6 @@ class Scrim:
                 title=f"Player {member.name}'(s) score is deleted.",
                 color=discord.Colour.blue()
             ))
-            print(f"[{get_nowtime_str()}] {self}: Player \"{member.name}\" removed score.")
             self.log.write(f"[{get_nowtime_str()}] Player \"{member.name}\" removed score.\n")
     
     async def submit(self, calcmode: Optional[str] = None):
@@ -354,7 +350,6 @@ class Scrim:
         for t in teamscore:
             self.log.write(f"{t} : {self.setscore[t]}\n")
         await resultmessage.edit(embed=sendtxt)
-        print(f"[{get_nowtime_str()}] {self}.submit(): Submit progress finished.")
         self.log.write(f"[{get_nowtime_str()}] Submit finished.\n")
         return winnerteam
     
@@ -433,7 +428,6 @@ class Scrim:
         for t in teamscore:
             self.log.write(f"{t} : {self.setscore[t]}\n")
         await resultmessage.edit(embed=sendtxt)
-        print(f"[{get_nowtime_str()}] {self}.submit_fixca(): Submit progress finished.")
         self.log.write(f"[{get_nowtime_str()}] Submit finished.\n")
         return winnerteam
     
@@ -591,9 +585,6 @@ class Scrim:
                 else:
                     uuid_ = await self.bot.get_user_info(player)
                     if isinstance(uuid_, self.bot.req.ERRORS):
-                        print(f"[{get_nowtime_str()}] {self}.onlineload(): "
-                              f"Failed to load data of {playername} ({uuid_})")
-                        print(uuid_.data)
                         temptxt = f"Failed : " \
                                   f"Error occurred while getting {playername}'s info ({uuid_})"
                         desc += temptxt
@@ -602,9 +593,6 @@ class Scrim:
                     player_recent_info = await self.bot.get_recent(
                         id_=uuid_['uuid'])
                 if isinstance(player_recent_info, self.bot.req.ERRORS):
-                    print(f"[{get_nowtime_str()}] {self}.onlineload(): "
-                          f"Failed to load data of {playername} ({player_recent_info})")
-                    print(player_recent_info.data)
                     if player_recent_info.data['code'] == fixca.FixcaErrorCode.PLAYER_NO_RECORDS:
                         temptxt = f"Failed : " \
                                   f"{playername} didn't played the map"
@@ -617,18 +605,12 @@ class Scrim:
                         self.log.write(temptxt+"\n")
                     continue
                 if player_recent_info is None:
-                    print(f"[{get_nowtime_str()}] {self}.onlineload(): "
-                          f"Failed to load data of {playername} (parse error)")
                     temptxt = f"Failed : " \
                               f"{playername}'s recent play info can't be parsed."
                     desc += temptxt
                     self.log.write(temptxt+"\n")
                     continue
                 if player_recent_info['mapHash'] != self.getmaphash():
-                    print(f"[{get_nowtime_str()}] {self}.onlineload(): "
-                          f"Failed to load data of {playername} (different hash)\n"
-                          f"Player HASH : {player_recent_info['mapHash']}\n"
-                          f"Map    HASH : {self.getmaphash()}")
                     temptxt = f"Failed : " \
                               f"In {playername}'s recently played info, its hash is different.\n" \
                               f"(Hash of the map : `{self.getmaphash()}` / " \
@@ -639,10 +621,6 @@ class Scrim:
                 modeint = modetointfunc(re.findall(r'.{1,2}', player_recent_info['modList'], re.DOTALL))
                 if self.map_mode is not None and \
                     modeint not in self.availablemode[self.map_mode]:
-                    print(f"[{get_nowtime_str()}] {self}.onlineload(): "
-                          f"Failed to load data of {playername} (not allowed mode)\n"
-                          f"Player MODE : {modeint}\n"
-                          f"Map    MODE : {self.availablemode[self.map_mode]}")
                     temptxt = f"Failed : " \
                               f"In {playername}'s recent play info, " \
                               f"its mode is NOT allowed in now map mode. " \
@@ -665,13 +643,11 @@ class Scrim:
                           f"{self.score[player]['modList']} / {self.score[player]['rank']} rank"
                 desc += temptxt
                 self.log.write(temptxt+"\n")
-                print(f"[{get_nowtime_str()}] {self}.onlineload(): Success to load data of {playername}")
         await resultmessage.edit(embed=discord.Embed(
             title="Calculation finished!",
             description=desc,
             color=discord.Colour.green()
         ))
-        print(f"[{get_nowtime_str()}] {self}.onlineload(): Progress finished.")
         self.log.write(f"[{get_nowtime_str()}] Onlineload finished.\n")
 
     async def end(self):
