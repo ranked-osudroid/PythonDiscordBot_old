@@ -830,8 +830,8 @@ class MyCog(commands.Cog):
             return
         if not userinfo['hasToken']:
             await ctx.send(embed=discord.Embed(
-                title="You don't have any available token!", # <- 영어 문법 수정 by fixed
-                description=f"You should make one.", # <- 콤마 누락 변경 by fixca
+                title="You don't have any available token!", # <- 영어 문법 수정 by fixca
+                description=f"You should make one.\nHow about reading #faq ?", # <- 콤마 누락 변경 및 faq 채널 안내 문장 추가 by fixca
                 color=discord.Colour.dark_red()
             ))
             return
