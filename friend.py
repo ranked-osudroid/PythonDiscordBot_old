@@ -744,7 +744,7 @@ class MyCog(commands.Cog):
         if targ is None:
             targ = ctx.author
         name = targ.display_name
-        rp: Optional[dict, ValueError, fixca.HttpError, fixca.FixcaError] = await self.bot.get_recent(id_=targ.id)
+        rp: Union[dict, ValueError, fixca.HttpError, fixca.FixcaError] = await self.bot.get_recent(id_=targ.id)
         if isinstance(rp, self.bot.req.ERRORS + (ValueError,)):
             await ctx.send(embed=discord.Embed(
                 title=f"Error occurred while loading {name}'s recent record.",
@@ -923,7 +923,7 @@ class MyBot(commands.Bot):
 
         self.matches: Dict[discord.Member, 'MatchScrim'] = dict()
         self.duel: Set[int] = set()
-        self.match_place: Optional[discord.CategoryChannel, discord.Guild] = None
+        self.match_place: Union[None, discord.CategoryChannel, discord.Guild] = None
         self.match_place_id: int = 823413857036402741
         self.RANKED_OSUDROID_GUILD: Optional[discord.Guild] = None
         self.RANKED_OSUDROID_GUILD_ID: int = 823413857036402739
@@ -950,7 +950,7 @@ class MyBot(commands.Bot):
 
         self.activity_display_task: Optional[asyncio.Task] = None
 
-    def get_matches(self, func: Callable[MatchScrim, bool]) -> List[MatchScrim]:
+    def get_matches(self, func: Callable[[MatchScrim], bool]) -> List[MatchScrim]:
         r = set()
         for x in self.matches.values():
             if getattr(func, '__call__', None) is not None and func(x):

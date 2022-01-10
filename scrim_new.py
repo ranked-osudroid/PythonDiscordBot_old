@@ -42,11 +42,11 @@ class Scrim:
         self.map_author: Optional[str] = None
         self.map_title: Optional[str] = None
         self.map_diff: Optional[str] = None
-        self.map_length: Optional[d, int] = None
+        self.map_length: Union[None, int, d] = None
         self.map_number: Optional[str] = None
         self.map_mode: Optional[str] = None
         self.map_hash: Optional[str] = None
-        self.map_auto_score: Optional[int, d] = None
+        self.map_auto_score: Union[None, int, d] = None
         self.map_id: Optional[Tuple[int, int]] = None
         
         self.availablemode: Dict[str, Iterable[int]] = {
