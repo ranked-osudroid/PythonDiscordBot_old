@@ -13,7 +13,7 @@ class WaitingPlayer:
         self.player_rating = 0
         self.target_rating_low = 0
         self.target_rating_high = 0
-        self.dr = 10
+        self.dr = 200
         self.task = self.loop.create_task(self.expanding())
 
     def __repr__(self):
@@ -30,6 +30,7 @@ class WaitingPlayer:
         try:
             while True:
                 await asyncio.sleep(1)
+                dr = self.dr / (self.bot.matchmaker.count + 9)
                 self.target_rating_low -= self.dr
                 self.target_rating_high += self.dr
         except asyncio.CancelledError:
@@ -53,6 +54,10 @@ class MatchMaker:
 
     def remove_player(self, player: discord.Member):
         self.querys.append((2, player))
+    
+    @property
+    def count(self):
+        return len(self.players_in_pool)
 
     async def check_match(self):
         try:
