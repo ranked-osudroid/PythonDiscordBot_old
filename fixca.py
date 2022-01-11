@@ -83,13 +83,14 @@ class RequestManager:
             await self.session.close()
 
     async def _await_close_task(self):
-        await self.__close_task
+        if self.__close_task is not None:
+            await self.__close_task
 
     @staticmethod
     def censor(s: str):
         return s.replace(RequestManager.__key, 'key')
 
-    async def _post(self, url, data=None, **kwargs):
+    async def _post(self, url, data=None, **kwargs) -> Union[self.ERRORS, dict]:
         if data is None:
             data = dict()
         data |= kwargs
@@ -108,7 +109,7 @@ class RequestManager:
                 return FixcaError('POST', url, resdata)
             return resdata['output']
 
-    async def _get(self, url, data=None, **kwargs):
+    async def _get(self, url, data=None, **kwargs) -> Union[self.ERRORS, dict]:
         if data is None:
             data = dict()
         data |= kwargs
@@ -173,6 +174,8 @@ class RequestManager:
         res = await self._post('getMappool', data={
             'uuid': uuid,
         })
+        if isinstance(res, self.ERRORS):
+            return res
         return res["maps"]
 
     async def create_match(self, player_uuid: str, opponent_uuid: str, pool_uuid: Optional[str] = None):

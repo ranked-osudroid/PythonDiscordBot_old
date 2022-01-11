@@ -531,7 +531,7 @@ class Scrim:
         self.log.write(f"[{get_nowtime_str()}] Map modified: ID => {mapid}, {mapsetid}\n")
     
     def getmapid(self):
-        return self.map_id
+        return self.map_id if self.map_id is not None else (0, 0)
     
     def setmoderule(
             self,
