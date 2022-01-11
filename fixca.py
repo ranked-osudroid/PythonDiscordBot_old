@@ -90,7 +90,7 @@ class RequestManager:
     def censor(s: str):
         return s.replace(RequestManager.__key, 'key')
 
-    async def _post(self, url, data=None, **kwargs) -> Union[self.ERRORS, dict]:
+    async def _post(self, url, data=None, **kwargs) -> Union[HttpError, FixcaError, dict]:
         if data is None:
             data = dict()
         data |= kwargs
@@ -109,7 +109,7 @@ class RequestManager:
                 return FixcaError('POST', url, resdata)
             return resdata['output']
 
-    async def _get(self, url, data=None, **kwargs) -> Union[self.ERRORS, dict]:
+    async def _get(self, url, data=None, **kwargs) -> Union[HttpError, FixcaError, dict]:
         if data is None:
             data = dict()
         data |= kwargs
