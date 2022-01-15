@@ -903,6 +903,14 @@ class MyCog(commands.Cog):
     async def surrender(self, ctx: commands.Context):
         if (m := self.bot.matches.get(ctx.author)) is not None:
             await m.surrender(ctx)
+    
+    @commands.command(aliases=['lb'])
+    async def leaderboard(self, ctx: commands.Context):
+        # TODO : show leaderboard after fixca making api for this
+        await ctx.send(embed=discord.Embed(
+            title="Not implemented now",
+            desc="Please wait for future updates!"
+        ))
 
 
 class MyBot(commands.Bot):
