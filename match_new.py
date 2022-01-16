@@ -236,10 +236,11 @@ class MatchScrim:
         self.round += 1
 
     async def do_progress(self):
+        name = self.match_id if self.match_id else self.__id
         if self.match_end or self.aborted:
             return
         elif self.round == -1:
-            chname = f"match-{self.__id}"
+            chname = f"match-{name}"
             guild = self.bot.RANKED_OSUDROID_GUILD
             self.role = await guild.create_role(name=chname, color=discord.Colour.random())
             await self.player.add_roles(self.role)
@@ -342,7 +343,7 @@ class MatchScrim:
                     description="Chat `rdy` to participate in 2 minutes!"
                 )
             )
-            self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_invite", 120, self.go_next_status)
+            self.timer = Timer(self.bot, self.channel, f"Match_{name}_invite", 120, self.go_next_status)
             self.scrim.write_log(f"[{get_nowtime_str()}] {self}: Match initiated\n"
                                  f"Player   ID : {self.player.id}\n"
                                  f"              {self.uuid[self.player.id]}\n"
@@ -407,7 +408,7 @@ class MatchScrim:
                             f"You have 1 minute to continue.",
                 color=discord.Colour.blue()
             ))
-            self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_finalready", 60, self.go_next_status)
+            self.timer = Timer(self.bot, self.channel, f"Match_{name}_finalready", 60, self.go_next_status)
             self.scrim.write_log(f"[{get_nowtime_str()}] {self}.do_progress(): Mappool successfully initiated.\n")
         elif (self.map_tb is None and self.round > len(self.map_order)) or self.round > self.BO or \
                 self.winfor in set(self.scrim.setscore.values()):
@@ -484,7 +485,7 @@ class MatchScrim:
                 description="Chat `rdy` in 5 minutes.",
                 color=discord.Colour.orange()
             ))
-            self.timer = Timer(self.bot, self.channel, f"Match_{self.__id}_{self.round}", 300, self.go_next_status)
+            self.timer = Timer(self.bot, self.channel, f"Match_{name}_{self.round}", 300, self.go_next_status)
             self.scrim.write_log(f"[{get_nowtime_str()}] {self}.do_progress(): Round #{self.round} prepared.\n"
                                  f"Map info : {self.scrim.getmapfull()}\n"
                                  f"Map ID   : {self.scrim.getmapid()}\n"
