@@ -1049,7 +1049,7 @@ class MyBot(commands.Bot):
 
 
 async def _main(token_, **kwargs):
-    PREFIX = '/'
+    PREFIX = '//'
     app = MyBot(command_prefix=PREFIX, help_command=None, intents=intents)
     for attr, val in kwargs.items():
         setattr(app, attr, val)
