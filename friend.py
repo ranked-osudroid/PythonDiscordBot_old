@@ -1,3 +1,4 @@
+from pydoc import describe
 import discord, importlib
 
 import friend_import, help_texts, timer, scrim_new, match_new, matchmaker, verify, fixca
@@ -911,6 +912,26 @@ class MyCog(commands.Cog):
         await ctx.send(embed=discord.Embed(
             title="Not implemented now",
             desc="Please wait for future updates!"
+        ))
+    
+    @commands.command()
+    @is_verified()
+    async def invite(self, ctx: commands.Context, member: discord.Member):
+        if not (ctx.author in self.bot.matches or 823730690058354688 in ctx.author.roles):
+            return
+        if not 823415179177885706 in member.roles:
+            await ctx.channel.send(embed=discord.Embed(
+                title=f"{member.display_name} is not verified!",
+                desc="You can invite the verified only.",
+                color=discord.Colour.dark_red()
+            ))
+            return
+        tempmatch = self.bot.matches[ctx.author]
+        await member.add_roles(tempmatch.role)
+        await tempmatch.channel.send(content=member.mention, embed=discord.Embed(
+            title=f"{member.display_name}, you're invited to this match by {ctx.author.display_name}!",
+            desc="Enjoy watching this match. :)",
+            color=discord.Colour.lighter_gray()
         ))
 
 
