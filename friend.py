@@ -890,8 +890,9 @@ class MyCog(commands.Cog):
             return
         except asyncio.CancelledError:
             return
-        self.bot.duel.remove(ctx.author.id)
-        await duel_message.delete()
+        finally:
+            self.bot.duel.remove(ctx.author.id)
+            await duel_message.delete()
         if mmr.isdecimal():
             mmr = int(mmr)
         self.bot.matches[ctx.author] = self.bot.matches[opponent] = m = \
