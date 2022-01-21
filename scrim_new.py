@@ -109,7 +109,7 @@ class Scrim:
             with open(self.log.name, 'a', encoding='utf-8') as f_:
                 f_.write(s)
         else:
-            self.write_log(s)
+            self.log.write(s)
             self.log.flush()
 
     async def maketeam(self, name: str, do_print: bool = None):
