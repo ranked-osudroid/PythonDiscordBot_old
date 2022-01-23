@@ -438,10 +438,40 @@ class MyCog(commands.Cog):
     """
     
     @commands.command(name="map")
-    async def _map(self, ctx: commands.Context, *, name: str):
-        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
-        return
+    async def _map(self, ctx: commands.Context, *, map_id: int, mode: str):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
+        if s['valid']:
+            resultmessage = await ctx.send(embed=discord.Wmbed(
+                title="Caculating...",
+                color=discord.Colour.orange()
+            ))
+            scrim = s['scrim']
+            try:
+                scrim.set_map_from_id(map_id)
+                scrim.setmode(mode)
+            except ValueError as vex:
+                await resultmessage.edit(embed=discord.Embed(
+                    title=f"Error occurred!",
+                    description=vex.args[0],
+                    color=discord.Colour.dark_red()
+                ))
+                return
+            except Exception as ex:
+                await resultmessage.edit(embed=discord.Embed(
+                    title=f"Error occurred!",
+                    description=f"{type(ex)} : {ex}",
+                ))
+                return
+            else:
+                await resultmessage.edit(embed=discord.Embed(
+                    title=f"Map infos Modified!",
+                    description=f"Map Info : `{scrim.getmapfull()}`\n"
+                                f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
+                                f"Map Length : {scrim.getmaplength()} sec.",
+                    color=discord.Colour.blue()
+                ))
+
+        """
         if s['valid']:
             resultmessage = await ctx.send(embed=discord.Embed(
                 title="Calculating...",
@@ -486,6 +516,7 @@ class MyCog(commands.Cog):
                             f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
                 color=discord.Colour.blue()
             ))
+            """
 
     @commands.command(aliases=['mm'])
     async def mapmode(self, ctx: commands.Context, mode: str):

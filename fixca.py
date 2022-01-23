@@ -67,23 +67,6 @@ class RequestManager:
 
     def __init__(self, bot):
         self.bot = bot
-        self.session = aiohttp.ClientSession()
-        self.__close_task = None
-
-    def __del__(self):
-        try:
-            loop = asyncio.get_event_loop()
-            self.__close_task = loop.create_task(self._close())
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            loop.run_until_complete(self._close())
-
-    async def _close(self):
-        if not self.session.closed:
-            await self.session.close()
-
-    async def _await_close_task(self):
-        if self.__close_task is not None:
             await self.__close_task
 
     @staticmethod
@@ -96,17 +79,18 @@ class RequestManager:
         data |= kwargs
         print(f"[{get_nowtime_str()}] RequestManager: Sending POST {url}")
         print(data)
-        async with self.session.post(self.BASEURL+url, data=data|self.__base_data) as res:
-            if res.status != 200:
-                print(f'[{get_nowtime_str()}] RequestManager: POST {url} failed (HTTP {res.status})')
-                print(await res.text())
-                return HttpError('POST', url, res)
-            if not (resdata := await res.json(
-                    content_type=None, encoding='utf-8', loads=lambda dt: json.loads(dt, parse_float=d)))['status']:
-                del resdata['body']['key']
-                print(f'[{get_nowtime_str()}] RequestManager: POST {url} failed (Error code {resdata["code"]})')
-                print(resdata)
-                return FixcaError('POST', url, resdata)
+        async with aiohttp.ClientSession() as ses:
+            async with ses.post(self.BASEURL+url, data=data|self.__base_data) as res:
+                if res.status != 200:
+                    print(f'[{get_nowtime_str()}] RequestManager: POST {url} failed (HTTP {res.status})')
+                    print(await res.text())
+                    return HttpError('POST', url, res)
+                if not (resdata := await res.json(
+                        content_type=None, encoding='utf-8', loads=lambda dt: json.loads(dt, parse_float=d)))['status']:
+                    del resdata['body']['key']
+                    print(f'[{get_nowtime_str()}] RequestManager: POST {url} failed (Error code {resdata["code"]})')
+                    print(resdata)
+                    return FixcaError('POST', url, resdata)
             return resdata['output']
 
     async def _get(self, url, data=None, **kwargs) -> Union[HttpError, FixcaError, dict]:
@@ -115,17 +99,18 @@ class RequestManager:
         data |= kwargs
         print(f'[{get_nowtime_str()}] RequestManager: Sending GET {url}')
         print(data)
-        async with self.session.get(self.BASEURL+url, data=data|self.__base_data) as res:
-            if res.status != 200:
-                print(f'[{get_nowtime_str()}] RequestManager: GET {url} failed (HTTP {res.status})')
-                print(await res.text())
-                return HttpError('GET', url, res)
-            if not (resdata := await res.json(
-                    content_type=None, encoding='utf-8', loads=lambda dt: json.loads(dt, parse_float=d)))['status']:
-                del resdata['body']['key']
-                print(f'[{get_nowtime_str()}] RequestManager: GET {url} failed (Errorcode {resdata["code"]})')
-                print(resdata)
-                return FixcaError('GET', url, resdata)
+        async with aiohttp.ClientSession() as ses:
+            async with self.session.get(self.BASEURL+url, data=data|self.__base_data) as res:
+                if res.status != 200:
+                    print(f'[{get_nowtime_str()}] RequestManager: GET {url} failed (HTTP {res.status})')
+                    print(await res.text())
+                    return HttpError('GET', url, res)
+                if not (resdata := await res.json(
+                        content_type=None, encoding='utf-8', loads=lambda dt: json.loads(dt, parse_float=d)))['status']:
+                    del resdata['body']['key']
+                    print(f'[{get_nowtime_str()}] RequestManager: GET {url} failed (Errorcode {resdata["code"]})')
+                    print(resdata)
+                    return FixcaError('GET', url, resdata)
             return resdata['output']
     
     async def recent_record(self, name):

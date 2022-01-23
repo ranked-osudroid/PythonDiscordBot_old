@@ -7,6 +7,13 @@ if TYPE_CHECKING:
     from match_new import MatchScrim
 
 class Scrim:
+    __id = 0
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls, *args, **kwargs)
+        instance.__id = cls.__id
+        cls.__id += 1
+        return instance
+
     def __init__(self,
                  bot: 'MyBot',
                  channel: discord.TextChannel,
@@ -15,14 +22,14 @@ class Scrim:
         self.match = match_
         self.loop = self.bot.loop
         self.channel: discord.TextChannel = channel
-        self.start_time = datetime.datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
+        self.start_time = datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S_%f')
         if self.match:
             if (mid := self.match.get_match_id()) == 'None':
                 self.name = f"m_{self.match.get_id()}"
             else:
                 self.name = f"m_{mid}"
         else :
-            self.name = self.start_time
+            self.name = f"s{self.__id}"
 
         self.round_start_time = None
 
@@ -565,6 +572,22 @@ class Scrim:
         if tb:
             self.availablemode['TB'] = tb
             self.write_log(f"TB : {tb}\n")
+
+    async def set_map_from_id(self, map_id: int, beatmap_obj: 'osuapi.model.Beatmap' = None):
+        if not beatmap_obj:
+            search_result = await self.bot.osuapi.get_beatmaps(beatmap_id=map_id)
+            if len(search_result) > 1:
+                raise ValueError(f"Multiple maps searched for beatmap id {map_id}")
+            elif not search_result:
+                raise ValueError(f"No beatmaps found for beatmap id {map_id}")
+            beatmap_obj = search_result[0]
+        self.setartist(beatmap_obj.artist)
+        self.setauthor(beatmap_obj.creator)
+        self.settitle(beatmap_obj.title)
+        self.setdiff(beatmap_obj.version)
+        self.setmaplength(beatmap_obj.total_length)
+        self.setmapid(beatmap_obj.beatmap_id, beatmapobj.beatmapset_id)
+        self.setmaphash(beatmap_obj.file_md5)
 
     async def onlineload(self):
         self.write_log(f"[{get_nowtime_str()}] Onlineload running...\n")
