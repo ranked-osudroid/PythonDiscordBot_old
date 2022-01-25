@@ -285,29 +285,43 @@ class MyCog(commands.Cog):
 
     @commands.command()
     async def make(self, ctx: commands.Context):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
+        if ctx.author in self.bot.scrims or ctx.author in self.bot.matches:
             await ctx.send(embed=discord.Embed(
-                title="There's already scrim running.",
-                description=f"You can make scrim only one per channel.",
+                title="You should not be playing in any scrim or match.",
                 color=discord.Colour.dark_red()
             ))
             return
-        s['valid'] = 1
-        s['scrim'] = Scrim(self.bot, ctx.channel)
+        scrim_name = f"s{Scrim.get_max_id()+1}"
+        guild = self.bot.RANKED_OSUDROID_GUILD
+        newrole = await guild.create_role(name=scrim_name, color=discord.Colour.random())
+        if guild.id == RANKED_OSUDROID_GUILD_ID:
+            overwrites = {
+                guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                guild.get_role(823415179177885706):
+                    discord.PermissionOverwrite(read_messages=True, send_messages=False),  # verified
+                guild.get_role(823730690058354688):
+                    discord.PermissionOverwrite(read_messages=True, send_messages=True),  # Staff member
+                newrole: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+            }
+        else:
+            overwrites = {
+                guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=False),
+                newrole: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+            }
+        newchannel = await self.bot.match_place.create_text_channel(name=scrim_name, overwrites=overwrites)
+        scrim = self.bot.scrims[ctx.author] = Scrim(self.bot, newchannel, role=newrole)
         await ctx.send(embed=discord.Embed(
             title="A SCRIM IS MADE.",
             description=f"Guild : {ctx.guild}\nChannel : {ctx.channel}",
             color=discord.Colour.green()
         ))
-        if self.bot.shutdown_datetime - datetime.datetime.now(tz=KST) <= datetime.timedelta(hours=1):
-            await ctx.send(embed=discord.Embed(
-                title=f"The bot is supposed to shutdown at {self.bot.shutdown_datetime.strftime('%H:%M')} KST.",
-                description="If the bot shutdowns during the match, "
-                            "all datas of the match will be disappeared.",
-                color=discord.Colour.dark_red()
-            ))
 
+    @commands.command()
+    async def leave(self, ctx: commands.Context):
+        pass
+    # TODO : leave the scrim; leave from team, delete role, etc
+
+    # TODO : switch self.bot.data to self.bot.scrims
     @commands.command(aliases=['t'])
     async def teamadd(self, ctx: commands.Context, *, name):
         s = self.bot.datas[ctx.guild.id][ctx.channel.id]
@@ -947,23 +961,33 @@ class MyCog(commands.Cog):
     
     @commands.command()
     @is_verified()
-    async def invite(self, ctx: commands.Context, member: discord.Member):
-        if not (ctx.author in self.bot.matches or 823730690058354688 in ctx.author.roles):
+    async def invite(self, ctx: commands.Context, *members: Tuple[discord.Member]):
+        if not (ctx.author in self.bot.matches or 823730690058354688 in ctx.author.roles or ctx.channel.id in self.bot.scrims):  # staff member role id
             return
-        if not 823415179177885706 in member.roles:
+        vm = []
+        nvm = []
+        if ctx.author in self.bot.matches:
+            tempmatch = self.bot.matches[ctx.author]
+        else:
+            tempmatch = self.bot.channels[ctx.channel.id]
+        for member in members:
+            if 823415179177885706 in member.roles and member not in self.bot.matches:
+                vm.append(member)
+                await member.add_roles(tempmatch.role)
+            else:
+                nvm.append(member)
+        if vm:
+            await tempmatch.channel.send(content=' '.join([mm.mention for mm in vm]), embed=discord.Embed(
+                title=f"you're invited to this match by {ctx.author.display_name}!",
+                desc="Enjoy watching this match. :)",
+                color=discord.Colour.lighter_gray()
+            ))
+        if nvm:
             await ctx.channel.send(embed=discord.Embed(
-                title=f"{member.display_name} is not verified!",
-                desc="You can invite the verified only.",
+                title=f"Some members are not verified or playing match!",
+                desc=f"Member list : {' '.join([mm.mention for mm in nvm])}",
                 color=discord.Colour.dark_red()
             ))
-            return
-        tempmatch = self.bot.matches[ctx.author]
-        await member.add_roles(tempmatch.role)
-        await tempmatch.channel.send(content=member.mention, embed=discord.Embed(
-            title=f"{member.display_name}, you're invited to this match by {ctx.author.display_name}!",
-            desc="Enjoy watching this match. :)",
-            color=discord.Colour.lighter_gray()
-        ))
 
 
 class MyBot(commands.Bot):
@@ -973,6 +997,8 @@ class MyBot(commands.Bot):
         self.member_names: Dict[int, str] = dict()
         self.datas: dd[Dict[int, dd[Dict[int, Dict[str, Union[int, 'Scrim']]], Callable[[], Dict]]]] = \
             dd(lambda: dd(lambda: {'valid': False, 'scrim': None}))
+        self.scrims: Dict[int, 'Scrim'] = dict()
+        # member : Scrim obj
 
         self.req = RequestManager(self)
         self.osuapi = osuapi.OsuApi(api_key, connector=osuapi.AHConnector())

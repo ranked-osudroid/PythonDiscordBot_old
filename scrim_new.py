@@ -17,13 +17,17 @@ class Scrim:
     def __init__(self,
                  bot: 'MyBot',
                  channel: discord.TextChannel,
-                 match_: Optional['MatchScrim'] = None):
+                 match_: Optional['MatchScrim'] = None,
+                 role: Optional[discord.Role] = None):
         self.bot = bot
         self.match = match_
+        self.role = role
         self.loop = self.bot.loop
         self.channel: discord.TextChannel = channel
         self.start_time = datetime.datetime.utcnow().strftime('%Y%m%d_%H%M%S_%f')
         if self.match:
+            if self.role is None:
+                self.role = self.match.role
             if (mid := self.match.get_match_id()) == 'None':
                 self.name = f"m_{self.match.get_id()}"
             else:
@@ -104,6 +108,10 @@ class Scrim:
     def __del__(self):
         if not self.log.closed:
             self.log.close()
+
+    @classmethod
+    def get_max_id(cls):
+        return cls.__id
 
     def get_player_team(self, member: discord.Member):
         mid = member.id
