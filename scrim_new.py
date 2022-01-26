@@ -179,18 +179,18 @@ class Scrim:
         mid = member.id
         temp = self.findteam.get(mid)
         if temp:
-            if not do_print: continue
-            await self.channel.send(embed=discord.Embed(
-                title=f"Player {member.name} is already in Team {temp}!",
-                description=f"Please leave your team first (`m;out`) and try again."
-            ))
+            if do_print:
+                await self.channel.send(embed=discord.Embed(
+                    title=f"Player {member.name} is already in Team {temp}!",
+                    description=f"Please leave your team first (`m;out`) and try again."
+                ))
         elif self.team.get(name) is None:
-            if not do_print: continue
-            await self.channel.send(embed=discord.Embed(
-                title=f"There's no Team {name}.",
-                description=f"Now team list:\n{chr(10).join(self.team.keys())}",
-                color=discord.Colour.dark_blue()
-            ))
+            if do_print:
+                await self.channel.send(embed=discord.Embed(
+                    title=f"There's no Team {name}.",
+                    description=f"Now team list:\n{chr(10).join(self.team.keys())}",
+                    color=discord.Colour.dark_blue()
+                ))
         else:
             self.findteam[mid] = name
             self.team[name].add(mid)
@@ -216,11 +216,11 @@ class Scrim:
         mid = member.id
         temp = self.findteam.get(mid)
         if mid not in self.players:
-            if not do_print: continue
-            await self.channel.send(embed=discord.Embed(
-                title=f"Player {member.name} is participating in NO team!",
-                description=f"You participate first."
-            ))
+            if do_print:
+                await self.channel.send(embed=discord.Embed(
+                    title=f"Player {member.name} is participating in NO team!",
+                    description=f"You participate first."
+                ))
         else:
             del self.findteam[mid], self.score[mid]
             self.team[temp].remove(mid)
