@@ -615,7 +615,7 @@ class Scrim:
 
     async def expire_play_id(self):
         for p in self.players:
-            await self.bot.req.expire_playid(self.playids[p]))
+            await self.bot.req.expire_playid(self.playids[p])
         # TODO : need try-catch and showing information
 
     async def onlineload(self):
