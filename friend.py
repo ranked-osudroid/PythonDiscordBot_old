@@ -878,7 +878,7 @@ class MyCog(commands.Cog):
     @commands.command()
     @is_verified()
     async def invite(self, ctx: commands.Context, *members: discord.Member):
-        if not (ctx.author in self.bot.matches or 823730690058354688 in ctx.author.roles or ctx.channel.id in self.bot.scrims):  # staff member role id
+        if not (ctx.author in self.bot.matches or 823730690058354688 in ctx.author.roles or ctx.author.id in self.bot.scrims):  # staff member role id
             return
         vm = []
         nvm = []
