@@ -50,7 +50,8 @@ class Scrim:
         self.score: Dict[int, Optional[dict]] = dict()
         # member_id : {score, acc, miss, grade, ...}
         self.uuids: Dict[int, str] = dict()
-        # member_id: uuid
+        self.playids: Dict[int, str] = dict()
+        # member_id: datas
         
         self.map_artist: Optional[str] = None
         self.map_author: Optional[str] = None
@@ -609,7 +610,12 @@ class Scrim:
     async def create_play_id(self):
         mapid = self.getmapid()[0]
         for p in self.players:
-            await self.bot.req.create_playID(self.uuids[p], mapid)
+            self.playids[p] = (await self.bot.req.create_playID(self.uuids[p], mapid))['playId']
+        # TODO : need try-catch and showing information
+
+    async def expire_play_id(self):
+        for p in self.players:
+            await self.bot.req.expire_playid(self.playids[p]))
         # TODO : need try-catch and showing information
 
     async def onlineload(self):
@@ -819,6 +825,7 @@ class Scrim:
                     assert response['redScore'] == self.setscore["RED"]
                     assert response['blueScore'] == self.setscore["BLUE"]
                 self.resetmap()
+                await self.expire_play_id()
             except asyncio.CancelledError:
                 await self.channel.send(embed=discord.Embed(
                     title="Match Aborted!",
