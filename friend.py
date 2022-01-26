@@ -321,67 +321,56 @@ class MyCog(commands.Cog):
         pass
     # TODO : leave the scrim; leave from team, delete role, etc
 
-    # TODO : switch self.bot.data to self.bot.scrims
     @commands.command(aliases=['t'])
     async def teamadd(self, ctx: commands.Context, *, name):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            await s['scrim'].maketeam(name)
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            await scrim.maketeam(name)
 
     @commands.command(aliases=['tr'])
     async def teamremove(self, ctx: commands.Context, *, name):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            await s['scrim'].removeteam(name)
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            await scrim.removeteam(name)
 
     @commands.command(name="in")
     async def _in(self, ctx: commands.Context, *, name):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            await s['scrim'].addplayer(name, ctx.author)
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            await scrim.addplayer(name, ctx.author)
 
     @commands.command()
     async def out(self, ctx: commands.Context):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            await s['scrim'].removeplayer(ctx.author)
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            await scrim.removeplayer(ctx.author)
 
     @commands.command(aliases=['score', 'sc'])
     async def _score(self, ctx: commands.Context, sc: int, a: float = 0.0, m: int = 0, gr: str = None):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            await s['scrim'].addscore(ctx.author, sc, a, m, gr)
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            await scrim.addscore(ctx.author, sc, str(a), m, gr)
 
     @commands.command(aliases=['scr'])
     async def scoreremove(self, ctx: commands.Context):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            await s['scrim'].removescore(ctx.author)
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            await scrim.removescore(ctx.author)
 
     @commands.command()
     async def submit(self, ctx: commands.Context, calcmode: Optional[str] = None):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            await s['scrim'].submit(calcmode)
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            await scrim.submit(calcmode)
 
     @commands.command()
     async def start(self, ctx: commands.Context):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            await s['scrim'].do_match_start()
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            await scrim.do_match_start()
 
     @commands.command()
     async def abort(self, ctx: commands.Context):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            if not s['scrim'].match_task.done():
-                s['scrim'].match_task.cancel()
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            if not scrim.match_task.done():
+                scrim.match_task.cancel()
 
     @commands.command()
     async def end(self, ctx: commands.Context):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            await s['scrim'].end()
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            await scrim.end()
             del self.bot.datas[ctx.guild.id][ctx.channel.id]
     """
     @commands.command()
@@ -453,15 +442,13 @@ class MyCog(commands.Cog):
     
     @commands.command(name="map")
     async def _map(self, ctx: commands.Context, *, map_id: int, mode: str):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            resultmessage = await ctx.send(embed=discord.Wmbed(
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            resultmessage = await ctx.send(embed=discord.Embed(
                 title="Caculating...",
                 color=discord.Colour.orange()
             ))
-            scrim = s['scrim']
             try:
-                scrim.set_map_from_id(map_id)
+                await scrim.set_map_from_id(map_id)
                 scrim.setmode(mode)
             except ValueError as vex:
                 await resultmessage.edit(embed=discord.Embed(
@@ -491,7 +478,6 @@ class MyCog(commands.Cog):
                 title="Calculating...",
                 color=discord.Colour.orange()
             ))
-            scrim = s['scrim']
             t = scrim.setmapinfo(name)
             if t:
                 try:
@@ -532,86 +518,10 @@ class MyCog(commands.Cog):
             ))
             """
 
-    @commands.command(aliases=['mm'])
-    async def mapmode(self, ctx: commands.Context, mode: str):
-        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
-        return
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            resultmessage = await ctx.send(embed=discord.Embed(
-                title="Calculating...",
-                color=discord.Colour.orange()
-            ))
-            scrim = s['scrim']
-            scrim.setmode(mode)
-            await resultmessage.edit(embed=discord.Embed(
-                title=f"Map infos Modified!",
-                description=f"Map Info : `{scrim.getmapfull()}`\n"
-                            f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
-                color=discord.Colour.blue()
-            ))
-
-    @commands.command(aliases=['mt'])
-    async def maptime(self, ctx: commands.Context, _time: int):
-        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
-        return
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            resultmessage = await ctx.send(embed=discord.Embed(
-                title="Calculating...",
-                color=discord.Colour.orange()
-            ))
-            scrim = s['scrim']
-            scrim.setmaplength(_time)
-            await resultmessage.edit(embed=discord.Embed(
-                title=f"Map infos Modified!",
-                description=f"Map Info : `{scrim.getmapfull()}`\n"
-                            f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
-                color=discord.Colour.blue()
-            ))
-
-    @commands.command(aliases=['ms'])
-    async def mapscore(self, ctx: commands.Context, sc_or_auto: Union[int, str], *, path: Optional[str] = None):
-        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
-        return
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            resultmessage = await ctx.send(embed=discord.Embed(
-                title="Processing...",
-                color=discord.Colour.orange()
-            ))
-            scrim = s['scrim']
-            if sc_or_auto == 'auto':
-                s = scoreCalc.scoreCalc(path)
-                scrim.setautoscore(s.getAutoScore()[1])
-                s.close()
-            else:
-                scrim.setautoscore(sc_or_auto)
-            await resultmessage.edit(embed=discord.Embed(
-                title=f"Map infos Modified!",
-                description=f"Map Info : `{scrim.getmapfull()}`\n"
-                            f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
-                color=discord.Colour.blue()
-            ))
-
     @commands.command(aliases=['l'])
-    async def onlineload(self, ctx: commands.Context, checkbit: Optional[int] = None):
-        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
-        return
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            await s['scrim'].onlineload(checkbit)
-
-    @commands.command()
-    async def form(self, ctx: commands.Context, *, f_: str):
-        await ctx.send(embed=discord.Embed(title="Not allowed now", color=discord.Colour.dark_red()))
-        return
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            await s['scrim'].setform(f_)
+    async def onlineload(self, ctx: commands.Context):
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            await scrim.onlineload()
 
     @commands.command(aliases=['mr'])
     async def mapmoderule(
@@ -624,8 +534,7 @@ class MyCog(commands.Cog):
             fm: Optional[str],
             tb: Optional[str]
     ):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
             resultmessage = await ctx.send(embed=discord.Embed(
                 title="Calculating...",
                 color=discord.Colour.orange()
@@ -634,7 +543,6 @@ class MyCog(commands.Cog):
             def temp(x: Optional[str]):
                 return set(map(int, x.split(',')))
 
-            scrim = s['scrim']
             scrim.setmoderule(temp(nm), temp(hd), temp(hr), temp(dt), temp(fm), temp(tb))
             desc = '\n'.join(f"Allowed modes for {i} = `{', '.join(inttomode(j) for j in scrim.availablemode[i])}`"
                              for i in modes)
@@ -646,13 +554,11 @@ class MyCog(commands.Cog):
 
     @commands.command(aliases=['mh'])
     async def maphash(self, ctx: commands.Context, h: str):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
             resultmessage = await ctx.send(embed=discord.Embed(
                 title="Calculating...",
                 color=discord.Colour.orange()
             ))
-            scrim = s['scrim']
             scrim.setmaphash(h)
             await resultmessage.edit(embed=discord.Embed(
                 title=f"Map infos Modified!",
@@ -726,9 +632,7 @@ class MyCog(commands.Cog):
 
     @commands.command()
     async def now(self, ctx: commands.Context):
-        s = self.bot.datas[ctx.guild.id][ctx.channel.id]
-        if s['valid']:
-            scrim = s['scrim']
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
             e = discord.Embed(title="Now scrim info", color=discord.Colour.orange())
             for t in scrim.team:
                 e.add_field(
@@ -961,7 +865,7 @@ class MyCog(commands.Cog):
     
     @commands.command()
     @is_verified()
-    async def invite(self, ctx: commands.Context, *members: Tuple[discord.Member]):
+    async def invite(self, ctx: commands.Context, *members: discord.Member):
         if not (ctx.author in self.bot.matches or 823730690058354688 in ctx.author.roles or ctx.channel.id in self.bot.scrims):  # staff member role id
             return
         vm = []
@@ -969,7 +873,7 @@ class MyCog(commands.Cog):
         if ctx.author in self.bot.matches:
             tempmatch = self.bot.matches[ctx.author]
         else:
-            tempmatch = self.bot.channels[ctx.channel.id]
+            tempmatch = self.bot.scrims[ctx.author]
         for member in members:
             if 823415179177885706 in member.roles and member not in self.bot.matches:
                 vm.append(member)

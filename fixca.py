@@ -67,7 +67,6 @@ class RequestManager:
 
     def __init__(self, bot):
         self.bot = bot
-            await self.__close_task
 
     @staticmethod
     def censor(s: str):
