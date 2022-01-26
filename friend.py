@@ -309,7 +309,7 @@ class MyCog(commands.Cog):
                 newrole: discord.PermissionOverwrite(read_messages=True, send_messages=True)
             }
         newchannel = await self.bot.match_place.create_text_channel(name=scrim_name, overwrites=overwrites)
-        scrim = self.bot.scrims[ctx.author] = Scrim(self.bot, newchannel, role=newrole)
+        self.bot.scrims[ctx.author] = Scrim(self.bot, newchannel, role=newrole)
         await ctx.send(embed=discord.Embed(
             title="A SCRIM IS MADE.",
             description=f"Guild : {ctx.guild}\nChannel : {ctx.channel}",
@@ -318,8 +318,20 @@ class MyCog(commands.Cog):
 
     @commands.command()
     async def leave(self, ctx: commands.Context):
-        pass
-    # TODO : leave the scrim; leave from team, delete role, etc
+        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
+            if ctx.author.id in scrim.players:
+                await ctx.send(f":x: | **{ctx.author.mention}**, you need to be participated to no team first.")
+            def check(msg):
+                return msg.author == ctx.author and msg.content == ctx.author.name and msg.channel == ctx.channel
+
+            await ctx.send(
+                f"**{ctx.author.mention}, if yor really want to leave, send your name (`{ctx.author.name}`) in 30 seconds.**")
+            try:
+                await self.bot.wait_for('message', timeout=30, check=check)
+            except asyncio.TimeoutError:
+                await ctx.send(f"**{ctx.author.mention}, time over.**")
+                return
+            await ctx.author.remove_role(scrim.role)
 
     @commands.command(aliases=['t'])
     async def teamadd(self, ctx: commands.Context, *, name):

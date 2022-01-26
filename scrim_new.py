@@ -581,7 +581,7 @@ class Scrim:
             self.availablemode['TB'] = tb
             self.write_log(f"TB : {tb}\n")
 
-    async def set_map_from_id(self, map_id: int, beatmap_obj: 'osuapi.model.Beatmap' = None):
+    async def set_map_from_id(self, map_id: int, beatmap_obj: 'osuapi.osu.Beatmap' = None):
         if not beatmap_obj:
             search_result = await self.bot.osuapi.get_beatmaps(beatmap_id=map_id)
             if len(search_result) > 1:
@@ -594,7 +594,7 @@ class Scrim:
         self.settitle(beatmap_obj.title)
         self.setdiff(beatmap_obj.version)
         self.setmaplength(beatmap_obj.total_length)
-        self.setmapid(beatmap_obj.beatmap_id, beatmapobj.beatmapset_id)
+        self.setmapid(beatmap_obj.beatmap_id, beatmap_obj.beatmapset_id)
         self.setmaphash(beatmap_obj.file_md5)
 
     async def onlineload(self):
