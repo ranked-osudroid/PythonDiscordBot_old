@@ -48,6 +48,9 @@ class Scrim:
         self.setscore: Dict[str, int] = dict()
         # teamname : int
         self.score: Dict[int, Optional[dict]] = dict()
+        # member_id : {score, acc, miss, grade, ...}
+        self.uuids: Dict[int, str] = dict()
+        # member_id: uuid
         
         self.map_artist: Optional[str] = None
         self.map_author: Optional[str] = None
@@ -175,12 +178,14 @@ class Scrim:
             return
         mid = member.id
         temp = self.findteam.get(mid)
-        if temp and do_print:
+        if temp:
+            if not do_print: continue
             await self.channel.send(embed=discord.Embed(
                 title=f"Player {member.name} is already in Team {temp}!",
                 description=f"Please leave your team first (`m;out`) and try again."
             ))
-        elif self.team.get(name) is None and do_print:
+        elif self.team.get(name) is None:
+            if not do_print: continue
             await self.channel.send(embed=discord.Embed(
                 title=f"There's no Team {name}.",
                 description=f"Now team list:\n{chr(10).join(self.team.keys())}",
@@ -191,6 +196,9 @@ class Scrim:
             self.team[name].add(mid)
             self.players.add(mid)
             self.score[mid] = {'score': d(0), 'acc': d(0), 'miss': d(0), 'rank': None, 'mode': 0}
+            if mid not in self.uuids:
+                self.uuids[mid] = (await self.bot.get_user_info(mid))['uuid']
+            # UNSTABLE : need try-catch
             if do_print:
                 await self.channel.send(embed=discord.Embed(
                     title=f"Player {member.name} participates into Team {name}!",
@@ -207,7 +215,8 @@ class Scrim:
             return
         mid = member.id
         temp = self.findteam.get(mid)
-        if mid not in self.players and do_print:
+        if mid not in self.players:
+            if not do_print: continue
             await self.channel.send(embed=discord.Embed(
                 title=f"Player {member.name} is participating in NO team!",
                 description=f"You participate first."
@@ -597,6 +606,12 @@ class Scrim:
         self.setmapid(beatmap_obj.beatmap_id, beatmap_obj.beatmapset_id)
         self.setmaphash(beatmap_obj.file_md5)
 
+    async def create_play_id(self):
+        mapid = self.getmapid()[0]
+        for p in self.players:
+            await self.bot.req.create_playID(self.uuids[p], mapid)
+        # TODO : need try-catch and showing information
+
     async def onlineload(self):
         self.write_log(f"[{get_nowtime_str()}] Onlineload running...\n")
         desc = '====== < Process LOG > ======'
@@ -750,7 +765,7 @@ class Scrim:
                 return
             try:
                 self.round_start_time = int(time.time())
-                await self.channel.send(embed=discord.Embed(
+                await asyncio.gather(self.channel.send(embed=discord.Embed(
                     title="MATCH START!",
                     description=f"Map Info : `{self.getmapfull()}`\n"
                                 f"Map Number : {self.getnumber()} / Map Mode : {self.getmode()}\n"
@@ -758,7 +773,7 @@ class Scrim:
                                 f"Allowed modes : "
                                 f"`{', '.join(map(inttomode, self.availablemode[self.getmode()]))}`",
                     color=discord.Colour.from_rgb(255, 255, 0)
-                ))
+                )), self.create_play_id())
                 extra_rate = d('1')
                 if self.getmode() == 'DT':
                     extra_rate = d('1') / d('1.5')
