@@ -205,7 +205,8 @@ class Scrim:
             if do_print:
                 await self.channel.send(embed=discord.Embed(
                     title=f"Player `{member.display_name}` participates into Team `{name}`!",
-                    description=f"Now player list of Team `{name}`:"+''.join([f"\n`{p.display_name}`" for p in self.team[name]),
+                    description=f"Now player list of Team `{name}`:"+
+                                ''.join([f"\n`{self.bot.get_user(p).display_name}`" for p in self.team[name]]),
                     color=discord.Colour.blue()
                 ))
             self.write_log(f"[{get_nowtime_str()}] Player \"{member.name}\" participated into Team {name}.\n")
@@ -230,7 +231,8 @@ class Scrim:
             if do_print:
                 await self.channel.send(embed=discord.Embed(
                     title=f"Player `{member.display_name}` is leaving Team `{temp}`.",
-                    description=f"Now player list of Team `{name}`:"+''.join([f"\n`{p.display_name}`" for p in self.team[name]),
+                    description=f"Now player list of Team `{temp}`:" +
+                                ''.join([f"\n`{self.bot.get_user(p).display_name}`" for p in self.team[temp]]),
                     color=discord.Colour.blue()
                 ))
             self.write_log(f"[{get_nowtime_str()}] Player \"{member.name}\" left from Team {temp}.\n")
