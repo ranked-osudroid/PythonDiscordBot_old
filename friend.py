@@ -291,9 +291,10 @@ class MyCog(commands.Cog):
                 color=discord.Colour.dark_red()
             ))
             return
-        scrim_name = f"s{Scrim.get_max_id()+1}"
+        scrim_name = f"s{Scrim.get_max_id()}"
         guild = self.bot.RANKED_OSUDROID_GUILD
         newrole = await guild.create_role(name=scrim_name, color=discord.Colour.random())
+        await ctx.author.add_roles(newrole)
         if guild.id == RANKED_OSUDROID_GUILD_ID:
             overwrites = {
                 guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -383,7 +384,10 @@ class MyCog(commands.Cog):
     async def end(self, ctx: commands.Context):
         if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
             await scrim.end()
-            del self.bot.datas[ctx.guild.id][ctx.channel.id]
+            for m in scrim.role.members:
+                mid = m.id
+                if mid in self.bot.scrims:
+                    del self.bot.scrims[mid]
     """
     @commands.command()
     async def verify(self, ctx: commands.Context, uid: Optional[int] = None):
@@ -453,7 +457,7 @@ class MyCog(commands.Cog):
     """
     
     @commands.command(name="map")
-    async def _map(self, ctx: commands.Context, *, map_id: int, mode: str):
+    async def _map(self, ctx: commands.Context, map_id: int, mode: str):
         if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
             resultmessage = await ctx.send(embed=discord.Embed(
                 title="Caculating...",
