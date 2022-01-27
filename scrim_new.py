@@ -8,8 +8,9 @@ if TYPE_CHECKING:
 
 class Scrim:
     __id = 0
+
     def __new__(cls, *args, **kwargs):
-        instance = super().__new__(cls, *args, **kwargs)
+        instance = super().__new__(cls)
         instance.__id = cls.__id
         cls.__id += 1
         return instance
