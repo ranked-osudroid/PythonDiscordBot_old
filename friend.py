@@ -285,7 +285,8 @@ class MyCog(commands.Cog):
 
     @commands.command()
     async def make(self, ctx: commands.Context):
-        if ctx.author in self.bot.scrims or ctx.author in self.bot.matches:
+        player = ctx.author
+        if player in self.bot.scrims or player in self.bot.matches:
             await ctx.send(embed=discord.Embed(
                 title="You should not be playing in any scrim or match.",
                 color=discord.Colour.dark_red()
@@ -294,7 +295,7 @@ class MyCog(commands.Cog):
         scrim_name = f"s{Scrim.get_max_id()}"
         guild = self.bot.RANKED_OSUDROID_GUILD
         newrole = await guild.create_role(name=scrim_name, color=discord.Colour.random())
-        await ctx.author.add_roles(newrole)
+        await player.add_roles(newrole)
         if guild.id == RANKED_OSUDROID_GUILD_ID:
             overwrites = {
                 guild.default_role: discord.PermissionOverwrite(read_messages=False),
@@ -310,12 +311,8 @@ class MyCog(commands.Cog):
                 newrole: discord.PermissionOverwrite(read_messages=True, send_messages=True)
             }
         newchannel = await self.bot.match_place.create_text_channel(name=scrim_name, overwrites=overwrites)
-        self.bot.scrims[ctx.author] = Scrim(self.bot, newchannel, role=newrole)
-        await ctx.send(embed=discord.Embed(
-            title="A SCRIM IS MADE.",
-            description=f"Guild : {ctx.guild}\nChannel : {ctx.channel}",
-            color=discord.Colour.green()
-        ))
+        self.bot.scrims[player] = Scrim(self.bot, newchannel, role=newrole)
+        await newchannel.send(player.mention)
 
     @commands.command()
     async def leave(self, ctx: commands.Context):
@@ -483,7 +480,7 @@ class MyCog(commands.Cog):
                 await resultmessage.edit(embed=discord.Embed(
                     title=f"Map infos Modified!",
                     description=f"Map Info : `{scrim.getmapfull()}`\n"
-                                f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
+                                f"Map Mode : {scrim.getmode()}\n"
                                 f"Map Length : {scrim.getmaplength()} sec.",
                     color=discord.Colour.blue()
                 ))
@@ -565,23 +562,6 @@ class MyCog(commands.Cog):
             await resultmessage.edit(embed=discord.Embed(
                 title=f"Map mode rules Modified!",
                 description=desc,
-                color=discord.Colour.blue()
-            ))
-
-    @commands.command(aliases=['mh'])
-    async def maphash(self, ctx: commands.Context, h: str):
-        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            resultmessage = await ctx.send(embed=discord.Embed(
-                title="Calculating...",
-                color=discord.Colour.orange()
-            ))
-            scrim.setmaphash(h)
-            await resultmessage.edit(embed=discord.Embed(
-                title=f"Map infos Modified!",
-                description=f"Map Info : `{scrim.getmapfull()}`\n"
-                            f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.\n"
-                            f"Map Hash : `{scrim.getmaphash()}`",
                 color=discord.Colour.blue()
             ))
 

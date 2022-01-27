@@ -37,6 +37,7 @@ class Scrim:
             self.name = f"s{self.__id}"
 
         self.round_start_time = None
+        self.round = 1
 
         self.match_task: Optional[asyncio.Task] = None
 
@@ -137,8 +138,8 @@ class Scrim:
             do_print = self.PRINT_ON
         if self.team.get(name) is not None and do_print:
             await self.channel.send(embed=discord.Embed(
-                title=f"Team {name} already exists!",
-                description=f"Now team list:\n{chr(10).join(self.team.keys())}",
+                title=f"Team `{name}` already exists!",
+                description=f"Now team list:"+''.join([f"\n`{s}`" for s in self.team.keys()]),
                 color=discord.Colour.dark_blue()
             ))
         else:
@@ -146,8 +147,8 @@ class Scrim:
             self.setscore[name] = 0
             if do_print:
                 await self.channel.send(embed=discord.Embed(
-                    title=f"Added Team {name}.",
-                    description=f"Now team list:\n{chr(10).join(self.team.keys())}",
+                    title=f"Added Team `{name}`.",
+                    description=f"Now team list:"+''.join([f"\n`{s}`" for s in self.team.keys()]),
                     color=discord.Colour.blue()
                 ))
             self.write_log(f"[{get_nowtime_str()}] Team \"{name}\" made.\n")
@@ -157,8 +158,8 @@ class Scrim:
             do_print = self.PRINT_ON
         if self.team.get(name) is None and do_print:
             await self.channel.send(embed=discord.Embed(
-                title=f"There's no Team {name}.",
-                description=f"Now team list:\n{chr(10).join(self.team.keys())}",
+                title=f"There's no Team `{name}`.",
+                description=f"Now team list:"+''.join([f"\n`{s}`" for s in self.team.keys()]),
                 color=discord.Colour.dark_blue()
             ))
         else:
@@ -167,8 +168,8 @@ class Scrim:
             del self.team[name], self.setscore[name]
             if do_print:
                 await self.channel.send(embed=discord.Embed(
-                    title=f"Removed Team {name}.",
-                    description=f"Now team list:\n{chr(10).join(self.team.keys())}",
+                    title=f"Removed Team `{name}`.",
+                    description=f"Now team list:"+''.join([f"\n`{s}`" for s in self.team.keys()]),
                     color=discord.Colour.blue()
                 ))
             self.write_log(f"[{get_nowtime_str()}] Team \"{name}\" removed.\n")
@@ -183,14 +184,14 @@ class Scrim:
         if temp:
             if do_print:
                 await self.channel.send(embed=discord.Embed(
-                    title=f"Player {member.name} is already in Team {temp}!",
-                    description=f"Please leave your team first (`m;out`) and try again."
+                    title=f"Player `{member.display_name}` is already in Team `{temp}`!",
+                    description=f"Please leave your team first (`//out`) and try again."
                 ))
         elif self.team.get(name) is None:
             if do_print:
                 await self.channel.send(embed=discord.Embed(
-                    title=f"There's no Team {name}.",
-                    description=f"Now team list:\n{chr(10).join(self.team.keys())}",
+                    title=f"There's no Team `{name}`.",
+                    description=f"Now team list:"+''.join([f"\n`{s}`" for s in self.team.keys()]),
                     color=discord.Colour.dark_blue()
                 ))
         else:
@@ -203,9 +204,8 @@ class Scrim:
             # UNSTABLE : need try-catch
             if do_print:
                 await self.channel.send(embed=discord.Embed(
-                    title=f"Player {member.name} participates into Team {name}!",
-                    description=f"Now player list of Team {name}:\n"
-                                f"{chr(10).join([(await self.bot.get_discord_username(pl)) for pl in self.team[name]])}",
+                    title=f"Player `{member.display_name}` participates into Team `{name}`!",
+                    description=f"Now player list of Team `{name}`:"+''.join([f"\n`{p.display_name}`" for p in self.team[name]),
                     color=discord.Colour.blue()
                 ))
             self.write_log(f"[{get_nowtime_str()}] Player \"{member.name}\" participated into Team {name}.\n")
@@ -220,7 +220,7 @@ class Scrim:
         if mid not in self.players:
             if do_print:
                 await self.channel.send(embed=discord.Embed(
-                    title=f"Player {member.name} is participating in NO team!",
+                    title=f"Player `{member.display_name}` is participating in NO team!",
                     description=f"You participate first."
                 ))
         else:
@@ -229,9 +229,8 @@ class Scrim:
             self.players.remove(mid)
             if do_print:
                 await self.channel.send(embed=discord.Embed(
-                    title=f"Player {member.name} is leaving Team {temp}.",
-                    description=f"Now player list of Team {temp}:\n"
-                                f"{chr(10).join([(await self.bot.get_discord_username(pl)) for pl in self.team[temp]])}",
+                    title=f"Player `{member.display_name}` is leaving Team `{temp}`.",
+                    description=f"Now player list of Team `{name}`:"+''.join([f"\n`{p.display_name}`" for p in self.team[name]),
                     color=discord.Colour.blue()
                 ))
             self.write_log(f"[{get_nowtime_str()}] Player \"{member.name}\" left from Team {temp}.\n")
@@ -247,14 +246,14 @@ class Scrim:
         mid = member.id
         if mid not in self.players:
             await self.channel.send(embed=discord.Embed(
-                title=f"Player {member.name} is participating in NO team!",
+                title=f"Player `{member.display_name}` is participating in NO team!",
                 description=f"You participate first."
             ))
         else:
             self.score[mid] = {'score': getd(score), 'acc': acc, 'miss': getd(miss), 'rank': grade, 'mode': mode}
             await self.channel.send(embed=discord.Embed(
-                title=f"Player {member.name}'(s) score is modified.",
-                description=f"Team {self.findteam[mid]} <== {score}, {acc}%, {miss}xMISS",
+                title=f"Player `{member.display_name}`'(s) score is modified.",
+                description=f"Team `{self.findteam[mid]}` <== {score}, {acc}%, {miss}xMISS",
                 color=discord.Colour.blue()
             ))
             self.write_log(f"[{get_nowtime_str()}] Player \"{member.name}\" added score.\n"
@@ -272,13 +271,13 @@ class Scrim:
         mid = member.id
         if mid not in self.players and do_print:
             await self.channel.send(embed=discord.Embed(
-                title=f"Player {member.name} is participating in NO team!",
+                title=f"Player `{member.display_name}` is participating in NO team!",
                 description=f"You participate first."
             ))
         else:
             self.score[mid] = {'score': getd(0), 'acc': "00.00", 'miss': getd(0), 'rank': None, 'mode': 0}
             await self.channel.send(embed=discord.Embed(
-                title=f"Player {member.name}'(s) score is deleted.",
+                title=f"Player `{member.display_name}`'(s) score is deleted.",
                 color=discord.Colour.blue()
             ))
             self.write_log(f"[{get_nowtime_str()}] Player \"{member.name}\" removed score.\n")
@@ -324,7 +323,7 @@ class Scrim:
         desc = ', '.join('"'+t+'"' for t in winnerteam)
         sendtxt = discord.Embed(
             title="========= ! ROUND END ! =========",
-            description=f"__**Team {desc} get(s) a point!**__",
+            description=f"__**Team `{desc}` get(s) a point!**__",
             color=discord.Colour.red()
         )
         sendtxt.add_field(
@@ -359,7 +358,7 @@ class Scrim:
                            f"{self.score[p]['score']} / {self.score[p]['acc']}% / {self.score[p]['miss']} :x:" + \
                            (f" = {calculatedscores[p]}" if calcmode is not None else "") + "\n"
             sendtxt.add_field(
-                name=f"*Team {t} total score : {teamscore[t]}*",
+                name=f"*Team `{t}` total score : {teamscore[t]}*",
                 value=temptxt,
                 inline=False
             )
@@ -371,7 +370,7 @@ class Scrim:
         )
         sendtxt.add_field(
             name="__Now team score:__",
-            value='\n'.join([f"**{t} : {self.setscore[t]}**" for t in teamscore]),
+            value='\n'.join([f"**`{t}` : {self.setscore[t]}**" for t in teamscore]),
             inline=False
         )
         self.write_log("Team score:\n")
@@ -379,6 +378,7 @@ class Scrim:
             self.write_log(f"{t} : {self.setscore[t]}\n")
         await resultmessage.edit(embed=sendtxt)
         self.write_log(f"[{get_nowtime_str()}] Submit finished.\n")
+        self.round += 1
         return winnerteam
     
     async def submit_fixca(self):
@@ -401,7 +401,7 @@ class Scrim:
         desc = ', '.join('"'+t+'"' for t in winnerteam)
         sendtxt = discord.Embed(
             title="========= ! ROUND END ! =========",
-            description=f"__**Team {desc} get(s) a point!**__",
+            description=f"__**Team `{desc}` get(s) a point!**__",
             color=discord.Colour.red()
         )
         sendtxt.add_field(
@@ -409,11 +409,18 @@ class Scrim:
             value='`'+self.getmapfull()+'`',
             inline=False
         )
-        sendtxt.add_field(
-            name="Map Number",
-            value=self.getnumber(),
-            inline=False
-        )
+        if self.match:
+            sendtxt.add_field(
+                name="Map Number",
+                value=self.getnumber(),
+                inline=False
+            )
+        else:
+            sendtxt.add_field(
+                name="Map Mode",
+                value=self.getmode(),
+                inline=False
+            )
         sendtxt.add_field(
             name=blank,
             value='='*20+'\n'+blank,
@@ -421,7 +428,7 @@ class Scrim:
         )
         logtxt = [
             f'Map         : {self.getmapfull()}\n',
-            f'Map mode    : {self.getnumber()}\n',
+            f'Map mode    : {self.getnumber() if self.match else self.getmode()}\n',
             f'MapNick     : {self.map_number}\n',
             f'CalcFormula : FIXCA\n',
             f'Winner Team : {desc}\n\n'
@@ -438,7 +445,7 @@ class Scrim:
                            f"({self.score[p].get('300')}, {self.score[p].get('100')}, {self.score[p].get('50')})" \
                            + "\n"
             sendtxt.add_field(
-                name=f"*Team {t} total score : {teamscore[t]}*",
+                name=f"*Team `{t}` total score : {teamscore[t]}*",
                 value=temptxt,
                 inline=False
             )
@@ -450,7 +457,7 @@ class Scrim:
         )
         sendtxt.add_field(
             name="__Now team score:__",
-            value='\n'.join([f"**{t} : {self.setscore[t]}**" for t in teamscore]),
+            value='\n'.join([f"**`{t}` : {self.setscore[t]}**" for t in teamscore]),
             inline=False
         )
         self.write_log("Team score:\n")
@@ -458,6 +465,7 @@ class Scrim:
             self.write_log(f"{t} : {self.setscore[t]}\n")
         await resultmessage.edit(embed=sendtxt)
         self.write_log(f"[{get_nowtime_str()}] Submit finished.\n")
+        self.round += 1
         return winnerteam
     
     def resetmap(self):
@@ -642,7 +650,7 @@ class Scrim:
                     uuid_ = await self.bot.get_user_info(player)
                     if isinstance(uuid_, self.bot.req.ERRORS):
                         temptxt = f"Failed : " \
-                                  f"Error occurred while getting {playername}'s info ({uuid_})"
+                                  f"Error occurred while getting `{playername}`'s info (`{uuid_}`)"
                         desc += temptxt
                         self.write_log(temptxt+"\n")
                         continue
@@ -651,24 +659,24 @@ class Scrim:
                 if isinstance(player_recent_info, self.bot.req.ERRORS):
                     if player_recent_info.data['code'] == fixca.FixcaErrorCode.PLAYER_NO_RECORDS:
                         temptxt = f"Failed : " \
-                                  f"{playername} didn't played the map"
+                                  f"`{playername}` didn't played the map"
                         desc += temptxt
                         self.write_log(temptxt+"\n")
                     else:
                         temptxt = f"Failed : " \
-                                  f"Error occurred while getting {playername}'s recent record ({player_recent_info})"
+                                  f"Error occurred while getting `{playername}`'s recent record (`{player_recent_info}`)"
                         desc += temptxt
                         self.write_log(temptxt+"\n")
                     continue
                 if player_recent_info is None:
                     temptxt = f"Failed : " \
-                              f"{playername}'s recent play info can't be parsed."
+                              f"`{playername}`'s recent play info can't be parsed."
                     desc += temptxt
                     self.write_log(temptxt+"\n")
                     continue
                 if player_recent_info['mapHash'] != self.getmaphash():
                     temptxt = f"Failed : " \
-                              f"In {playername}'s recently played info, its hash is different.\n" \
+                              f"In `{playername}`'s recently played info, its hash is different.\n" \
                               f"(Hash of the map : `{self.getmaphash()}` / " \
                               f"Your hash : `{player_recent_info['mapHash']}`)"
                     desc += temptxt
@@ -678,7 +686,7 @@ class Scrim:
                 if self.map_mode is not None and \
                     modeint not in self.availablemode[self.map_mode]:
                     temptxt = f"Failed : " \
-                              f"In {playername}'s recent play info, " \
+                              f"In `{playername}`'s recent play info, " \
                               f"its mode is NOT allowed in now map mode. " \
                               f"(Modes allowed to use in this round : `{self.availablemode[self.map_mode]}` / " \
                               f"Your mode : `{player_recent_info['modList']} = {modeint}`)"
@@ -693,7 +701,7 @@ class Scrim:
                 self.score[player]['miss'] = d(self.score[player]['miss'])
                 self.score[player]['mode'] = modeint
                 temptxt = f"Success : " \
-                          f"Player {playername}'s score = " \
+                          f"Player `{playername}`'s score = " \
                           f"{self.score[player]['score']}, {self.score[player]['acc']}%, " \
                           f"{self.score[player]['miss']} MISS(es) / " \
                           f"{self.score[player]['modList']} / {self.score[player]['rank']} rank"
@@ -723,7 +731,7 @@ class Scrim:
         )
         sendtxt.add_field(
             name="THE RESULT:",
-            value=blank + '\n'.join(f"{t} : {self.setscore[t]}" for t in self.setscore)
+            value=blank + '\n'.join(f"`{t}` : {self.setscore[t]}" for t in self.setscore)
         )
         sendtxt.add_field(
             name=blank,
@@ -747,6 +755,11 @@ class Scrim:
                 file=discord.File(fp_)
             )
         print(f"[{get_nowtime_str()}] {self}.end(): Scrim finished.")
+        if self.match is None:
+            async def callback(*args):
+                await self.role.delete()
+                await self.channel.delete()
+            Timer(self.bot, self.channel, f"{self.name}_delete", 120, callback)
         return winnerteam
         
     async def do_match_start(self):
@@ -765,7 +778,7 @@ class Scrim:
             if self.map_length is None:
                 await self.channel.send(embed=discord.Embed(
                     title="The length of the map is not modified!",
-                    description="Use `m;maptime` and try again.",
+                    description="Use `//maptime` and try again.",
                     color=discord.Colour.dark_red()
                 ))
                 self.write_log(f"[{get_nowtime_str()}] match_start(): Map time not set.\n")
@@ -773,9 +786,9 @@ class Scrim:
             try:
                 self.round_start_time = int(time.time())
                 await asyncio.gather(self.channel.send(embed=discord.Embed(
-                    title="MATCH START!",
+                    title=f"Round #{self.round} START!",
                     description=f"Map Info : `{self.getmapfull()}`\n"
-                                f"Map Number : {self.getnumber()} / Map Mode : {self.getmode()}\n"
+                                f"{'Map Number : {self.getnumber()} / ' if self.match else ''}Map Mode : {self.getmode()}\n"
                                 f"Map Length : {self.getmaplength()} sec\n"
                                 f"Allowed modes : "
                                 f"`{', '.join(map(inttomode, self.availablemode[self.getmode()]))}`",
@@ -784,7 +797,7 @@ class Scrim:
                 extra_rate = d('1')
                 if self.getmode() == 'DT':
                     extra_rate = d('1') / d('1.5')
-                self.timer = Timer(self.bot, self.channel, f"{self.name}_{self.getnumber()}",
+                self.timer = Timer(self.bot, self.channel, f"{self.name}_{self.round}_{self.getnumber()}",
                                    int(self.getmaplength() * extra_rate))
                 self.write_log(f"[{get_nowtime_str()}] match_start(): "
                                f"Waiting until map finish... ({self.timer.seconds} seconds)\n")
@@ -795,12 +808,8 @@ class Scrim:
                 ))
                 self.write_log(f"[{get_nowtime_str()}] match_start(): "
                                f"Map finished. Waiting more 30 seconds...\n")
-                for i in range(30, -1, -1):
-                    await asyncio.gather(timermessage.edit(embed=discord.Embed(
-                        title=f"MAP TIME OVER!",
-                        description=f"There's additional {i} second(s) left.",
-                        color=discord.Colour.from_rgb(128, 128, 255)
-                    )), asyncio.sleep(1))
+                self.timer = Timer(self.bot, self.channel, f"{self.name}_{self.round}_extra", 30)
+                await self.timer.task
                 await self.channel.send(embed=discord.Embed(
                     title=f"MAP EXTRA TIME OVER!",
                     description="Online loading...",
@@ -811,10 +820,7 @@ class Scrim:
                 await self.onlineload()
                 self.write_log(f"[{get_nowtime_str()}] match_start(): "
                                f"onlineload() done, submit() calling...\n")
-                if self.match is None:
-                    w = await self.submit()
-                else:
-                    w = await self.submit_fixca()
+                w = await self.submit_fixca()
                 self.write_log(f"[{get_nowtime_str()}] match_start(): "
                                f"submit() done.\n")
                 self.winning_log.append(w)
