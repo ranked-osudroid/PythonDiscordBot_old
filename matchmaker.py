@@ -1,5 +1,5 @@
 from friend_import import *
-from match_new import MatchScrim
+from match import MatchScrim
 
 if TYPE_CHECKING:
     from friend import MyBot

@@ -1,7 +1,7 @@
 from friend_import import *
 
 if TYPE_CHECKING:
-    from match_new import MatchScrim
+    from match import MatchScrim
 
 
 class HttpError(Exception):
@@ -99,7 +99,7 @@ class RequestManager:
         print(f'[{get_nowtime_str()}] RequestManager: Sending GET {url}')
         print(data)
         async with aiohttp.ClientSession() as ses:
-            async with self.session.get(self.BASEURL+url, data=data|self.__base_data) as res:
+            async with ses.get(self.BASEURL+url, data=data|self.__base_data) as res:
                 if res.status != 200:
                     print(f'[{get_nowtime_str()}] RequestManager: GET {url} failed (HTTP {res.status})')
                     print(await res.text())

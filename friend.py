@@ -1,14 +1,14 @@
 from pydoc import describe
 import discord, importlib
 
-import friend_import, help_texts, timer, scrim_new, match_new, matchmaker, verify, fixca
-modules = [friend_import, help_texts, timer, scrim_new, match_new, matchmaker, verify, fixca]
+import friend_import, help_texts, timer, scrim, match, matchmaker, fixca
+modules = [friend_import, help_texts, timer, scrim, match, matchmaker, fixca]
 
 from friend_import import *
 helptxt_pages = help_texts.helptxt_pages
 Timer = timer.Timer
-Scrim = scrim_new.Scrim
-MatchScrim = match_new.MatchScrim
+Scrim = scrim.Scrim
+MatchScrim = match.MatchScrim
 MatchMaker = matchmaker.MatchMaker
 RequestManager = fixca.RequestManager
 
@@ -100,8 +100,8 @@ class MyCog(commands.Cog):
         #     f.write(exceptiontxt)
         await ctx.send(
             embed=discord.Embed(
-                title="Error occurred",
-                description=f"{type(exception).__name__} : {exception}\nCheck the log."
+                title="Error occurred!",
+                description=f"`{type(exception).__name__}` : `{exception}`\nCheck the log."
             )
         )
         if isinstance(exception, self.bot.req.ERRORS):
@@ -216,7 +216,7 @@ class MyCog(commands.Cog):
             return (id is None or m.get_id() == id) and (name is None or m.scrim.name == name)
         self.temp = self.bot.get_matches(filt)
         if len(self.temp) == 0:
-            await ctx.send("No filtered matches.")
+            await ctx.send(":x: | No filtered matches.")
             return
         temptxt = "Filtered matches :```"
         for t in self.temp:
@@ -232,8 +232,8 @@ class MyCog(commands.Cog):
             importlib.reload(module)
         helptxt_pages = help_texts.helptxt_pages
         Timer = timer.Timer
-        Scrim = scrim_new.Scrim
-        MatchScrim = match_new.MatchScrim
+        Scrim = scrim.Scrim
+        MatchScrim = match.MatchScrim
         MatchMaker = matchmaker.MatchMaker
         RequestManager = fixca.RequestManager
         _temp = self.bot.req
@@ -248,11 +248,7 @@ class MyCog(commands.Cog):
         if now_match.match_task.done():
             await now_match.do_match_start()
         else:
-            await ctx.send(embed=discord.Embed(
-                title="Match is still processing!",
-                description="Try again soon.",
-                color=discord.Colour.dark_red()
-            ))
+            await ctx.send(":x: | Match is still processing!")
 
     @commands.command()
     @is_owner()
@@ -282,15 +278,11 @@ class MyCog(commands.Cog):
         )
         await ctx.send(f"Applyed ({self.bot.status[0]}, {self.bot.status[1]})")
 
-
     @commands.command()
     async def make(self, ctx: commands.Context):
         player = ctx.author
         if player in self.bot.scrims or player in self.bot.matches:
-            await ctx.send(embed=discord.Embed(
-                title="You should not be playing in any scrim or match.",
-                color=discord.Colour.dark_red()
-            ))
+            await ctx.send(":x: | **You should not be playing in any scrim or match.**")
             return
         scrim_name = f"s{Scrim.get_max_id()}"
         guild = self.bot.RANKED_OSUDROID_GUILD
@@ -318,16 +310,17 @@ class MyCog(commands.Cog):
     async def leave(self, ctx: commands.Context):
         if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
             if ctx.author.id in scrim.players:
-                await ctx.send(f":x: | **{ctx.author.mention}**, you need to be participated to no team first.")
+                await ctx.send(f":x: | **`{ctx.author.mention}`, you need to be participated to no team first.**")
+
             def check(msg):
                 return msg.author == ctx.author and msg.content == ctx.author.name and msg.channel == ctx.channel
 
-            await ctx.send(
-                f"**{ctx.author.mention}, if yor really want to leave, send your name (`{ctx.author.name}`) in 30 seconds.**")
+            await ctx.send(f":white_check_mark: | **{ctx.author.mention}, if yor really want to leave, "
+                           f"send your name (`{ctx.author.name}`) in 30 seconds.**")
             try:
                 await self.bot.wait_for('message', timeout=30, check=check)
             except asyncio.TimeoutError:
-                await ctx.send(f"**{ctx.author.mention}, time over.**")
+                await ctx.send(f":x: | **{ctx.author.mention}, time over.**")
                 return
             await ctx.author.remove_role(scrim.role)
 
@@ -385,73 +378,6 @@ class MyCog(commands.Cog):
                 mid = m.id
                 if mid in self.bot.scrims:
                     del self.bot.scrims[mid]
-    """
-    @commands.command()
-    async def verify(self, ctx: commands.Context, uid: Optional[int] = None):
-        mid = ctx.author.id
-        if self.bot.uids[mid] > 0:
-            await ctx.send(embed=discord.Embed(
-                title=f'You already verified with UID {self.bot.uids[mid]}.',
-                color=discord.Colour.orange()
-            ))
-        else:
-            if v := self.bot.verifies.get(mid):
-                verified = await v.do_verify()
-                if verified:
-                    self.bot.ratings[v.uid] = get_initial_elo(await self.bot.get_rank(v.uid))
-                    add_data = {
-                        'key': fixca_key,
-                        'discord_id': str(ctx.author.id),
-                        'elo': str(self.bot.ratings[v.uid]),
-                        'uid': str(v.uid)
-                    }
-                    print(add_data)
-                    if BOT_DEBUG:
-                        async with self.bot.session.post("http://ranked-osudroid.kro.kr/userAdd", data=add_data) \
-                                as useradd_res:
-                            if useradd_res.status != 200:
-                                await ctx.send(embed=discord.Embed(
-                                    title=f'POST userAdd failed. ({useradd_res.status})',
-                                    color=discord.Colour.dark_red()
-                                ))
-                                del self.bot.ratings[v.uid]
-                                return
-                            if (useradd_res_json := await useradd_res.json(encoding='utf-8'))['status'] == 'failed':
-                                await ctx.send(embed=discord.Embed(
-                                    title=f'POST userAdd failed. (FIXCUCKED)',
-                                    color=discord.Colour.dark_red()
-                                ))
-                                print(f'userAdd error : \n{useradd_res_json["error"]}')
-                                del self.bot.ratings[v.uid]
-                                return
-                    await ctx.send(embed=discord.Embed(
-                        title=f'Player {ctx.author.display_name} binded to UID {v.uid}.',
-                        description=f'Your ELO value set to {self.bot.ratings[v.uid]}',
-                        color=discord.Colour(0xfefefe)
-                    ))
-                    del self.bot.verifies[mid]
-                else:
-                    await ctx.send(embed=discord.Embed(
-                        title=f'Failed to bind.\n',
-                        description=f'Try again.',
-                        color=discord.Colour.dark_red()
-                    ))
-            else:
-                if uid is None:
-                    await ctx.send(embed=discord.Embed(
-                        title=f'You should enter UID you want to bind with.',
-                        color=discord.Colour.orange()
-                    ))
-                    return
-                self.bot.verifies[mid] = Verify(self.bot, ctx.channel, ctx.author, uid)
-                await ctx.send(embed=discord.Embed(
-                    title="For verifying...",
-                    description=f'Please play this map in 5 minutes.\n'
-                                f'http://ranked-osudroid.kro.kr/verification\n'
-                                f'And chat `m;verify` again.',
-                    color=discord.Colour.orange()
-                ))
-    """
     
     @commands.command(name="map")
     async def _map(self, ctx: commands.Context, map_id: int, mode: str):
@@ -466,14 +392,14 @@ class MyCog(commands.Cog):
             except ValueError as vex:
                 await resultmessage.edit(embed=discord.Embed(
                     title=f"Error occurred!",
-                    description=vex.args[0],
+                    description=f"`ValueError : {vex.args[0]}`",
                     color=discord.Colour.dark_red()
                 ))
                 return
             except Exception as ex:
                 await resultmessage.edit(embed=discord.Embed(
                     title=f"Error occurred!",
-                    description=f"{type(ex)} : {ex}",
+                    description=f"`{type(ex).__name__} : {ex}`",
                 ))
                 return
             else:
@@ -484,52 +410,6 @@ class MyCog(commands.Cog):
                                 f"Map Length : {scrim.getmaplength()} sec.",
                     color=discord.Colour.blue()
                 ))
-
-        """
-        if s['valid']:
-            resultmessage = await ctx.send(embed=discord.Embed(
-                title="Calculating...",
-                color=discord.Colour.orange()
-            ))
-            t = scrim.setmapinfo(name)
-            if t:
-                try:
-                    target = worksheet.find(name)
-                except gspread.exceptions.CellNotFound:
-                    await resultmessage.edit(embed=discord.Embed(
-                        title=f"{name} not found!",
-                        description="Check typo(s), and if that name is on bot sheet.",
-                        color=discord.Colour.dark_red()
-                    ))
-                    return
-                except Exception as e:
-                    await resultmessage.eddit(embed=discord.Embed(
-                        title="Error occurred!",
-                        description=f"Error : `[{type(e)}] {e}`",
-                        color=discord.Colour.dark_red()
-                    ))
-                    return
-                values = worksheet.row_values(target.row)
-                scrim.setfuncs['author'](values[0])
-                scrim.setfuncs['artist'](values[1])
-                scrim.setfuncs['title'](values[2])
-                scrim.setfuncs['diff'](values[3])
-                mapautosc = values[4]
-                maptime_ = values[8]
-                if mapautosc:
-                    scrim.setautoscore(int(mapautosc))
-                if maptime_:
-                    scrim.setmaplength(int(maptime_))
-                scrim.setnumber(name)
-                scrim.setmode(re.findall('|'.join(modes), name.split(';')[-1])[0])
-            await resultmessage.edit(embed=discord.Embed(
-                title=f"Map infos Modified!",
-                description=f"Map Info : `{scrim.getmapfull()}`\n"
-                            f"Map Number : {scrim.getnumber()} / Map Mode : {scrim.getmode()}\n"
-                            f"Map SS Score : {scrim.getautoscore()} / Map Length : {scrim.getmaplength()} sec.",
-                color=discord.Colour.blue()
-            ))
-            """
 
     @commands.command(aliases=['l'])
     async def onlineload(self, ctx: commands.Context):
@@ -569,18 +449,12 @@ class MyCog(commands.Cog):
     async def timer(self, ctx: commands.Context, action: Union[float, str], name: Optional[str] = None):
         if action == 'now':
             if self.bot.timers.get(name) is None:
-                await ctx.send(embed=discord.Embed(
-                    title=f"No timer named `{name}`!",
-                    color=discord.Colour.dark_red()
-                ))
+                await ctx.send(f":x: | **No timer named `{name}`!**")
             else:
                 await self.bot.timers[name].edit()
         elif action == 'cancel':
             if self.bot.timers.get(name) is None:
-                await ctx.send(embed=discord.Embed(
-                    title=f"No timer named `{name}`!",
-                    color=discord.Colour.dark_red()
-                ))
+                await ctx.send(f":x: | **No timer named `{name}`!**")
             else:
                 await self.bot.timers[name].cancel()
         else:
@@ -588,43 +462,12 @@ class MyCog(commands.Cog):
                 name = str(self.bot.timer_count)
                 self.bot.timer_count += 1
             if self.bot.timers.get(name) is not None and not self.bot.timers[name].done:
-                await ctx.send(embed=discord.Embed(
-                    title=f"There's already running timer named `{name}`!",
-                    color=discord.Colour.dark_red()
-                ))
+                await ctx.send(f":x: | **There's already running timer named `{name}`!**")
                 return
             try:
                 Timer(self.bot, ctx.channel, name, float(action))
             except ValueError:
-                await ctx.send(embed=discord.Embed(
-                    title=f"You should enter number for time limit!",
-                    color=discord.Colour.dark_red()
-                ))
-
-    @commands.command()
-    async def calc(self, ctx: commands.Context, kind: str, maxscore: d, score: d, acc: d, miss: d):
-        if kind == "nero2":
-            result = neroscorev2(maxscore, score, acc, miss)
-        elif kind == "jet2":
-            result = jetonetv2(maxscore, score, acc, miss)
-        elif kind == "osu2":
-            result = osuv2(maxscore, score, acc, miss)
-        else:
-            await ctx.send(embed=discord.Embed(
-                title="Unknown Calculate Mode!",
-                description="It should be (Empty), `nero2`, `jet2`, or `osu2`",
-                color=discord.Colour.dark_red()
-            ))
-            return
-        await ctx.send(embed=discord.Embed(
-            title=f"Calculation result : ({kind})",
-            description=f"maxscore = {maxscore}\n"
-                        f"score = {score}\n"
-                        f"acc = {acc}\n"
-                        f"miss = {miss}\n\n"
-                        f"calculated = **{result}**",
-            color=discord.Colour.dark_blue()
-        ))
+                await ctx.send(f":x: | **You should enter number for time limit!**")
 
     @commands.command()
     async def now(self, ctx: commands.Context):
@@ -644,10 +487,7 @@ class MyCog(commands.Cog):
         name = targ.display_name
         userinfo = await self.bot.get_user_info(targ.id)
         if isinstance(userinfo, Exception):
-            await ctx.send(embed=discord.Embed(
-                title=f"{name} didn't registered!",
-                color=discord.Colour.dark_red()
-            ))
+            await ctx.send(f":x: | **`{name}` didn't registered!**")
             return
         e = discord.Embed(
             title=f"Profile of {name}",
@@ -693,8 +533,8 @@ class MyCog(commands.Cog):
         rp: Union[dict, ValueError, fixca.HttpError, fixca.FixcaError] = await self.bot.get_recent(id_=targ.id)
         if isinstance(rp, self.bot.req.ERRORS + (ValueError,)):
             await ctx.send(embed=discord.Embed(
-                title=f"Error occurred while loading {name}'s recent record.",
-                description=f"{rp}\nCheck the log."
+                title=f"Error occurred while loading `{name}`'s recent record!",
+                description=f"`{rp}`\nCheck the log."
             ))
             return
         e = discord.Embed(
@@ -742,10 +582,7 @@ class MyCog(commands.Cog):
     @is_queue_channel()
     async def queue(self, ctx: commands.Context):
         if self.bot.matches.get(ctx.author):
-            await ctx.send(embed=discord.Embed(
-                title=f"You can't queue while playing match.",
-                color=discord.Colour.dark_red()
-            ))
+            await ctx.send(f":x: | **You can't queue while playing match.**")
             return
         """elif self.bot.shutdown_datetime - datetime.datetime.now(tz=KST) <= datetime.timedelta(minutes=30):
             await ctx.send(embed=discord.Embed(
@@ -760,18 +597,15 @@ class MyCog(commands.Cog):
             if isinstance(userinfo, fixca.HttpError):
                 print(self.bot.req.censor(userinfo.data))
                 await ctx.send(embed=discord.Embed(
-                    title=f"Error occurred",
-                    description=f"{userinfo}\nCheck the log."
+                    title=f"Error occurred!",
+                    description=f"`{userinfo}`\nCheck the log."
                 ))
             elif userinfo.data['code'] == fixca.FixcaErrorCode.USER_NOT_EXIST:
-                await ctx.send(embed=discord.Embed(
-                    title=f"You didn't registered!",
-                    color=discord.Colour.dark_red()
-                ))
+                await ctx.send(f":x: | **You didn't registered!**")
             else:
                 await ctx.send(embed=discord.Embed(
-                    title="Error occurred",
-                    description=f"{userinfo}\nCheck the log."
+                    title="Error occurred!",
+                    description=f"`{userinfo}`\nCheck the log."
                 ))
             return
         if not userinfo['hasToken']:
@@ -780,12 +614,14 @@ class MyCog(commands.Cog):
                 description=f"You should make one.\nHow about reading #faq ?",
                 color=discord.Colour.dark_red()
             ))
+            await ctx.send(f":x: | **You don't have any available token!**\n"
+                           f"Go check <#823462316300959744> and make new one.")
             return
         self.bot.matchmaker.add_player(ctx.author)
         await ctx.send(embed=discord.Embed(
-            title=f"{ctx.author.display_name} queued.",
+            title=f"`{ctx.author.display_name}` queued.",
             description=f"(If you already in queue, this will be ignored.)\n"
-                        f"Now the number of players in queue (except you) : {len(self.bot.matchmaker.pool)}",
+                        f"Now the number of players in queue (except you) : `{len(self.bot.matchmaker.pool)}`",
             color=discord.Colour(0x78f7fb)
         ))
 
@@ -794,9 +630,9 @@ class MyCog(commands.Cog):
     async def unqueue(self, ctx: commands.Context):
         self.bot.matchmaker.remove_player(ctx.author)
         await ctx.send(embed=discord.Embed(
-            title=f"{ctx.author.display_name} unqueued.",
+            title=f"`{ctx.author.display_name}` unqueued.",
             description=f"**This request could be ignored.**\n"
-                        f"Now the number of players in queue (including you) : {len(self.bot.matchmaker.pool)}",
+                        f"Now the number of players in queue (including you) : `{len(self.bot.matchmaker.pool)}`",
             color=discord.Colour(0x78f7fb)
         ))
 
@@ -804,24 +640,18 @@ class MyCog(commands.Cog):
     @is_verified()
     async def duel(self, ctx: commands.Context, opponent: discord.Member, mmr: Optional[str] = 'None'):
         if self.bot.matches.get(ctx.author) is not None:
-            await ctx.channel.send(embed=discord.Embed(
-                title=f"{ctx.author.display_name}, you can't duel while joining your match."
-            ))
+            await ctx.channel.send(f":x: | **`{ctx.author.display_name}`, you can't duel while joining your match.**")
             return
         if ctx.author.id in self.bot.matchmaker.players_in_pool:
-            await ctx.channel.send(embed=discord.Embed(
-                title=f"{ctx.author.display_name}, you can't duel while queueing."
-            ))
+            await ctx.channel.send(f":x: | **`{ctx.author.display_name}`, you can't duel while queueing.**")
             return
         if ctx.author.id in self.bot.duel:
-            await ctx.channel.send(embed=discord.Embed(
-                title=f"{ctx.author.display_name}, you can duel to only one player."
-            ))
+            await ctx.channel.send(f":x: | **`{ctx.author.display_name}`, you can duel to only one player.**")
             return
 
         self.bot.duel.add(ctx.author.id)
         duel_message = await ctx.send(content=opponent.mention, embed=discord.Embed(
-            title=f"{ctx.author.display_name} is challenging you to duel!",
+            title=f"`{ctx.author.display_name}` is challenging you to duel!",
             description=f"If you want to accept the duel, react with :handshake: in 2 minutes."
         ))
         handshake = "\U0001F91D"
@@ -831,7 +661,7 @@ class MyCog(commands.Cog):
         try:
             await self.bot.wait_for('reaction_add', timeout=120, check=check)
         except asyncio.TimeoutError:
-            await ctx.send(f"**Duel accept TIME OVER.**")
+            await ctx.send(f":x: | **Duel accept TIME OVER.**")
             await duel_message.delete()
             return
         except asyncio.CancelledError:
@@ -878,7 +708,7 @@ class MyCog(commands.Cog):
                 nvm.append(member)
         if vm:
             await tempmatch.channel.send(content=' '.join([mm.mention for mm in vm]), embed=discord.Embed(
-                title=f"you're invited to this match by {ctx.author.display_name}!",
+                title=f"You're invited to this match by `{ctx.author.display_name}`!",
                 desc="Enjoy watching this match. :)",
                 color=discord.Colour.lighter_gray()
             ))
@@ -951,32 +781,7 @@ class MyBot(commands.Bot):
                 user = await self.fetch_user(x)
             self.member_names[x] = user.name
         return self.member_names[x]
-    """
-    async def getrecent(self, _id: int) -> Optional[Tuple[Sequence[AnyStr], Sequence[AnyStr], Sequence[AnyStr], str]]:
-        url = url_base + str(_id)
-        html = await self.session.get(url)
-        bs = BeautifulSoup(await html.text(), "html.parser")
-        recent = bs.select_one("#activity > ul > li:nth-child(1)")
-        recent_mapinfo = recent.select("a.clear > strong.block")[0].text
-        recent_playinfo = recent.select("a.clear > small")[0].text
-        recent_miss = recent.select("#statics")[0].text
-        rank_img_filename = recent.select("a.thumb-sm.pull-left.m-r-sm > img")[0]['src']
-        rmimatch = mapr.match(recent_mapinfo)
-        if rmimatch is None:
-            return None
-        return (rmimatch.groups(),
-                playr.match(recent_playinfo).groups(),
-                missr.match(recent_miss).groups(),
-                rank_img_filename)
 
-    async def get_rank(self, _id: int):
-        url = url_base + str(_id)
-        html = await self.session.get(url)
-        bs = BeautifulSoup(await html.text(), "html.parser")
-        rank = bs.select_one("#content > section > section > section > aside.aside-lg.bg-light.lter.b-r > "
-                             "section > section > div > div.panel.wrapper > div > div:nth-child(1) > a > span").text
-        return int(rank)
-    """
     async def get_recent(self, user_name=None, id_=None):
         if user_name is None and id_ is not None:
             if isinstance(id_, str):
