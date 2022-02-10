@@ -1,5 +1,5 @@
 from pydoc import describe
-import discord, importlib
+import nextcord, importlib
 
 import friend_import, help_texts, timer, scrim, match, matchmaker, fixca
 modules = [friend_import, help_texts, timer, scrim, match, matchmaker, fixca]
@@ -25,7 +25,7 @@ class MyCog(commands.Cog):
         print(f"[{get_nowtime_str()}]")
         print(f"BOT NAME : {self.bot.user.name}")
         print(f"BOT ID   : {self.bot.user.id}")
-        await self.bot.change_presence(status=discord.Status.online)
+        await self.bot.change_presence(status=nextcord.Status.online)
         print("==========BOT START==========")
         self.bot.match_place = await self.bot.fetch_channel(self.bot.match_place_id)
         self.bot.RANKED_OSUDROID_GUILD = self.bot.get_guild(self.bot.RANKED_OSUDROID_GUILD_ID)
@@ -37,7 +37,7 @@ class MyCog(commands.Cog):
                 try:
                     if self.bot.status == (None, None):
                         await self.bot.change_presence(
-                            activity=discord.Game(
+                            activity=nextcord.Game(
                                 f"{len(self.bot.matchmaker.players_in_pool)} queued | "
                                 f"{len(self.bot.matches) // 2} matches"
                             )
@@ -58,7 +58,7 @@ class MyCog(commands.Cog):
         p = message.author
         if p == self.bot.user:
             return
-        if isinstance(message.channel, discord.channel.DMChannel):
+        if isinstance(message.channel, nextcord.channel.DMChannel):
             print(
                 f"[{message.created_at.strftime(TIMEFORMAT)[:-3]}] "
                 f"(DM) <{p.name}> {message.content}"
@@ -79,15 +79,15 @@ class MyCog(commands.Cog):
     @commands.Cog.listener()
     async def on_command_error(self, ctx: commands.Context, exception):
         if isinstance(exception, commands.errors.CheckFailure):
-            await ctx.send(embed=discord.Embed(
+            await ctx.send(embed=nextcord.Embed(
                 title="**YOU DON'T HAVE PERMISSION TO USE THIS.**",
-                color=discord.Colour.dark_gray()
+                color=nextcord.Colour.dark_gray()
             ))
             return
         elif isinstance(exception, commands.errors.CommandNotFound):
-            """await ctx.send(embed=discord.Embed(
+            """await ctx.send(embed=nextcord.Embed(
                 title=exception.args[0],
-                color=discord.Colour.dark_gray()
+                color=nextcord.Colour.dark_gray()
             ))"""
             return
         elif isinstance(exception, commands.errors.CommandInvokeError):
@@ -99,7 +99,7 @@ class MyCog(commands.Cog):
         # with open(f"errors/{time.time_ns()}.txt", 'w') as f:
         #     f.write(exceptiontxt)
         await ctx.send(
-            embed=discord.Embed(
+            embed=nextcord.Embed(
                 title="Error occurred!",
                 description=f"`{type(exception).__name__}` : `{exception}`\nCheck the log."
             )
@@ -111,9 +111,9 @@ class MyCog(commands.Cog):
 
     @commands.command(aliases=['help', '/help'])
     async def _help(self, ctx: commands.Context):
-        if isinstance(ctx.channel, discord.channel.DMChannel):
+        if isinstance(ctx.channel, nextcord.channel.DMChannel):
             return
-        help_msg: discord.Message = await ctx.send(embed=helptxt_pages[0])
+        help_msg: nextcord.Message = await ctx.send(embed=helptxt_pages[0])
         await help_msg.add_reaction('⏮')
         await help_msg.add_reaction('◀')
         await help_msg.add_reaction('▶')
@@ -168,7 +168,7 @@ class MyCog(commands.Cog):
             if not x:
                 continue
             sendtxt.append(f"{_d}: **{' / '.join(x)}**")
-        await ctx.send(embed=discord.Embed(title="Dice result", description='\n'.join(sendtxt)))
+        await ctx.send(embed=nextcord.Embed(title="Dice result", description='\n'.join(sendtxt)))
 
     @commands.command()
     async def sheetslink(self, ctx: commands.Context):
@@ -255,12 +255,12 @@ class MyCog(commands.Cog):
     async def showerrormsg(self, ctx: commands.Context):
         now_match = self.bot.matches[ctx.author]
         if (txt := now_match.get_debug_txt()) is not None:
-            await ctx.send(embed=discord.Embed(
+            await ctx.send(embed=nextcord.Embed(
                 title="Error message",
                 description=f"```{txt}```",
             ))
         else:
-            await ctx.send(embed=discord.Embed(
+            await ctx.send(embed=nextcord.Embed(
                 title="No error occured... now.",
                 description=f"```{now_match.match_task}```",
             ))
@@ -274,7 +274,7 @@ class MyCog(commands.Cog):
         )
         await self.bot.change_presence(
             status=self.bot.status[0],
-            activity=discord.Game(self.bot.status[1])
+            activity=nextcord.Game(self.bot.status[1])
         )
         await ctx.send(f"Applyed ({self.bot.status[0]}, {self.bot.status[1]})")
 
@@ -286,21 +286,21 @@ class MyCog(commands.Cog):
             return
         scrim_name = f"s{Scrim.get_max_id()}"
         guild = self.bot.RANKED_OSUDROID_GUILD
-        newrole = await guild.create_role(name=scrim_name, color=discord.Colour.random())
+        newrole = await guild.create_role(name=scrim_name, color=nextcord.Colour.random())
         await player.add_roles(newrole)
         if guild.id == RANKED_OSUDROID_GUILD_ID:
             overwrites = {
-                guild.default_role: discord.PermissionOverwrite(read_messages=False),
+                guild.default_role: nextcord.PermissionOverwrite(read_messages=False),
                 guild.get_role(823415179177885706):
-                    discord.PermissionOverwrite(read_messages=True, send_messages=False),  # verified
+                    nextcord.PermissionOverwrite(read_messages=True, send_messages=False),  # verified
                 guild.get_role(823730690058354688):
-                    discord.PermissionOverwrite(read_messages=True, send_messages=True),  # Staff member
-                newrole: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                    nextcord.PermissionOverwrite(read_messages=True, send_messages=True),  # Staff member
+                newrole: nextcord.PermissionOverwrite(read_messages=True, send_messages=True)
             }
         else:
             overwrites = {
-                guild.default_role: discord.PermissionOverwrite(read_messages=True, send_messages=False),
-                newrole: discord.PermissionOverwrite(read_messages=True, send_messages=True)
+                guild.default_role: nextcord.PermissionOverwrite(read_messages=True, send_messages=False),
+                newrole: nextcord.PermissionOverwrite(read_messages=True, send_messages=True)
             }
         newchannel = await self.bot.match_place.create_text_channel(name=scrim_name, overwrites=overwrites)
         self.bot.scrims[player] = Scrim(self.bot, newchannel, role=newrole)
@@ -326,89 +326,89 @@ class MyCog(commands.Cog):
 
     @commands.command(aliases=['t'])
     async def teamadd(self, ctx: commands.Context, *, name):
-        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            await scrim.maketeam(name)
+        if (s := self.bot.scrims.get(ctx.author)) and s.channel == ctx.channel:
+            await s.maketeam(name)
 
     @commands.command(aliases=['tr'])
     async def teamremove(self, ctx: commands.Context, *, name):
-        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            await scrim.removeteam(name)
+        if (s := self.bot.scrims.get(ctx.author)) and s.channel == ctx.channel:
+            await s.removeteam(name)
 
     @commands.command(name="in")
     async def _in(self, ctx: commands.Context, *, name):
-        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            await scrim.addplayer(name, ctx.author)
+        if (s := self.bot.scrims.get(ctx.author)) and s.channel == ctx.channel:
+            await s.addplayer(name, ctx.author)
 
     @commands.command()
     async def out(self, ctx: commands.Context):
-        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            await scrim.removeplayer(ctx.author)
+        if (s := self.bot.scrims.get(ctx.author)) and s.channel == ctx.channel:
+            await s.removeplayer(ctx.author)
 
     @commands.command(aliases=['score', 'sc'])
     async def _score(self, ctx: commands.Context, sc: int, a: float = 0.0, m: int = 0, gr: str = None):
-        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            await scrim.addscore(ctx.author, sc, str(a), m, gr)
+        if (s := self.bot.scrims.get(ctx.author)) and s.channel == ctx.channel:
+            await s.addscore(ctx.author, sc, str(a), m, gr)
 
     @commands.command(aliases=['scr'])
     async def scoreremove(self, ctx: commands.Context):
-        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            await scrim.removescore(ctx.author)
+        if (s := self.bot.scrims.get(ctx.author)) and s.channel == ctx.channel:
+            await s.removescore(ctx.author)
 
     @commands.command()
     async def submit(self, ctx: commands.Context, calcmode: Optional[str] = None):
-        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            await scrim.submit(calcmode)
+        if (s := self.bot.scrims.get(ctx.author)) and s.channel == ctx.channel:
+            await s.submit(calcmode)
 
     @commands.command()
     async def start(self, ctx: commands.Context):
-        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            await scrim.do_match_start()
+        if (s := self.bot.scrims.get(ctx.author)) and s.channel == ctx.channel:
+            await s.do_match_start()
 
     @commands.command()
     async def abort(self, ctx: commands.Context):
-        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            if not scrim.match_task.done():
-                scrim.match_task.cancel()
+        if (s := self.bot.scrims.get(ctx.author)) and s.channel == ctx.channel:
+            if not s.match_task.done():
+                s.match_task.cancel()
 
     @commands.command()
     async def end(self, ctx: commands.Context):
-        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            await scrim.end()
-            for m in scrim.role.members:
+        if (s := self.bot.scrims.get(ctx.author)) and s.channel == ctx.channel:
+            await s.end()
+            for m in s.role.members:
                 mid = m.id
                 if mid in self.bot.scrims:
                     del self.bot.scrims[mid]
     
     @commands.command(name="map")
     async def _map(self, ctx: commands.Context, map_id: int, mode: str):
-        if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            resultmessage = await ctx.send(embed=discord.Embed(
+        if (s := self.bot.scrims.get(ctx.author)) and s.channel == ctx.channel:
+            resultmessage = await ctx.send(embed=nextcord.Embed(
                 title="Caculating...",
-                color=discord.Colour.orange()
+                color=nextcord.Colour.orange()
             ))
             try:
-                await scrim.set_map_from_id(map_id)
-                scrim.setmode(mode)
+                await s.set_map_from_id(map_id)
+                s.setmode(mode)
             except ValueError as vex:
-                await resultmessage.edit(embed=discord.Embed(
+                await resultmessage.edit(embed=nextcord.Embed(
                     title=f"Error occurred!",
                     description=f"`ValueError : {vex.args[0]}`",
-                    color=discord.Colour.dark_red()
+                    color=nextcord.Colour.dark_red()
                 ))
                 return
             except Exception as ex:
-                await resultmessage.edit(embed=discord.Embed(
+                await resultmessage.edit(embed=nextcord.Embed(
                     title=f"Error occurred!",
                     description=f"`{type(ex).__name__} : {ex}`",
                 ))
                 return
             else:
-                await resultmessage.edit(embed=discord.Embed(
+                await resultmessage.edit(embed=nextcord.Embed(
                     title=f"Map infos Modified!",
-                    description=f"Map Info : `{scrim.getmapfull()}`\n"
-                                f"Map Mode : {scrim.getmode()}\n"
-                                f"Map Length : {scrim.getmaplength()} sec.",
-                    color=discord.Colour.blue()
+                    description=f"Map Info : `{s.getmapfull()}`\n"
+                                f"Map Mode : {s.getmode()}\n"
+                                f"Map Length : {s.getmaplength()} sec.",
+                    color=nextcord.Colour.blue()
                 ))
 
     @commands.command(aliases=['l'])
@@ -428,9 +428,9 @@ class MyCog(commands.Cog):
             tb: Optional[str]
     ):
         if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            resultmessage = await ctx.send(embed=discord.Embed(
+            resultmessage = await ctx.send(embed=nextcord.Embed(
                 title="Calculating...",
-                color=discord.Colour.orange()
+                color=nextcord.Colour.orange()
             ))
 
             def temp(x: Optional[str]):
@@ -439,10 +439,10 @@ class MyCog(commands.Cog):
             scrim.setmoderule(temp(nm), temp(hd), temp(hr), temp(dt), temp(fm), temp(tb))
             desc = '\n'.join(f"Allowed modes for {i} = `{', '.join(inttomode(j) for j in scrim.availablemode[i])}`"
                              for i in modes)
-            await resultmessage.edit(embed=discord.Embed(
+            await resultmessage.edit(embed=nextcord.Embed(
                 title=f"Map mode rules Modified!",
                 description=desc,
-                color=discord.Colour.blue()
+                color=nextcord.Colour.blue()
             ))
 
     @commands.command()
@@ -472,7 +472,7 @@ class MyCog(commands.Cog):
     @commands.command()
     async def now(self, ctx: commands.Context):
         if (scrim := self.bot.scrims.get(ctx.author)) and scrim.channel == ctx.channel:
-            e = discord.Embed(title="Now scrim info", color=discord.Colour.orange())
+            e = nextcord.Embed(title="Now scrim info", color=nextcord.Colour.orange())
             for t in scrim.team:
                 e.add_field(
                     name="Team " + t,
@@ -481,7 +481,7 @@ class MyCog(commands.Cog):
             await ctx.send(embed=e)
 
     @commands.command(aliases=['pfme'])
-    async def profileme(self, ctx: commands.Context, targ: Optional[discord.Member] = None):
+    async def profileme(self, ctx: commands.Context, targ: Optional[nextcord.Member] = None):
         if targ is None:
             targ = ctx.author
         name = targ.display_name
@@ -489,9 +489,9 @@ class MyCog(commands.Cog):
         if isinstance(userinfo, Exception):
             await ctx.send(f":x: | **`{name}` didn't registered!**")
             return
-        e = discord.Embed(
+        e = nextcord.Embed(
             title=f"Profile of {name}",
-            color=discord.Colour(0xdb6ee1)
+            color=nextcord.Colour(0xdb6ee1)
         )
         e.add_field(
             name="Username",
@@ -517,7 +517,7 @@ class MyCog(commands.Cog):
             value=f"`{elo_show_form(elor)}`"
         )
         rankstr = get_elo_rank(elor)
-        rankimgfile = discord.File(TIER_IMAGES[rankstr])
+        rankimgfile = nextcord.File(TIER_IMAGES[rankstr])
         e.add_field(
             name="Tier",
             value=rankstr
@@ -526,20 +526,20 @@ class MyCog(commands.Cog):
         await ctx.send(file=rankimgfile, embed=e)
 
     @commands.command(aliases=['rs'])
-    async def recentme(self, ctx: commands.Context, targ: Optional[discord.Member] = None):
+    async def recentme(self, ctx: commands.Context, targ: Optional[nextcord.Member] = None):
         if targ is None:
             targ = ctx.author
         name = targ.display_name
         rp: Union[dict, ValueError, fixca.HttpError, fixca.FixcaError] = await self.bot.get_recent(id_=targ.id)
         if isinstance(rp, self.bot.req.ERRORS + (ValueError,)):
-            await ctx.send(embed=discord.Embed(
+            await ctx.send(embed=nextcord.Embed(
                 title=f"Error occurred while loading `{name}`'s recent record!",
                 description=f"`{rp}`\nCheck the log."
             ))
             return
-        e = discord.Embed(
+        e = nextcord.Embed(
             title=f"{name}'(s) recent play info",
-            color=discord.Colour(0x78a94c)
+            color=nextcord.Colour(0x78a94c)
         )
         om: list[osuapi.osu.Beatmap] = await self.bot.osuapi.get_beatmaps(beatmap_hash=rp['mapHash'])
         if len(om) < 1:
@@ -585,60 +585,60 @@ class MyCog(commands.Cog):
             await ctx.send(f":x: | **You can't queue while playing match.**")
             return
         """elif self.bot.shutdown_datetime - datetime.datetime.now(tz=KST) <= datetime.timedelta(minutes=30):
-            await ctx.send(embed=discord.Embed(
+            await ctx.send(embed=nextcord.Embed(
                 title=f"The bot is supposed to shutdown at {self.bot.shutdown_datetime.strftime('%H:%M')} KST.",
                 description=f"You can join the queue until 30 minutes before shutdown "
                             f"({(self.bot.shutdown_datetime - datetime.timedelta(minutes=30)).strftime('%H:%M')} KST).",
-                color=discord.Colour.dark_red()
+                color=nextcord.Colour.dark_red()
             ))
             return"""
         userinfo = await self.bot.get_user_info(ctx.author.id)
         if isinstance(userinfo, (self.bot.req.ERRORS, Exception)):
             if isinstance(userinfo, fixca.HttpError):
                 print(self.bot.req.censor(userinfo.data))
-                await ctx.send(embed=discord.Embed(
+                await ctx.send(embed=nextcord.Embed(
                     title=f"Error occurred!",
                     description=f"`{userinfo}`\nCheck the log."
                 ))
             elif userinfo.data['code'] == fixca.FixcaErrorCode.USER_NOT_EXIST:
                 await ctx.send(f":x: | **You didn't registered!**")
             else:
-                await ctx.send(embed=discord.Embed(
+                await ctx.send(embed=nextcord.Embed(
                     title="Error occurred!",
                     description=f"`{userinfo}`\nCheck the log."
                 ))
             return
         if not userinfo['hasToken']:
-            await ctx.send(embed=discord.Embed(
+            await ctx.send(embed=nextcord.Embed(
                 title="You don't have any available token!",
                 description=f"You should make one.\nHow about reading #faq ?",
-                color=discord.Colour.dark_red()
+                color=nextcord.Colour.dark_red()
             ))
             await ctx.send(f":x: | **You don't have any available token!**\n"
                            f"Go check <#823462316300959744> and make new one.")
             return
         self.bot.matchmaker.add_player(ctx.author)
-        await ctx.send(embed=discord.Embed(
+        await ctx.send(embed=nextcord.Embed(
             title=f"`{ctx.author.display_name}` queued.",
             description=f"(If you already in queue, this will be ignored.)\n"
                         f"Now the number of players in queue (except you) : `{len(self.bot.matchmaker.pool)}`",
-            color=discord.Colour(0x78f7fb)
+            color=nextcord.Colour(0x78f7fb)
         ))
 
     @commands.command(aliases=['uq'])
     @is_queue_channel()
     async def unqueue(self, ctx: commands.Context):
         self.bot.matchmaker.remove_player(ctx.author)
-        await ctx.send(embed=discord.Embed(
+        await ctx.send(embed=nextcord.Embed(
             title=f"`{ctx.author.display_name}` unqueued.",
             description=f"**This request could be ignored.**\n"
                         f"Now the number of players in queue (including you) : `{len(self.bot.matchmaker.pool)}`",
-            color=discord.Colour(0x78f7fb)
+            color=nextcord.Colour(0x78f7fb)
         ))
 
     @commands.command()
     @is_verified()
-    async def duel(self, ctx: commands.Context, opponent: discord.Member, mmr: Optional[str] = 'None'):
+    async def duel(self, ctx: commands.Context, opponent: nextcord.Member, mmr: Optional[str] = 'None'):
         if self.bot.matches.get(ctx.author) is not None:
             await ctx.channel.send(f":x: | **`{ctx.author.display_name}`, you can't duel while joining your match.**")
             return
@@ -650,7 +650,7 @@ class MyCog(commands.Cog):
             return
 
         self.bot.duel.add(ctx.author.id)
-        duel_message = await ctx.send(content=opponent.mention, embed=discord.Embed(
+        duel_message = await ctx.send(content=opponent.mention, embed=nextcord.Embed(
             title=f"`{ctx.author.display_name}` is challenging you to duel!",
             description=f"If you want to accept the duel, react with :handshake: in 2 minutes."
         ))
@@ -684,14 +684,14 @@ class MyCog(commands.Cog):
     @commands.command(aliases=['lb'])
     async def leaderboard(self, ctx: commands.Context):
         # TODO : show leaderboard after fixca making api for this
-        await ctx.send(embed=discord.Embed(
+        await ctx.send(embed=nextcord.Embed(
             title="Not implemented now",
-            desc="Please wait for future updates!"
+            description="Please wait for future updates!"
         ))
     
     @commands.command()
     @is_verified()
-    async def invite(self, ctx: commands.Context, *members: discord.Member):
+    async def invite(self, ctx: commands.Context, *members: nextcord.Member):
         if not (ctx.author in self.bot.matches or 823730690058354688 in ctx.author.roles or ctx.author.id in self.bot.scrims):  # staff member role id
             return
         vm = []
@@ -707,16 +707,16 @@ class MyCog(commands.Cog):
             else:
                 nvm.append(member)
         if vm:
-            await tempmatch.channel.send(content=' '.join([mm.mention for mm in vm]), embed=discord.Embed(
+            await tempmatch.channel.send(content=' '.join([mm.mention for mm in vm]), embed=nextcord.Embed(
                 title=f"You're invited to this match by `{ctx.author.display_name}`!",
-                desc="Enjoy watching this match. :)",
-                color=discord.Colour.lighter_gray()
+                description="Enjoy watching this match. :)",
+                color=nextcord.Colour.lighter_gray()
             ))
         if nvm:
-            await ctx.channel.send(embed=discord.Embed(
+            await ctx.channel.send(embed=nextcord.Embed(
                 title=f"Some members are not verified or playing match!",
-                desc=f"Member list : {' '.join([mm.mention for mm in nvm])}",
-                color=discord.Colour.dark_red()
+                description=f"Member list : {' '.join([mm.mention for mm in nvm])}",
+                color=nextcord.Colour.dark_red()
             ))
 
 
@@ -727,7 +727,7 @@ class MyBot(commands.Bot):
         self.member_names: Dict[int, str] = dict()
         self.datas: dd[Dict[int, dd[Dict[int, Dict[str, Union[int, 'Scrim']]], Callable[[], Dict]]]] = \
             dd(lambda: dd(lambda: {'valid': False, 'scrim': None}))
-        self.scrims: Dict[int, 'Scrim'] = dict()
+        self.scrims: Dict[nextcord.Member, 'Scrim'] = dict()
         # member : Scrim obj
 
         self.req = RequestManager(self)
@@ -738,11 +738,11 @@ class MyBot(commands.Bot):
         self.timers: dd[str, Optional['Timer']] = dd(lambda: None)
         self.timer_count = 0
 
-        self.matches: Dict[discord.Member, 'MatchScrim'] = dict()
+        self.matches: Dict[nextcord.Member, 'MatchScrim'] = dict()
         self.duel: Set[int] = set()
-        self.match_place: Union[None, discord.CategoryChannel, discord.Guild] = None
+        self.match_place: Union[None, nextcord.CategoryChannel, nextcord.Guild] = None
         self.match_place_id: int = 823413857036402741
-        self.RANKED_OSUDROID_GUILD: Optional[discord.Guild] = None
+        self.RANKED_OSUDROID_GUILD: Optional[nextcord.Guild] = None
         self.RANKED_OSUDROID_GUILD_ID: int = 823413857036402739
         self.matchmaker = MatchMaker(self)
 
@@ -831,7 +831,7 @@ async def _main(token_, **kwargs):
         if not bot_task.done():
             bot_task.cancel()
         app.matchmaker.close()
-        await app.change_presence(status=discord.Status.offline)
+        await app.change_presence(status=nextcord.Status.offline)
         await app.loop.shutdown_asyncgens()
         await app.close()
         for t in asyncio.all_tasks(app.loop):

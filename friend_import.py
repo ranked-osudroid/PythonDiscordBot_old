@@ -1,11 +1,11 @@
 import asyncio, aiohttp, \
-    datetime, decimal, discord, gspread, random, re, time, \
+    datetime, decimal, nextcord, gspread, random, re, time, \
     traceback, scoreCalc, os, json, bisect, hashlib, osuapi, io, sys
 # import logging
 from typing import *
 from collections import defaultdict as dd
 from collections import deque
-from discord.ext import commands, tasks
+from nextcord.ext import commands, tasks
 from enum import IntEnum
 
 """
@@ -46,7 +46,7 @@ drive_folder = drive.ListFile(
     {'q': "title='od' and mimeType='application/vnd.google-apps.folder' and trashed=false"}
 ).GetList()[0]
 """
-intents = discord.Intents.default()
+intents = nextcord.Intents.default()
 intents.members = True
 intents.reactions = True
 
@@ -368,8 +368,8 @@ def get_nowtime_str():
     return datetime.datetime.utcnow().strftime(TIMEFORMAT)[:-3]
 
 DISCORD_STATS = [
-    discord.Status.online,
-    discord.Status.offline,
-    discord.Status.idle,
-    discord.Status.dnd
+    nextcord.Status.online,
+    nextcord.Status.offline,
+    nextcord.Status.idle,
+    nextcord.Status.dnd
 ]
