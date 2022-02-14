@@ -35,7 +35,7 @@ class MyCog(commands.Cog):
         async def work():
             while True:
                 try:
-                    if self.bot.status == (None, None):
+                    if self.bot.status_ == (None, None):
                         await self.bot.change_presence(
                             activity=nextcord.Game(
                                 f"{len(self.bot.matchmaker.players_in_pool)} queued | "
@@ -268,15 +268,15 @@ class MyCog(commands.Cog):
     @commands.command(aliases=['status'])
     @is_owner()
     async def status_(self, ctx: commands.Context, status_option: Optional[int], *, status_message: Optional[str]):
-        self.bot.status = (
-            self.bot.status[0] if status_option is None else DISCORD_STATS[status_option],
-            self.bot.status[1] if status_message is None else status_message
+        self.bot.status_ = (
+            self.bot.status_[0] if status_option is None else DISCORD_STATS[status_option],
+            self.bot.status_[1] if status_message is None else status_message
         )
         await self.bot.change_presence(
-            status=self.bot.status[0],
-            activity=nextcord.Game(self.bot.status[1])
+            status=self.bot.status_[0],
+            activity=nextcord.Game(self.bot.status_[1])
         )
-        await ctx.send(f"Applyed ({self.bot.status[0]}, {self.bot.status[1]})")
+        await ctx.send(f"Applyed ({self.bot.status_[0]}, {self.bot.status_[1]})")
 
     @commands.command()
     async def make(self, ctx: commands.Context):
@@ -595,7 +595,7 @@ class MyCog(commands.Cog):
         userinfo = await self.bot.get_user_info(ctx.author.id)
         if isinstance(userinfo, (self.bot.req.ERRORS, Exception)):
             if isinstance(userinfo, fixca.HttpError):
-                print(self.bot.req.censor(userinfo.data))
+                print(self.bot.req.censor(str(userinfo.data)))
                 await ctx.send(embed=nextcord.Embed(
                     title=f"Error occurred!",
                     description=f"`{userinfo}`\nCheck the log."
@@ -662,7 +662,6 @@ class MyCog(commands.Cog):
             await self.bot.wait_for('reaction_add', timeout=120, check=check)
         except asyncio.TimeoutError:
             await ctx.send(f":x: | **Duel accept TIME OVER.**")
-            await duel_message.delete()
             return
         except asyncio.CancelledError:
             return
@@ -691,8 +690,10 @@ class MyCog(commands.Cog):
     
     @commands.command()
     @is_verified()
-    async def invite(self, ctx: commands.Context, *members: nextcord.Member):
-        if not (ctx.author in self.bot.matches or 823730690058354688 in ctx.author.roles or ctx.author.id in self.bot.scrims):  # staff member role id
+    async def invite(self, ctx: commands.Context, *members_: nextcord.Member):
+        if not (ctx.author in self.bot.matches or
+                823730690058354688 in ctx.author.roles or
+                ctx.author.id in self.bot.scrims):  # staff member role id
             return
         vm = []
         nvm = []
@@ -700,7 +701,7 @@ class MyCog(commands.Cog):
             tempmatch = self.bot.matches[ctx.author]
         else:
             tempmatch = self.bot.scrims[ctx.author]
-        for member in members:
+        for member in members_:
             if 823415179177885706 in member.roles and member not in self.bot.matches:
                 vm.append(member)
                 await member.add_roles(tempmatch.role)
@@ -748,7 +749,7 @@ class MyBot(commands.Bot):
 
         self.finished_matches: List['MatchScrim'] = []
 
-        self.status: Tuple[Optional[str], Optional[str]] = (None, None)
+        self.status_: Tuple[Optional[str], Optional[str]] = (None, None)
 
         self.shutdown_datetime = get_shutdown_datetime()
 

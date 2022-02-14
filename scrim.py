@@ -671,8 +671,8 @@ class Scrim:
                 else:
                     uuid_ = await self.bot.get_user_info(player)
                     if isinstance(uuid_, self.bot.req.ERRORS):
-                        temptxt = f"Failed : " \
-                                  f"Error occurred while getting `{playername}`'s info (`{uuid_}`)"
+                        temptxt = f":x: | `{playername}` - " \
+                                  f"Error occurred while getting user info. (`{uuid_}`)"
                         desc += temptxt
                         self.write_log(temptxt+"\n")
                         continue
@@ -680,38 +680,35 @@ class Scrim:
                         id_=uuid_['uuid'])
                 if isinstance(player_recent_info, self.bot.req.ERRORS):
                     if player_recent_info.data['code'] == fixca.FixcaErrorCode.PLAYER_NO_RECORDS:
-                        temptxt = f"Failed : " \
-                                  f"`{playername}` didn't played the map"
+                        temptxt = f":x: | `{playername}` - " \
+                                  f"Didn't play the map."
                         desc += temptxt
                         self.write_log(temptxt+"\n")
                     else:
-                        temptxt = f"Failed : " \
-                                  f"Error occurred while getting `{playername}`'s recent record (`{player_recent_info}`)"
+                        temptxt = f":x: | `{playername}` - " \
+                                  f"Error occurred while getting recent record. (`{player_recent_info}`)"
                         desc += temptxt
                         self.write_log(temptxt+"\n")
                     continue
                 if player_recent_info is None:
-                    temptxt = f"Failed : " \
-                              f"`{playername}`'s recent play info can't be parsed."
+                    temptxt = f":x: | `{playername}` - " \
+                              f"Your recent play info can't be parsed."
                     desc += temptxt
                     self.write_log(temptxt+"\n")
                     continue
                 if player_recent_info['mapHash'] != self.getmaphash():
-                    temptxt = f"Failed : " \
-                              f"In `{playername}`'s recently played info, its hash is different.\n" \
-                              f"(Hash of the map : `{self.getmaphash()}` / " \
-                              f"Your hash : `{player_recent_info['mapHash']}`)"
+                    temptxt = f":x: | `{playername}` - " \
+                              f"Wrong hash.\n(Map : `{self.getmaphash()}` / You : `{player_recent_info['mapHash']}`)"
                     desc += temptxt
                     self.write_log(temptxt+"\n")
                     continue
                 modeint = modetointfunc(re.findall(r'.{1,2}', player_recent_info['modList'], re.DOTALL))
                 if self.map_mode is not None and \
                     modeint not in self.availablemode[self.map_mode]:
-                    temptxt = f"Failed : " \
-                              f"In `{playername}`'s recent play info, " \
-                              f"its mode is NOT allowed in now map mode. " \
-                              f"(Modes allowed to use in this round : `{self.availablemode[self.map_mode]}` / " \
-                              f"Your mode : `{player_recent_info['modList']} = {modeint}`)"
+                    temptxt = f":x: | `{playername}` - " \
+                              f"Not allowed mode." \
+                              f"(Allowed : `{self.availablemode[self.map_mode]}` / " \
+                              f"You : `{player_recent_info['modList']} = {modeint}`)"
                     desc += temptxt
                     self.write_log(temptxt+"\n")
                     continue
@@ -722,8 +719,7 @@ class Scrim:
                 self.score[player]['acc'] = d(self.score[player]['acc'][:-1])
                 self.score[player]['miss'] = d(self.score[player]['miss'])
                 self.score[player]['mode'] = modeint
-                temptxt = f"Success : " \
-                          f"Player `{playername}`'s score = " \
+                temptxt = f":white_check_mark: | `{playername}` = " \
                           f"{self.score[player]['score']}, {self.score[player]['acc']}%, " \
                           f"{self.score[player]['miss']} MISS(es) / " \
                           f"{self.score[player]['modList']} / {self.score[player]['rank']} rank"
