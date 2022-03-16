@@ -609,11 +609,6 @@ class MyCog(commands.Cog):
                 ))
             return
         if not userinfo['hasToken']:
-            await ctx.send(embed=nextcord.Embed(
-                title="You don't have any available token!",
-                description=f"You should make one.\nHow about reading #faq ?",
-                color=nextcord.Colour.dark_red()
-            ))
             await ctx.send(f":x: | **You don't have any available token!**\n"
                            f"Go check <#823462316300959744> and make new one.")
             return
