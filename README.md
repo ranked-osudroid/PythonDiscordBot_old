@@ -1,1 +1,1 @@
-"# friendly_bot" 
+Ranked osu!droid Discord Bot with Python
